@@ -1,0 +1,6 @@
+servers=localhost\:11211
+min_clients=5
+max_clients=100
+client_timeout=1800000
+add_clients=5
+protocol=binary

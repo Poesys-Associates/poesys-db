@@ -1,0 +1,11 @@
+com.poesys.db
+com.poesys.db.col
+com.poesys.db.connection
+com.poesys.db.dao
+com.poesys.db.dao.ddl
+com.poesys.db.dao.delete
+com.poesys.db.dao.insert
+com.poesys.db.dao.query
+com.poesys.db.dao.update
+com.poesys.db.dto
+com.poesys.db.pk
