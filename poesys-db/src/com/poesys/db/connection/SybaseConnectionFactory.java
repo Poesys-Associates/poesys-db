@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.connection;
 
@@ -52,57 +51,32 @@ public class SybaseConnectionFactory implements IConnectionFactory {
   /** Write-only JDBC database name for the Sybase JDBC driver. */
   private String database = null;
 
-  /**
-   * Set the database name to which to connect.
-   * 
-   * @param database The database name to set.
-   */
+  @Override
   public void setDatabase(String database) {
     this.database = database;
   }
 
-  /**
-   * Set the current user to which to connect
-   * 
-   * @param user the user to which to connect
-   */
+  @Override
   public void setUser(String user) {
     this.user = user;
   }
 
-  /**
-   * Set the Oracle SID of the target database
-   * 
-   * @param host the current host to which to connect
-   */
+  @Override
   public void setHost(String host) {
     this.host = host;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.IConnectionFactory#setPort(java.lang.String)
-   */
+  @Override
   public void setPort(Integer port) {
     this.port = port;
   }
 
-  /**
-   * Set the password.
-   * 
-   * @param password value to which to set the password
-   */
+  @Override
   public void setPassword(String password) {
     this.password = password;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.IConnectionFactory#getConnection(java.lang.String,
-   *      java.lang.String)
-   */
+  @Override
   public Connection getConnection(String password) throws SQLException {
     if (ds == null) {
       ds = new JtdsDataSource();
@@ -112,7 +86,7 @@ public class SybaseConnectionFactory implements IConnectionFactory {
       ds.setDatabaseName(database);
       ds.setUser(user);
     }
-    
+
     // Set the password in case it has changed.
     ds.setPassword(password);
 
@@ -124,21 +98,19 @@ public class SybaseConnectionFactory implements IConnectionFactory {
     return connection;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.IConnectionFactory#getConnection(java.lang.String,
-   *      java.lang.String)
-   */
+  @Override
   public Connection getConnection() throws SQLException {
     return getConnection(password);
   }
 
-  /* (non-Javadoc)
-   * @see com.poesys.db.IConnectionFactory#flush()
-   */
+  @Override
   public void flush() throws ConnectionException {
-    ds = null;    
+    ds = null;
+  }
+
+  @Override
+  public void close() throws ConnectionException {
+    ds = null;
   }
 
   public DBMS getDbms() {

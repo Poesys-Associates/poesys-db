@@ -233,6 +233,11 @@ public class PooledConnectionFactory implements IConnectionFactory {
     readWriteDataSource.close(true);
     readWriteDataSource = new DataSource();
   }
+  
+  @Override
+  public void close() throws ConnectionException {
+    readWriteDataSource.close(true);
+  }
 
   public DBMS getDbms() {
     return driver.getDbms();

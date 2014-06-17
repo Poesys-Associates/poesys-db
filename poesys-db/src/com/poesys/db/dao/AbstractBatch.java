@@ -79,7 +79,7 @@ public abstract class AbstractBatch<T extends IDbDto> {
           i++; // increment the counter to check the next code
         }
       }
-    } else if (codes != null && codes.length == 0) {
+    } else if (codes != null && codes.length == 0 && dtos.size() > 0) {
       // 0-length means the first object failed
       errors = appendErrorString(builder, dtos.get(0));
     }

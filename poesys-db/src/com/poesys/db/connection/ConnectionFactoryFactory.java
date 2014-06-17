@@ -355,6 +355,22 @@ public class ConnectionFactoryFactory {
   }
 
   /**
+   * Close the subsystem's factory for a DBMS.
+   * 
+   * @param subsystem the subsystem for which to close the DBMS factory
+   * @param dbms the DBMS to close
+   * @throws InvalidParametersException when the subsystem string is null or
+   *           empty
+   * @throws IOException when there is a problem reading the resource bundle
+   * @throws ConnectionException when there is a problem getting a connection
+   */
+  public static void close(String subsystem, IConnectionFactory.DBMS dbms)
+      throws InvalidParametersException, IOException, ConnectionException {
+    IConnectionFactory factory = getInstance(subsystem, dbms);
+    factory.close();
+  }
+
+  /**
    * Get the properties required to initialize the instance from the
    * database.properties file and initialize the instance. If for some reason
    * the subsystem doesn't exist in the map, the method will create an instance.

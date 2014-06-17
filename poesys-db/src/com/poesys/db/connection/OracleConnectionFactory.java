@@ -21,9 +21,9 @@ package com.poesys.db.connection;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-import org.apache.log4j.Logger;
-
 import oracle.jdbc.pool.OracleDataSource;
+
+import org.apache.log4j.Logger;
 
 
 /**
@@ -70,40 +70,23 @@ public class OracleConnectionFactory implements IConnectionFactory {
     this.host = host;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.IConnectionFactory#setPort(java.lang.String)
-   */
+  @Override
   public void setPort(Integer port) {
     this.port = port;
   }
 
-  /**
-   * Set the password.
-   * 
-   * @param password value to which to set the password
-   */
+  @Override
   public void setPassword(String password) {
     this.password = password;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.IConnectionFactory#setDatabase(java.lang.String)
-   */
+  @Override
   public void setDatabase(String database) {
     // Set the SID for the database instance.
     this.database = database;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.IConnectionFactory#getConnection(java.lang.String,
-   * java.lang.String)
-   */
+  @Override
   public Connection getConnection(String password) throws SQLException {
     if (ods == null) {
       ods = new OracleDataSource();
@@ -119,7 +102,7 @@ public class OracleConnectionFactory implements IConnectionFactory {
     ods.setPassword(password);
 
     Connection connection = ods.getConnection();
-    
+
     if (connection != null) {
       logger.debug("Acquired direct Oracle JDBC connection " + connection);
       // Set the autocommit feature off to handle transaction logic in the
@@ -130,25 +113,22 @@ public class OracleConnectionFactory implements IConnectionFactory {
     return connection;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.IConnectionFactory#getConnection(java.lang.String,
-   * java.lang.String)
-   */
+  @Override
   public Connection getConnection() throws SQLException {
     return getConnection(password);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.IConnectionFactory#flush()
-   */
+  @Override
   public void flush() throws ConnectionException {
     ods = null;
   }
 
+  @Override
+  public void close() throws ConnectionException {
+    ods = null;
+  }
+
+  @Override
   public DBMS getDbms() {
     return DBMS.ORACLE;
   }

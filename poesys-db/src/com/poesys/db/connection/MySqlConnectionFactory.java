@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.connection;
 
@@ -76,30 +75,17 @@ public class MySqlConnectionFactory implements IConnectionFactory {
     this.host = host;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.IConnectionFactory#setPort(java.lang.String)
-   */
+  @Override
   public void setPort(Integer port) {
     this.port = port;
   }
 
-  /**
-   * Set the password.
-   * 
-   * @param password value to which to set the password
-   */
+  @Override
   public void setPassword(String password) {
     this.password = password;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.IConnectionFactory#getConnection(java.lang.String,
-   *      java.lang.String)
-   */
+  @Override
   public Connection getConnection(String password) throws SQLException {
     // Create a new data source if one doesn't already exist.
     if (ds == null) {
@@ -122,30 +108,22 @@ public class MySqlConnectionFactory implements IConnectionFactory {
     return connection;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.IConnectionFactory#getConnection(java.lang.String,
-   *      java.lang.String)
-   */
+  @Override
   public Connection getConnection() throws SQLException {
     return getConnection(password);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.IConnectionFactory#flush()
-   */
+  @Override
   public void flush() throws ConnectionException {
     ds = null;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.connection.IConnectionFactory#getDbms()
-   */
+  @Override
+  public void close() throws ConnectionException {
+    ds = null;
+  };
+
+  @Override
   public DBMS getDbms() {
     return DBMS.MYSQL;
   }

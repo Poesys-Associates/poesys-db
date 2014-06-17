@@ -163,4 +163,10 @@ public interface IConnectionFactory {
    *           connections
    */
   public abstract void flush() throws ConnectionException;
+
+  /**
+   * Close the data source.
+   * @throws ConnectionException
+   */
+  void close() throws ConnectionException;
 }

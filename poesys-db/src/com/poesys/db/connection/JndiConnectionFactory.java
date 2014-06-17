@@ -167,6 +167,11 @@ public class JndiConnectionFactory implements IConnectionFactory {
   }
 
   @Override
+  public void close() throws ConnectionException {
+    ds = null;
+  };
+
+  @Override
   public DBMS getDbms() {
     return DBMS.JNDI;
   }
