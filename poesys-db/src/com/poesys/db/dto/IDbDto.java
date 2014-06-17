@@ -141,7 +141,7 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
   /**
    * Set the abstract class flag.
    * 
-   * @return
+   * @param isAbstract the value to which to set the flag
    */
   void setAbstractClass(boolean isAbstract);
 
