@@ -21,6 +21,8 @@ package com.poesys.db.connection;
 import java.sql.Connection;
 import java.sql.SQLException;
 
+import org.apache.log4j.Logger;
+
 import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 
 
@@ -30,6 +32,9 @@ import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
  * @author Robert J. Muller
  */
 public class MySqlConnectionFactory implements IConnectionFactory {
+  /** logger for this class */
+  private static final Logger logger =
+    Logger.getLogger(MySqlConnectionFactory.class);
   /** Cached data source object */
   private MysqlDataSource ds;
 
@@ -94,6 +99,8 @@ public class MySqlConnectionFactory implements IConnectionFactory {
       ds.setPort(port);
       ds.setDatabaseName(database);
       ds.setUser(user);
+      logger.debug("Created MySQL data source " + user + "@" + host + ":"
+                   + port + "/" + database);
     }
 
     // Set the password in case it has changed.
