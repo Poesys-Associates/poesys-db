@@ -78,11 +78,11 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
 
     // Query the list of objects based on the parameters.
     try {
+      logger.debug("Querying list with parameters: " + sql.getSql());
       stmt = connection.prepareStatement(sql.getSql());
       stmt.setFetchSize(rows);
-      sql.bindParameters(stmt, parameters);
-      logger.debug("Querying list with parameters: " + sql.getSql());
       logger.debug("Binding parameters: " + sql.getParameterValues(parameters));
+      sql.bindParameters(stmt, parameters);
       rs = stmt.executeQuery();
 
       // Loop through and fetch all the results, adding each to the result list.
