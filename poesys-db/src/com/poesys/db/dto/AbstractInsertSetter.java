@@ -23,7 +23,6 @@ import com.poesys.db.dto.IDbDto.Status;
  * hierarchy from the root down.
  * 
  * @author Robert J. Muller
- * @param <T> the type of IDbDto to insert
  */
 abstract public class AbstractInsertSetter extends AbstractSetter<IDbDto>
     implements ISet {

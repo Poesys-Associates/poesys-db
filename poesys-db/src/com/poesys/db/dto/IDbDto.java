@@ -272,7 +272,7 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
    * 
    * @return a list of inserter DAOs
    */
-  List<IInsert<?>> getInserters();
+  List<IInsert<? extends IDbDto>> getInserters();
 
   /**
    * Preprocess all the nested objects registered with the DTO. If the factory

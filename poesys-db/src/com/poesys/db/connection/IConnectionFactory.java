@@ -166,7 +166,7 @@ public interface IConnectionFactory {
 
   /**
    * Close the data source.
-   * @throws ConnectionException
+   * @throws ConnectionException when there is a problem closing the connection
    */
   void close() throws ConnectionException;
 }

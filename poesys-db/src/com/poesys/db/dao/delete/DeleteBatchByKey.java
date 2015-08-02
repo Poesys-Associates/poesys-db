@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
 import com.poesys.db.BatchException;
 import com.poesys.db.NoPrimaryKeyException;
 import com.poesys.db.dao.AbstractBatch;
@@ -62,6 +64,7 @@ import com.poesys.db.pk.IPrimaryKey;
  */
 public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
     implements IDeleteBatch<T> {
+  private static final Logger logger = Logger.getLogger(DeleteBatchByKey.class);
   /** The Strategy-pattern object for the SQL statement */
   IDeleteSql<T> sql;
   /** Error message when no primary key supplied */
@@ -125,14 +128,17 @@ public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
              * and prepare it. The statement will track the batch and send it to
              * the database when the size is reached.
              */
+            String sqlStmt = sql.getSql(key).toString();
             if (stmt == null) {
-              stmt = connection.prepareStatement(sql.getSql(key).toString());
+              stmt = connection.prepareStatement(sqlStmt);
             }
             // Set the updating fields first, then the key in the WHERE clause.
             sql.setParams(stmt, 1, dto);
             stmt.addBatch();
             // Add the DTO to the current batch list for error processing.
             list.add(dto);
+            logger.debug("Adding delete to batch with key " + key);
+            logger.debug("SQL: " + sqlStmt);
             if (count == size) {
               // end of batch, execute
               try {
@@ -147,7 +153,11 @@ public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
               count = 0;
               list.clear();
             }
+          } else {
+            logger.debug("Object marked as cascaded delete, clearing cache but no database delete: "
+                         + dto.getPrimaryKey().getValueList());
           }
+
         }
       } finally {
         // Execute the last batch, if any.
@@ -193,8 +203,8 @@ public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
   }
 
   /**
-   * Post-process the nested objects of the DTO. Override this method to
-   * add things to post processing, such as a memcached session ID.
+   * Post-process the nested objects of the DTO. Override this method to add
+   * things to post processing, such as a memcached session ID.
    * 
    * @param connection the connection with which to process
    * @param dto the DTO containing the nested objects

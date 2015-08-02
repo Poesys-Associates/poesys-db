@@ -186,7 +186,7 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
   }
 
   @Override
-  public List<IInsert<?>> getInserters() {
+  public List<IInsert<? extends IDbDto>> getInserters() {
     return dto.getInserters();
   }
 

@@ -131,7 +131,6 @@ public class PrimaryKeyFactory {
    * 
    * @param name the name of the single key column
    * @param uuid the Java UUID
-   * @param guidString the string representation of the GUID
    * @param className the name of the IDbDto class of the object that the
    *          primary key identifies
    * @return the GUID primary key
