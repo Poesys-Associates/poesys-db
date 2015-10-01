@@ -156,8 +156,10 @@ public class PrimaryKeyFactoryTest extends ConnectionTest {
     } catch (ClassCastException e) {
       fail("Did not create MySQL sequence key");
     } finally {
-      conn.commit();
-      conn.close();
+      if (conn != null) {
+        conn.commit();
+        conn.close();
+      }
     }
     assertTrue(key != null);
     assertTrue(key.getSqlColumnList("").equalsIgnoreCase("test_id"));

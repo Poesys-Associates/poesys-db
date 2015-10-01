@@ -274,7 +274,7 @@ public abstract class AbstractDto implements IDbDto {
     } else if (status == Status.CASCADE_DELETED) {
       // do nothing, it's already CASCADE_DELETED
     } else {
-      throw new DtoStatusException(CANNOT_DELETE_MSG);
+      throw new DtoStatusException(CANNOT_DELETE_MSG + " status " + status);
     }
   }
 

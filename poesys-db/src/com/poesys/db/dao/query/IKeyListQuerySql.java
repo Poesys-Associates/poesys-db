@@ -92,7 +92,6 @@ public interface IKeyListQuerySql<T extends IDbDto> {
    * Bind the key values into the SQL statement.
    * 
    * @param stmt the prepared statement into which to bind the parameter values
-   * @param parameters a DTO containing the parameter values
    * @throws SQLException when there is a bind error
    */
   void bindKeys(PreparedStatement stmt) throws SQLException;

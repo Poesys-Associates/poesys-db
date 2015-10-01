@@ -23,7 +23,6 @@ import com.poesys.db.dto.IDbDto.Status;
  * hierarchy from the root down.
  * 
  * @author Robert J. Muller
- * @param <T> the type of IDbDto to insert
  */
 abstract public class AbstractInsertSetter extends AbstractSetter<IDbDto>
     implements ISet {
@@ -50,16 +49,18 @@ abstract public class AbstractInsertSetter extends AbstractSetter<IDbDto>
         for (IDbDto dto : getDtos()) {
           // Only attempt an insert if the object is there and needs to be
           // inserted!
-          if (dto != null
-              && !dto.isProcessed()
+          if (dto != null && !dto.isProcessed()
               && dto.getStatus() == IDbDto.Status.NEW) {
             // Insert class portions of object from root to leaf.
             if (dto.getInserters() != null) {
               // Suppress further nested inserts until the last insert.
               int i = 0;
               int last = dto.getInserters().size() - 1;
+              // If only 1, last will be 0. Process in that case.
               boolean savedSuppress = dto.isSuppressNestedInserts();
-              dto.setSuppressNestedInserts(true);
+              if (last > 0) {
+                dto.setSuppressNestedInserts(true);
+              }
               for (IInsert<? extends IDbDto> dao : dto.getInserters()) {
                 dao.insert(connection, dto);
                 i++;

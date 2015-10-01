@@ -42,8 +42,6 @@ import com.poesys.db.dto.IDbDto;
  * 
  * @author Robert J. Muller
  * @param <T> the type of IDbDto to query
- * @param <S> the type of IDbDto that contains the parameters
- * @param <C> the collection type of the set of queried DTOs
  */
 public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
   /** Logger for debugging */
