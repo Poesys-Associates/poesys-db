@@ -160,15 +160,9 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
         if (count > 0 && stmt != null) {
           try {
             codes = stmt.executeBatch();
-            if (isLeaf()) {
-              setProcessed(list);
-            }
           } catch (BatchUpdateException e) {
             codes = e.getUpdateCounts();
             builder.append(e.getMessage() + ": ");
-            if (isLeaf()) {
-              setProcessed(list);
-            }
             hasErrors = processErrors(codes, list, builder);
           }
         }
@@ -194,6 +188,14 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
             && (dto.getStatus() == IDbDto.Status.CHANGED || dto.getStatus() == IDbDto.Status.EXISTING)) {
           postprocess(connection, dto);
         }
+      }
+
+      /*
+       * For leaf classes in the inheritance hierarchy, set the processed flag on here
+       * to prevent any further processing of the DTO.
+       */
+      if (isLeaf()) {
+        setProcessed(list);
       }
 
       // If there are errors, throw a batch exception.

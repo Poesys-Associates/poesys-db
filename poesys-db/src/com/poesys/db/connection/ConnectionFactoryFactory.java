@@ -24,6 +24,10 @@ import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.TreeMap;
 
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.sql.DataSource;
+
 import com.poesys.db.InvalidParametersException;
 
 
@@ -411,6 +415,29 @@ public class ConnectionFactoryFactory {
         }
       }
     }
+  }
+
+  /**
+   * Determine whether the JNDI name is available. You can use this method to
+   * decide whether to use a JNDI delegate or a JDBC delegate.
+   *
+   * @param subsystem the subsystem
+   * @return true if the subsystem JNDI name is operational, false if not
+   */
+  public static boolean isJndi(String subsystem) {
+    boolean jndi = false;
+    DataSource ds = null;
+    String name = properties.getString(subsystem + NAME);
+    try {
+      InitialContext context = new InitialContext();
+      ds = (DataSource)context.lookup(name);
+      if (ds != null) {
+        jndi = true;
+      }
+    } catch (NamingException e) {
+      // no JNDI, use false
+    }
+    return jndi;
   }
 
   /**
