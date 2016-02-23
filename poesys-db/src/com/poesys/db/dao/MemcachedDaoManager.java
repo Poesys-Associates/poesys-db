@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Poesys Associates. All rights reserved.
+ * Copyright (c) 2011, 2016 Poesys Associates. All rights reserved.
  * 
  * This file is part of Poesys-DB.
  * 
@@ -20,21 +20,18 @@ package com.poesys.db.dao;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import net.rubyeye.xmemcached.MemcachedClient;
-import net.rubyeye.xmemcached.MemcachedClientBuilder;
-import net.rubyeye.xmemcached.XMemcachedClientBuilder;
-import net.rubyeye.xmemcached.command.BinaryCommandFactory;
-import net.rubyeye.xmemcached.command.TextCommandFactory;
-import net.rubyeye.xmemcached.exception.MemcachedException;
-import net.rubyeye.xmemcached.impl.KetamaMemcachedSessionLocator;
-import net.rubyeye.xmemcached.utils.AddrUtil;
+import net.spy.memcached.BinaryConnectionFactory;
+import net.spy.memcached.MemcachedClient;
 
 import org.apache.log4j.Logger;
 
@@ -49,9 +46,9 @@ import com.poesys.db.pk.IPrimaryKey;
  * <p>
  * A singleton object that manages data access objects in the system. This
  * implementation of the DAO Manager enables the use of memcached, a distributed
- * cache system. This class contains the actual calls to the xmemcached Java
+ * cache system. This class contains the actual calls to the spymemcached Java
  * memcached client, implementing the Bridge design pattern to wrap the
- * xmemcached API. It also contains the DTO registry that contains the
+ * spymemcached API. It also contains the DTO registry that contains the
  * de-serialized Java objects currently being retrieved. This registry prevents
  * infinite loops and object duplication during serialization of nested object
  * hierarchies by checking the registry for objects before getting them from the
@@ -69,17 +66,16 @@ import com.poesys.db.pk.IPrimaryKey;
  * there, you will get it from the ultimate source, the database. </strong>
  * </p>
  * <p>
- * Originally the cache access methods were synchronized. I have removed the
- * synchronization to see if it solves our concurrency problem. There really
- * isn't any reason for synchronization in the methods, as the data is stored
- * in threadsafe data structures and is mostly read only. I may need to reanalyze
- * this as time goes on :) .
+ * Note that no methods are synchronized, as most cached objects are stored in
+ * threadsafe data structures or are used and disposed of in the same method
+ * with no opportunity for concurrent access.
  * </p>
  * 
  * @author Robert J. Muller
  * @see DaoMemcachedFactory
  */
 public final class MemcachedDaoManager implements IDaoManager {
+
   /** Logger for debugging */
   private static final Logger logger =
     Logger.getLogger(MemcachedDaoManager.class);
@@ -102,42 +98,47 @@ public final class MemcachedDaoManager implements IDaoManager {
 
   // Error messages from the Poesys resource bundle.
 
-  /** Error message resource for the memcached-io-error error message */
   private static final String MEMCACHED_IO =
     "com.poesys.db.dao.query.msg.memcached_io";
-
-  /** Error message resource for the memcached-error error message */
-  private static final String MEMCACHED_GET =
-    "com.poesys.db.dao.query.msg.memcached_get";
-
-  /** Error message resource for the memcached-timeout error message */
-  private static final String MEMCACHED_TIMEOUT =
-    "com.poesys.db.dao.query.msg.memcached_timeout";
-
-  /** Error message resource for the memcached-interrupt error message */
-  private static final String MEMCACHED_INTERRUPT =
-    "com.poesys.db.dao.query.msg.memcached_interrupt";
-
-  /** Error message resource for failed attempt to get xmemcached client */
+  private static final String INVALID_PORT =
+    "com.poesys.db.dao.query.msg.memcached_invalid_port";
+  private static final String MEMCACHED_QUEUE_FULL =
+    "com.poesys.db.dao.query.msg.memcached_queue_full";
   private static final String MEMCACHED_CLIENT =
     "com.poesys.db.dao.query.msg.memcached_client";
-
   /** Error message resource for failed attempt to set protocol */
   private static final String MEMCACHED_UNKNOWN_PROTOCOL =
     "com.poesys.db.dao.query.msg.memcached_unknown_protocol";
+  private static final String MEMCACHED_GET_ERROR =
+    "com.poesys.db.dao.query.msg.memcached_get";
+  private static final String TIMEOUT_MSG =
+    "com.poesys.db.dao.query.msg.memcached_timeout";
+  private static final String STATS_COMPLETE =
+    "com.poesys.db.dao.query.msg.memcached_stats_complete";
+  private static final Object STATS_ERROR =
+    "com.poesys.db.dao.query.msg.memcached_stats_error";
+
+  // Memcached options from property file
 
   /** Memcached configuration property servers */
   private static final String MEMCACHED_PROP_SERVERS = "servers";
-  /** Memcached configuration property minimum clients */
-  private static final String MEMCACHED_PROP_MIN_CLIENTS = "min_clients";
   /** Memcached configuration property protocol */
   private static final String MEMCACHED_PROP_PROTOCOL = "protocol";
-  /** Memcached configuration property protocol */
-  private static final String MEMCACHED_PROP_TIMEOUT = "timeout";
+  /** Memcached configuration property for client get timeout */
+  private static final String MEMCACHED_PROP_TIMEOUT = "client_timeout";
+  /** Memcached configuration property for retries after client get timeout */
+  private static final String MEMCACHED_PROP_RETRIES = "client_retries";
   /** Memcached configuration value binary protocol */
   private static final String BINARY = "binary";
   /** Memcached configuration value text protocol */
   private static final String TEXT = "text";
+
+  /* Memcached configuration value for 5-second timeout retries */
+  private static final int TIMEOUT =
+    new Integer(properties.getString(MEMCACHED_PROP_TIMEOUT));
+  /* Memcached configuration value for 5-second timeout retries */
+  private static final int TIMEOUT_RETRIES =
+    new Integer(properties.getString(MEMCACHED_PROP_RETRIES));
 
   /**
    * Disable the default constructor.
@@ -169,122 +170,63 @@ public final class MemcachedDaoManager implements IDaoManager {
   }
 
   /**
-   * Get a xmemcached client from the client pool. If there are no clients
-   * available, the pool manager will throw a database exception.
+   * Get a spymemcached client. The client will be a text or binary client
+   * depending on the protocol property in the property file.
    * 
-   * @return an xmemcached client
-   * @throws IOException when there is a problem creating an xmemcached client
-   * @throws DbErrorException when the client pool is exhausted
-   * @throws MemcachedException when the properties file specifies an unknown
-   *           protocol (binary or text are the possible values)
+   * @return a spymemcached client
+   * @throws IOException when there is a problem creating a spymemcached client
    */
-  private MemcachedClient getClient() throws DbErrorException, IOException,
-      MemcachedException {
-    // If client singleton not yet built, build it. Use xmemcached internal
-    // connection pool to minimize clients and solve too-many-open-files
-    // problem. Use the optimized hash-based Ketama session locator as well.
+  private MemcachedClient getClient() throws IOException {
+    List<InetSocketAddress> sockets = getSockets();
+
+    // If client singleton not yet built, build it.
     if (client == null) {
-      String servers = properties.getString(MEMCACHED_PROP_SERVERS);
-      MemcachedClientBuilder builder =
-        new XMemcachedClientBuilder(AddrUtil.getAddresses(servers));
-      Integer poolSize =
-        new Integer(properties.getString(MEMCACHED_PROP_MIN_CLIENTS));
       String protocol = properties.getString(MEMCACHED_PROP_PROTOCOL);
       if (BINARY.equalsIgnoreCase(protocol)) {
-        builder.setCommandFactory(new BinaryCommandFactory());
+        client = new MemcachedClient(new BinaryConnectionFactory(), sockets);
       } else if (TEXT.equalsIgnoreCase(protocol)) {
-        builder.setCommandFactory(new TextCommandFactory());
+        client = new MemcachedClient(sockets);
       } else {
         Object[] args = new Object[1];
         args[0] = protocol;
         String msg = Message.getMessage(MEMCACHED_UNKNOWN_PROTOCOL, args);
-        throw new MemcachedException(msg);
+        throw new DbErrorException(msg);
       }
-      builder.setConnectionPoolSize(poolSize);
-      builder.setSessionLocator(new KetamaMemcachedSessionLocator());
-
-      client = builder.build();
-      // Set timeout of operations to a millisecond value.
-      long opTimeout = new Long(properties.getString(MEMCACHED_PROP_TIMEOUT));
-      client.setOpTimeout(opTimeout);
+      if (client == null) {
+        throw new DbErrorException(MEMCACHED_CLIENT);
+      }
     }
 
-    checkClient(client);
     return client;
   }
 
   /**
-   * Check that the client exists and throw an appropriate runtime exception if
-   * not.
-   * 
-   * @param client the client to check
+   * Get the hostname/port combinations for the sockets to which the client will
+   * connect. The sockets are in a single property string in the format
+   * <hostname>:<port>,... where <hostname> is a valid authority (domain or IP
+   * address) and <port> is an integer between 0 and 65,535.
+   *
+   * @return a list of Internet Socket Address objects
    */
-  private void checkClient(MemcachedClient client) {
-    if (client == null) {
-      DbErrorException e1 = new DbErrorException(MEMCACHED_CLIENT);
-      throw e1;
-    }
-  }
-
-  /**
-   * Release a client back to the client pool. This makes the memcached
-   * connection available for use by other tasks.
-   * 
-   * @param client the client to release.
-   */
-  private void releaseClient(MemcachedClient client) {
-    // Does nothing, no external connection pool used
-  }
-
-  @Override
-  public synchronized void logMetaData() {
-    MemcachedClient memcachedClient = null;
-    try {
-      memcachedClient = getClient();
-    } catch (IOException e) {
-      DbErrorException e1 = new DbErrorException(MEMCACHED_IO, e);
-      throw e1;
-    } catch (MemcachedException e) {
-      DbErrorException e1 = new DbErrorException(e.getMessage(), e);
-      throw e1;
-    }
-
-    Map<InetSocketAddress, Map<String, String>> stats;
-    try {
-      stats = memcachedClient.getStats();
-      for (InetSocketAddress address : stats.keySet()) {
-        logger.info("Statistics for server address "
-                    + address.getHostName()
-                    + ":"
-                    + address.getPort()
-                    + ":");
-        Map<String, String> statMap = stats.get(address);
-        for (String stat : statMap.keySet()) {
-          logger.info(stat + ":" + statMap.get(stat));
+  private List<InetSocketAddress> getSockets() {
+    List<InetSocketAddress> addresses = new ArrayList<InetSocketAddress>();
+    String[] sockets = properties.getString(MEMCACHED_PROP_SERVERS).split(",");
+    for (String socket : sockets) {
+      String[] parts = socket.split(":");
+      if (parts.length == 2 && !parts[0].isEmpty() && !parts[1].isEmpty()) {
+        // server and port both present, go ahead with creating socket
+        try {
+          addresses.add(new InetSocketAddress(parts[0], new Integer(parts[1])));
+        } catch (NumberFormatException e) {
+          List<String> errors = new ArrayList<String>(1);
+          errors.add(parts[1]);
+          DbErrorException e1 = new DbErrorException(INVALID_PORT, e);
+          e1.setParameters(errors);
+          throw e1;
         }
-        logger.info("Statistics complete for server address "
-                    + address.getHostName()
-                    + ":"
-                    + address.getPort());
       }
-    } catch (MemcachedException e) {
-      List<String> errors = new ArrayList<String>(1);
-      errors.add("None");
-      DbErrorException e1 = new DbErrorException(MEMCACHED_GET, e);
-      e1.setParameters(errors);
-      throw e1;
-    } catch (InterruptedException e) {
-      // log and ignore
-      String[] args = new String[1];
-      args[0] = "None";
-      logger.warn(Message.getMessage(MEMCACHED_INTERRUPT, args));
-    } catch (TimeoutException e) {
-      List<String> errors = new ArrayList<String>(1);
-      errors.add("None");
-      DbErrorException e1 = new DbErrorException(MEMCACHED_TIMEOUT, e);
-      e1.setParameters(errors);
-      throw e1;
     }
+    return null;
   }
 
   @Override
@@ -296,8 +238,7 @@ public final class MemcachedDaoManager implements IDaoManager {
 
   @Override
   public void clearCache(String name) {
-    // TODO Clear objects beginning with the name
-    // Memcached does not allow cache clearing, just clear temp cache
+    // Memcached does not support cache clearing, just clear temp cache
     clearTemporaryCaches();
   }
 
@@ -313,9 +254,10 @@ public final class MemcachedDaoManager implements IDaoManager {
     return null;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public <T extends IDbDto> T getCachedObject(IPrimaryKey key) {
-    MemcachedClient memcachedClient = null;
+    MemcachedClient client = null;
     T object = null;
 
     try {
@@ -324,41 +266,39 @@ public final class MemcachedDaoManager implements IDaoManager {
       if (object == null) {
         // Not previously de-serialized, get it from the cache.
         logger.debug("Getting object " + key.getStringKey() + " from the cache");
-        memcachedClient = getClient();
-        object = memcachedClient.get(key.getStringKey(), 3000);
+        client = getClient();
+
+        // Get the object asynchronously to handle the server being unavailable.
+        Future<Object> future = client.asyncGet(key.getStringKey());
+        int retries = TIMEOUT_RETRIES;
+        while (retries > 0) {
+          try {
+            object = (T)future.get(TIMEOUT, TimeUnit.SECONDS);
+          } catch (TimeoutException e) {
+            Object[] args = new Object[1];
+            args[0] = key.getStringKey();
+            logger.debug(Message.getMessage(TIMEOUT_MSG, args));
+            future.cancel(true);
+            retries--;
+          } catch (Exception e) {
+            // InterruptedException, ExecutionException, or RuntimeException
+            Object[] args = new Object[1];
+            args[0] = key.getStringKey();
+            logger.error(Message.getMessage(MEMCACHED_GET_ERROR, args));
+            future.cancel(true);
+            throw new DbErrorException(Message.getMessage(MEMCACHED_GET_ERROR, args));
+          }
+        }
+
         if (object != null) {
-          logger.debug("Retrieved object "
-                       + key.getStringKey()
+          logger.debug("Retrieved object " + key.getStringKey()
                        + " from the cache");
         } else {
           logger.debug("No object " + key.getStringKey() + " in the cache");
         }
       }
     } catch (IOException e) {
-      DbErrorException e1 = new DbErrorException(MEMCACHED_IO, e);
-      throw e1;
-    } catch (MemcachedException e) {
-      List<String> errors = new ArrayList<String>(1);
-      errors.add(key.getStringKey());
-      DbErrorException e1 = new DbErrorException(MEMCACHED_GET, e);
-      e1.setParameters(errors);
-      logger.error(Message.getMessage(MEMCACHED_GET, errors.toArray()), e);
-      throw e1;
-    } catch (TimeoutException e) {
-      List<String> errors = new ArrayList<String>(1);
-      errors.add(key.getStringKey());
-      DbErrorException e1 = new DbErrorException(MEMCACHED_TIMEOUT, e);
-      e1.setParameters(errors);
-      throw e1;
-    } catch (InterruptedException e) {
-      // log and ignore
-      String[] args = new String[1];
-      args[0] = key.getStringKey();
-      logger.warn(Message.getMessage(MEMCACHED_INTERRUPT, args));
-    } finally {
-      if (memcachedClient != null) {
-        releaseClient(memcachedClient);
-      }
+      throw new DbErrorException(MEMCACHED_IO, e);
     }
 
     return object;
@@ -366,63 +306,37 @@ public final class MemcachedDaoManager implements IDaoManager {
 
   @Override
   public <T extends IDbDto> void putObjectInCache(String cacheName,
-                                                               int expireTime,
-                                                               T object) {
+                                                  int expireTime, T object) {
 
-    MemcachedClient memcachedClient = null;
+    MemcachedClient client = null;
     try {
-      memcachedClient = getClient();
+      client = getClient();
     } catch (IOException e) {
-      DbErrorException e1 = new DbErrorException(MEMCACHED_IO, e);
-      throw e1;
-    } catch (MemcachedException e) {
-      DbErrorException e1 = new DbErrorException(e.getMessage(), e);
-      throw e1;
+      throw new DbErrorException(MEMCACHED_IO, e);
     }
 
     try {
       String key = object.getPrimaryKey().getStringKey();
-      memcachedClient.set(key, expireTime, object);
-      logger.debug("Cached object \""
-                   + key
-                   + "\" of type "
-                   + object.getClass().getName()
-                   + " with expiration time "
-                   + expireTime
-                   + "ms");
-    } catch (TimeoutException e) {
+      client.set(key, expireTime, object);
+      logger.debug("Cached object \"" + key + "\" of type "
+                   + object.getClass().getName() + " with expiration time "
+                   + expireTime + "ms");
+    } catch (IllegalStateException e) {
       List<String> errors = new ArrayList<String>(1);
       errors.add(object.getPrimaryKey().getStringKey());
-      DbErrorException e1 = new DbErrorException(MEMCACHED_TIMEOUT, e);
+      DbErrorException e1 = new DbErrorException(MEMCACHED_QUEUE_FULL, e);
       e1.setParameters(errors);
       throw e1;
-    } catch (InterruptedException e) {
-      // log and ignore
-      String[] args = new String[1];
-      args[0] = object.getPrimaryKey().getStringKey();
-      logger.warn(Message.getMessage(MEMCACHED_INTERRUPT, args));
-    } catch (MemcachedException e) {
-      List<String> errors = new ArrayList<String>(1);
-      errors.add(object.getPrimaryKey().getStringKey());
-      DbErrorException e1 = new DbErrorException(MEMCACHED_GET, e);
-      e1.setParameters(errors);
-      throw e1;
-    } finally {
-      releaseClient(memcachedClient);
     }
   }
 
   @Override
-  public void removeObjectFromCache(String cacheName,
-                                                 IPrimaryKey key) {
+  public void removeObjectFromCache(String cacheName, IPrimaryKey key) {
     MemcachedClient memcachedClient = null;
     try {
       memcachedClient = getClient();
     } catch (IOException e) {
       DbErrorException e1 = new DbErrorException(MEMCACHED_IO, e);
-      throw e1;
-    } catch (MemcachedException e) {
-      DbErrorException e1 = new DbErrorException(e.getMessage(), e);
       throw e1;
     }
 
@@ -433,21 +347,14 @@ public final class MemcachedDaoManager implements IDaoManager {
     }
 
     try {
-      memcachedClient.deleteWithNoReply(key.getStringKey());
+      // asynch, object may get deleted after delay
+      memcachedClient.delete(key.getStringKey());
       logger.debug("Removed cached object " + key.getStringKey());
-    } catch (InterruptedException e) {
+    } catch (IllegalStateException e) {
       // log and ignore
       String[] args = new String[1];
       args[0] = key.getStringKey();
-      logger.warn(Message.getMessage(MEMCACHED_INTERRUPT, args));
-    } catch (MemcachedException e) {
-      List<String> errors = new ArrayList<String>(1);
-      errors.add(key.getStringKey());
-      DbErrorException e1 = new DbErrorException(MEMCACHED_GET, e);
-      e1.setParameters(errors);
-      throw e1;
-    } finally {
-      releaseClient(memcachedClient);
+      logger.warn(Message.getMessage(MEMCACHED_QUEUE_FULL, args));
     }
   }
 
@@ -461,7 +368,34 @@ public final class MemcachedDaoManager implements IDaoManager {
   public void clearAllCaches() {
     // Clear the temp caches.
     clearTemporaryCaches();
-    // Note: memcached does not support clearing the cache.
-    // You need to restart the individual servers, then restart the app.
+    // Note: memcached does not support clearing a set of objects from the
+    // cache. You need to restart the individual servers, then restart the app.
+  }
+
+  @Override
+  public void logMetaData() {
+    MemcachedClient memcachedClient = null;
+    try {
+      memcachedClient = getClient();
+    } catch (IOException e) {
+      throw new DbErrorException(MEMCACHED_IO, e);
+    }
+
+    Map<SocketAddress, Map<String, String>> stats;
+    try {
+      stats = memcachedClient.getStats();
+      for (SocketAddress address : stats.keySet()) {
+        Map<String, String> statMap = stats.get(address);
+        for (String stat : statMap.keySet()) {
+          logger.info(stat + ":" + statMap.get(stat));
+        }
+        String[] args = new String[1];
+        args[0] = new Integer(address.hashCode()).toString();
+        logger.info(Message.getMessage(STATS_COMPLETE, args));
+      }
+    } catch (Exception e) {
+      // log and ignore
+      logger.warn(STATS_ERROR, e);
+    }
   }
 }
