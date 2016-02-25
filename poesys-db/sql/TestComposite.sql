@@ -29,6 +29,6 @@ CREATE TABLE Child
    child_number decimal(12) NOT NULL,
    col1 varchar(10),
    CONSTRAINT Ch_PK PRIMARY KEY (parent_id, child_number),
-   CONSTRAINT Pr_Ch_FK FOREIGN KEY (parent_id)  REFERENCES Parent ON DELETE CASCADE
+   CONSTRAINT Pr_Ch_FK FOREIGN KEY (parent_id)  REFERENCES Parent (parent_id) ON DELETE CASCADE
 )
 ENGINE=InnoDB DEFAULT CHARSET=utf8;

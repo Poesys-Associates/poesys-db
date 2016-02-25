@@ -21,4 +21,4 @@
    key2 varchar(10) NOT NULL,
    col1 numeric(40,20),
    PRIMARY KEY (key1, key2)
-   ) TYPE=InnoDB;
+   ) ENGINE=InnoDB;

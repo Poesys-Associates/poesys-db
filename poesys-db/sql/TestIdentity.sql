@@ -18,4 +18,4 @@
  */
 CREATE TABLE TestIdentity (
    pkey BIGINT AUTO_INCREMENT  PRIMARY KEY,
-   col1 varchar(10)  ) TYPE=InnoDB;
+   col1 varchar(10)  ) ENGINE=InnoDB;

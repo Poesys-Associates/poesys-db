@@ -16,9 +16,9 @@
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
  * 
  */
-CREATE TABLE mysql_sequence(name varchar(30), value decimal(12)) type=InnoDB;
+CREATE TABLE mysql_sequence(name varchar(30), value decimal(12)) engine=InnoDB;
 INSERT INTO mysql_sequence VALUES ('test', 0);
 
 CREATE TABLE TestSequence (
    pkey decimal(12) NOT NULL  PRIMARY KEY,
-   col1 varchar(10)  ) type=InnoDB;
+   col1 varchar(10)  ) engine=InnoDB;
