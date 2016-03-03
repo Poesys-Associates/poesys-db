@@ -69,17 +69,15 @@ public class InsertTestIdentityTest extends ConnectionTest {
     String col1 = "test";
     TestIdentity dto = new TestIdentity(key, null, col1);
 
-    Statement stmt = null;
     PreparedStatement query = null;
 
     try {
       // Insert the test row.
-      stmt = conn.createStatement();
       cut.insert(conn, dto);
       conn.commit();
 
       // Set the key value into the query as an argument.
-      query = conn.prepareStatement(QUERY);
+      query = conn.prepareStatement(QUERY, Statement.RETURN_GENERATED_KEYS);
       key.setParams(query, 1);
 
       // Query the row.
@@ -94,8 +92,8 @@ public class InsertTestIdentityTest extends ConnectionTest {
     } catch (SQLException e) {
       fail("insert method failed: " + e.getMessage());
     } finally {
-      if (stmt != null) {
-        stmt.close();
+      if (query != null) {
+        query.close();
       }
       if (conn != null) {
         conn.close();

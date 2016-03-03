@@ -72,11 +72,6 @@ public class UpdateWithParametersTest extends ConnectionTest {
       throw new RuntimeException("Connect failed: " + e.getMessage(), e);
     }
 
-    // Clear the test table.
-    Statement delStmt = conn.createStatement();
-    delStmt.execute("DELETE FROM TestMultiple");
-    delStmt.close();
-
     // Insert test rows that create a set of multiple rows identified by a
     // single value of the colType column, 'b'.
     PreparedStatement stmt = conn.prepareStatement(INSERT);

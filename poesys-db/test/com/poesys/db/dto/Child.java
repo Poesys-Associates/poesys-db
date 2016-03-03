@@ -21,7 +21,6 @@ package com.poesys.db.dto;
 import java.math.BigInteger;
 
 import com.poesys.db.pk.CompositePrimaryKey;
-import com.poesys.db.pk.IPrimaryKey;
 
 
 /**
@@ -36,8 +35,7 @@ import com.poesys.db.pk.IPrimaryKey;
 public class Child extends AbstractTestDto {
   /** Generated serial version UID for Serializable object */
   private static final long serialVersionUID = 8707036032449312170L;
-  /** Composite primary key for the child */
-  private final CompositePrimaryKey pkey;
+
   /**
    * Ordered subkey value; allows direct access to the value and changing the
    * value without changing the primary key.
@@ -56,20 +54,15 @@ public class Child extends AbstractTestDto {
    */
   public Child(CompositePrimaryKey key, BigInteger childNumber, String col1) {
     // No setters or constraints for this class
-    pkey = key;
+    this.key = key;
     // duplicate child number for display outside primary key
     this.childNumber = childNumber;
     this.col1 = col1;
   }
 
   @Override
-  public IPrimaryKey getPrimaryKey() {
-    return pkey;
-  }
-
-  @Override
   public int compareTo(IDbDto arg0) {
-    int retVal = pkey.compareTo(arg0.getPrimaryKey());
+    int retVal = key.compareTo(arg0.getPrimaryKey());
     if (retVal == 0) {
       retVal = col1.compareTo(((Child)arg0).col1);
     }
@@ -83,7 +76,7 @@ public class Child extends AbstractTestDto {
 
   @Override
   public int hashCode() {
-    return pkey.hashCode();
+    return key.hashCode();
   }
 
   /**

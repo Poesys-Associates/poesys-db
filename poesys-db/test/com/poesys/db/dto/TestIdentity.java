@@ -46,9 +46,6 @@ public class TestIdentity extends AbstractTestDto {
   /** Generated serial version UID for Serializable object */
   private static final long serialVersionUID = -1668228497511041897L;
 
-  /** The identity primary key for the object */
-  private final IdentityPrimaryKey key;
-
   /** The primary key value attribute for the object */
   private BigInteger id;
 

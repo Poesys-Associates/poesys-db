@@ -100,7 +100,8 @@ public interface IDaoManager {
   /**
    * Get an object identified by a primary key out of a named cache. The object
    * may be of any type. The cache name is optional for caching systems that do
-   * not have separate caches for each class.
+   * not have separate caches for each class. This method does not reset the
+   * expire time for the object in the cache.
    * 
    * @param <T> the type of object to look up
    * @param key the unique identifier of the object you want to retrieve; also
@@ -108,6 +109,20 @@ public interface IDaoManager {
    * @return the object
    */
   <T extends IDbDto> T getCachedObject(IPrimaryKey key);
+
+  /**
+   * Get an object identified by a primary key out of a named cache. The object
+   * may be of any type. The cache name is optional for caching systems that do
+   * not have separate caches for each class. This method sets the expire
+   * time to the amount specified, so that accessed objects stay in the cache.
+   * 
+   * @param <T> the type of object to look up
+   * @param key the unique identifier of the object you want to retrieve; also
+   *          contains the cache name for in-memory cache lookup
+   * @param expireTime the milliseconds until the object expires from the cache
+   * @return the object
+   */
+  <T extends IDbDto> T getCachedObject(IPrimaryKey key, int expireTime);
 
   /**
    * Put an object into a named cache. The object may be of any type. The cache

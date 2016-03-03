@@ -21,6 +21,7 @@ package com.poesys.db.dao.insert;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import org.apache.log4j.Logger;
 
@@ -97,7 +98,7 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
           throw new InvalidParametersException(NO_KEY_MSG);
         }
 
-        stmt = connection.prepareStatement(sql.getSql(key));
+        stmt = connection.prepareStatement(sql.getSql(key), Statement.RETURN_GENERATED_KEYS);
         int next = key.setInsertParams(stmt, 1);
         sql.setParams(stmt, next, (T)dto);
         // Log the insert.

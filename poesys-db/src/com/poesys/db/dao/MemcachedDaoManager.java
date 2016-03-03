@@ -31,6 +31,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import net.spy.memcached.BinaryConnectionFactory;
+import net.spy.memcached.ClientMode;
+import net.spy.memcached.DefaultConnectionFactory;
 import net.spy.memcached.MemcachedClient;
 
 import org.apache.log4j.Logger;
@@ -183,9 +185,9 @@ public final class MemcachedDaoManager implements IDaoManager {
     if (client == null) {
       String protocol = properties.getString(MEMCACHED_PROP_PROTOCOL);
       if (BINARY.equalsIgnoreCase(protocol)) {
-        client = new MemcachedClient(new BinaryConnectionFactory(), sockets);
+        client = new MemcachedClient(new BinaryConnectionFactory(ClientMode.Static), sockets);
       } else if (TEXT.equalsIgnoreCase(protocol)) {
-        client = new MemcachedClient(sockets);
+        client = new MemcachedClient(new DefaultConnectionFactory(ClientMode.Static), sockets);
       } else {
         Object[] args = new Object[1];
         args[0] = protocol;
@@ -226,7 +228,7 @@ public final class MemcachedDaoManager implements IDaoManager {
         }
       }
     }
-    return null;
+    return addresses;
   }
 
   @Override
@@ -253,6 +255,15 @@ public final class MemcachedDaoManager implements IDaoManager {
     // No caching of class-specific objects, does nothing and returns no cache
     return null;
   }
+  
+  @Override
+  public <T extends IDbDto> T getCachedObject(IPrimaryKey key, int expireTime) {
+    T object = getCachedObject(key);
+    if (object != null) {
+      client.touch(key.getStringKey(), expireTime);
+    }
+    return object;
+  }
 
   @SuppressWarnings("unchecked")
   @Override
@@ -271,9 +282,10 @@ public final class MemcachedDaoManager implements IDaoManager {
         // Get the object asynchronously to handle the server being unavailable.
         Future<Object> future = client.asyncGet(key.getStringKey());
         int retries = TIMEOUT_RETRIES;
-        while (retries > 0) {
+        while (object == null && retries > 0) {
           try {
             object = (T)future.get(TIMEOUT, TimeUnit.SECONDS);
+            retries--;
           } catch (TimeoutException e) {
             Object[] args = new Object[1];
             args[0] = key.getStringKey();
@@ -284,7 +296,7 @@ public final class MemcachedDaoManager implements IDaoManager {
             // InterruptedException, ExecutionException, or RuntimeException
             Object[] args = new Object[1];
             args[0] = key.getStringKey();
-            logger.error(Message.getMessage(MEMCACHED_GET_ERROR, args));
+            logger.error(Message.getMessage(MEMCACHED_GET_ERROR, args), e);
             future.cancel(true);
             throw new DbErrorException(Message.getMessage(MEMCACHED_GET_ERROR, args));
           }
@@ -299,6 +311,8 @@ public final class MemcachedDaoManager implements IDaoManager {
       }
     } catch (IOException e) {
       throw new DbErrorException(MEMCACHED_IO, e);
+    } finally {
+      client.shutdown();
     }
 
     return object;

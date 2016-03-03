@@ -93,6 +93,13 @@ public final class DirectDaoManager implements IDaoManager {
     return null;
   }
 
+
+  @Override
+  public <T extends IDbDto> T getCachedObject(IPrimaryKey key, int expireTime) {
+    // no caching
+    return null;
+  }
+  
   @Override
   public synchronized <T extends IDbDto> T getCachedObject(IPrimaryKey key) {
     return null; // no caching

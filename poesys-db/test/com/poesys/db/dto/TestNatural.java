@@ -47,9 +47,6 @@ public class TestNatural extends AbstractTestDto {
   /** Generated serial version UID for Serializable object */
   private static final long serialVersionUID = -8655519924326979904L;
 
-  /** The natural primary key for the object */
-  private final NaturalPrimaryKey key;
-
   /** The first primary key natural value for display only */
   private final String key1;
 

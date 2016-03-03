@@ -68,23 +68,23 @@
 	
 	<!-- cache logging -->
 		<category name="com.poesys.db.dao.CacheDaoManager">
-		<priority value="INFO" />
+		<priority value="DEBUG" />
 	</category>
 
 	<category name="com.poesys.db.dao.MemcachedDaoManager">
-		<priority value="INFO" />
+		<priority value="DEBUG" />
 	</category>
 	
 	<category name="com.poesys.db.dao.CacheListenerExecutor">
-		<priority value="INFO" />
+		<priority value="DEBUG" />
 	</category>
 	
 	<category name="com.poesys.db.dao.CacheMessageListener">
-		<priority value="INFO" />
+		<priority value="DEBUG" />
 	</category>
 	
 	<category name="com.poesys.db.dto.DtoCacheWithMessaging">
-		<priority value="INFO" />
+		<priority value="DEBUG" />
 	</category>
 	
 	<!-- SQL logging -->

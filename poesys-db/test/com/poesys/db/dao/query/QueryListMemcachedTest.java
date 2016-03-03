@@ -27,8 +27,6 @@ import java.util.List;
 import org.junit.Test;
 
 import com.poesys.db.BatchException;
-import com.poesys.db.Message;
-import com.poesys.db.NoPrimaryKeyException;
 import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.insert.Insert;
@@ -44,7 +42,7 @@ import com.poesys.db.pk.PrimaryKeyFactory;
  * 
  * @author Bob Muller (muller@computer.org)
  */
-public class QueryListWithParametersTest extends ConnectionTest {
+public class QueryListMemcachedTest extends ConnectionTest {
   private static final String CLASS_NAME = "com.poesys.test.TestSequence";
 
   private static final int EXPIRE_TIME = 100;
@@ -81,37 +79,18 @@ public class QueryListWithParametersTest extends ConnectionTest {
     }
 
     // Create the sequence key and the objects to insert.
-    Insert<TestSequence> inserter;
-    TestSequence dto1 = null;
-    TestSequence dto2 = null;
-    TestSequence dto3 = null;
-    inserter =
-      new InsertMemcached<TestSequence>(new InsertSqlTestSequence(),
-                                        SUBSYSTEM,
-                                        EXPIRE_TIME);
-    try {
-      AbstractSingleValuedPrimaryKey key1 =
-        PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                                 "test",
-                                                 "pkey",
-                                                 CLASS_NAME);
-      String col1 = "test";
-      dto1 = new TestSequence(key1, col1);
-      AbstractSingleValuedPrimaryKey key2 =
-        PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                                 "test",
-                                                 "pkey",
-                                                 CLASS_NAME);
-      dto2 = new TestSequence(key2, col1);
-      AbstractSingleValuedPrimaryKey key3 =
-        PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                                 "test",
-                                                 "pkey",
-                                                 CLASS_NAME);
-      dto3 = new TestSequence(key3, "no test");
-    } catch (NoPrimaryKeyException e1) {
-      fail(Message.getMessage(e1.getMessage(), e1.getParameters().toArray()));
-    }
+    Insert<TestSequence> inserter =
+      new InsertMemcached<TestSequence>(new InsertSqlTestSequence(), SUBSYSTEM, EXPIRE_TIME);
+    AbstractSingleValuedPrimaryKey key1 =
+      PrimaryKeyFactory.createMySqlSequenceKey(conn, "test", "pkey", CLASS_NAME);
+    String col1 = "test";
+    TestSequence dto1 = new TestSequence(key1, col1);
+    AbstractSingleValuedPrimaryKey key2 =
+      PrimaryKeyFactory.createMySqlSequenceKey(conn, "test", "pkey", CLASS_NAME);
+    TestSequence dto2 = new TestSequence(key2, col1);
+    AbstractSingleValuedPrimaryKey key3 =
+      PrimaryKeyFactory.createMySqlSequenceKey(conn, "test", "pkey", CLASS_NAME);
+    TestSequence dto3 = new TestSequence(key3, col1);
 
     // Insert the objects.
     try {
@@ -125,19 +104,13 @@ public class QueryListWithParametersTest extends ConnectionTest {
 
     // Query the list of objects and test against the original.
     try {
-      IParameterizedQuerySql<TestSequence, TestSequence> sql =
-        new TestSequenceQueryWithParametersSql();
-      QueryListWithParameters<TestSequence, TestSequence, List<TestSequence>> dao =
-        new QueryMemcachedListWithParameters<TestSequence, TestSequence, List<TestSequence>>(sql,
-                                                                                             SUBSYSTEM,
-                                                                                             EXPIRE_TIME,
-                                                                                             10);
-      List<TestSequence> queriedDtos = dao.query(conn, dto1);
+      IQuerySql<TestSequence> sql = new TestSequenceQuerySql();
+      QueryList<TestSequence> dao = new QueryMemcachedList<TestSequence>(sql, SUBSYSTEM, EXPIRE_TIME, 2);
+      List<TestSequence> queriedDtos = dao.query(conn);
       assertTrue("null list queried", queriedDtos != null);
-      // Should get back 2 of the 3 DTOs
       assertTrue("wrong number of DTOs: " + queriedDtos.size(),
-                 queriedDtos.size() == 2);
-      for (TestSequence dto : queriedDtos) {
+                 queriedDtos.size() == 3);
+      for (IDbDto dto : queriedDtos) {
         assertTrue("queried dto set to new, pk:"
                        + dto.getPrimaryKey().getValueList(),
                    dto.getStatus() != IDbDto.Status.NEW);
@@ -146,11 +119,12 @@ public class QueryListWithParametersTest extends ConnectionTest {
                    dto.getStatus() != IDbDto.Status.CHANGED);
       }
     } catch (SQLException e) {
-      fail("Query list with parameters exception: " + e.getMessage());
+      fail("Query List exception: " + e.getMessage());
     } finally {
       if (conn != null) {
         conn.close();
       }
     }
   }
+
 }

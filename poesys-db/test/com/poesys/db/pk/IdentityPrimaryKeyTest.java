@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import org.junit.Test;
 
@@ -126,7 +127,8 @@ public class IdentityPrimaryKeyTest extends ConnectionTest {
       getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
     IdentityPrimaryKey key1 = new IdentityPrimaryKey("col", CLASS_NAME);
     PreparedStatement stmt =
-      connection.prepareStatement("INSERT INTO TestIdentity () VALUES ()");
+      connection.prepareStatement("INSERT INTO TestIdentity () VALUES ()",
+                                  Statement.RETURN_GENERATED_KEYS);
     int next = key1.setInsertParams(stmt, 1);
     assertTrue(next == 1);
     stmt.execute();

@@ -83,7 +83,7 @@ public class PrimaryKeyFactory {
       throws DuplicateKeyNameException, InvalidParametersException {
     List<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
     list.add(new BigIntegerColumnValue(name, value));
-    list = new CopyOnWriteArrayList<AbstractColumnValue>(list);
+    list = new ArrayList<AbstractColumnValue>(list);
     NaturalPrimaryKey key = new NaturalPrimaryKey(list, className);
     return key;
   }
