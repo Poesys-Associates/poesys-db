@@ -128,7 +128,7 @@ public abstract class AbstractDto implements IDbDto {
   protected boolean suppressNestedPreInserts = false;
 
   /** Stack of inserter DAOs that insert the class hierarchy of the object */
-  protected List<IInsert<? extends IDbDto>> inserters =
+  transient protected List<IInsert<? extends IDbDto>> inserters =
     new ArrayList<IInsert<? extends IDbDto>>();
 
   /** List of pre-operation setters for the DTO */
