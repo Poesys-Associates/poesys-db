@@ -51,19 +51,17 @@ import com.poesys.db.pk.IPrimaryKey;
 public class Parent extends AbstractTestDto {
   /** Generated serial version UID for Serializable object */
   private static final long serialVersionUID = -802769967074994359L;
-  /** GUID primary key for the parent */
-  private final GuidPrimaryKey pkey;
   /** data column for the parent */
   private String col1 = null;
   /** Ordered list of children of the parent */
-  private List<Child> children = new CopyOnWriteArrayList<Child>();
+  private List<Child> children = new ArrayList<Child>();
   /** Batch size for average list of children */
   private static final int CHILD_BATCH_SIZE = 3;
 
   /**
    * Inner class that implements ISet for querying children.
    * 
-   * @author Bob Muller (muller@computer.org)
+   * @author Bob Muller (bob@poesys.com)
    */
   private class QueryChildren extends
       AbstractListSetter<Child, Parent, List<Child>> {
@@ -113,7 +111,7 @@ public class Parent extends AbstractTestDto {
   /**
    * Inner class that implements ISet for inserting children.
    * 
-   * @author Bob Muller (muller@computer.org)
+   * @author Bob Muller (bob@poesys.com)
    */
   private class InsertChildren extends
       AbstractBatchInsertSetter<Child, List<Child>> {
@@ -150,7 +148,7 @@ public class Parent extends AbstractTestDto {
   /**
    * Inner class that implements ISet for pre-processing children.
    * 
-   * @author Bob Muller (muller@computer.org)
+   * @author Bob Muller (bob@poesys.com)
    */
   private class PreprocessChildren extends
       AbstractProcessNestedObjects<Child, List<Child>> {
@@ -162,21 +160,18 @@ public class Parent extends AbstractTestDto {
       super("com.poesys.db.dto", Integer.MAX_VALUE);
     }
 
-    
     @Override
     protected void doNew(Connection connection, List<Child> dtos)
         throws SQLException, BatchException {
       // Do nothing.
     }
 
-    
     @Override
     protected void doChanged(Connection connection, List<Child> dtos)
         throws SQLException, BatchException {
       // Do nothing.
     }
 
-    
     @Override
     protected void doDeleted(Connection connection, List<Child> dtos)
         throws SQLException, BatchException {
@@ -192,7 +187,6 @@ public class Parent extends AbstractTestDto {
       return "com.poesys.db.dto.Child";
     }
 
-    
     @Override
     protected List<Child> getDtos() {
       return getChildren();
@@ -202,7 +196,7 @@ public class Parent extends AbstractTestDto {
   /**
    * Inner class that implements ISet for pre-processing children.
    * 
-   * @author Bob Muller (muller@computer.org)
+   * @author Bob Muller (bob@poesys.com)
    */
   private class PostprocessChildren extends
       AbstractProcessNestedObjects<Child, List<Child>> {
@@ -254,7 +248,6 @@ public class Parent extends AbstractTestDto {
       dao.insert(connection, dtos, CHILD_BATCH_SIZE);
     }
 
-    
     @Override
     protected void doChanged(Connection connection, List<Child> dtos)
         throws SQLException, BatchException {
@@ -292,26 +285,13 @@ public class Parent extends AbstractTestDto {
     this.querySetters = new CopyOnWriteArrayList<ISet>();
     querySetters.add(new QueryChildren());
 
-    pkey = (GuidPrimaryKey)key;
+    this.key = (GuidPrimaryKey)key;
     this.col1 = col1;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.IDto#getPrimaryKey()
-   */
-  public IPrimaryKey getPrimaryKey() {
-    return pkey;
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see java.lang.Comparable#compareTo(java.lang.Object)
-   */
+  @Override
   public int compareTo(IDbDto arg0) {
-    int retVal = pkey.compareTo(arg0.getPrimaryKey());
+    int retVal = key.compareTo(arg0.getPrimaryKey());
     if (retVal == 0 && col1 != null && ((Parent)arg0).col1 != null) {
       retVal = col1.compareTo(((Parent)arg0).col1);
     } else if (col1 == null && ((Parent)arg0).col1 == null) {
@@ -335,7 +315,7 @@ public class Parent extends AbstractTestDto {
 
   @Override
   public int hashCode() {
-    return pkey.hashCode();
+    return key.hashCode();
   }
 
   /**

@@ -14,17 +14,8 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao.delete;
-
-
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-
-import com.poesys.db.dto.TestMultipleParams;
-import com.poesys.db.pk.IPrimaryKey;
-
 
 /**
  * <p>
@@ -33,33 +24,14 @@ import com.poesys.db.pk.IPrimaryKey;
  * DTO, which contains the parameters for the DELETE statement.
  * </p>
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Bob Muller (bob@poesys.com)
  */
-public class DeleteSqlTestMultiple implements IDeleteSqlWithParameters<TestMultipleParams, TestMultipleParams> {
+public class DeleteSqlTestMultipleAll implements IDeleteSqlWithQuery {
   /** SQL statement that deletes a row */
-  private static final String SQL =
-    "DELETE FROM TestMultipleDelete WHERE colType = ?";
+  private static final String SQL = "DELETE FROM TestMultipleDelete";
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.IInsertSql#getSql(com.poesys.db.pk.IPrimaryKey)
-   */
-  public String getSql(IPrimaryKey ignored) {
-    StringBuilder builder = new StringBuilder(SQL);
-    return builder.toString();
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.IInsertSql#setParams(java.sql.PreparedStatement,
-   *      int, java.lang.Object)
-   */
-  public int setParams(PreparedStatement stmt, int ignored, TestMultipleParams dto)
-      throws SQLException {
-    TestMultipleParams test = dto;
-    stmt.setString(1, test.getColType());
-    return 2;
+  @Override
+  public String getSql() {
+    return SQL;
   }
 }

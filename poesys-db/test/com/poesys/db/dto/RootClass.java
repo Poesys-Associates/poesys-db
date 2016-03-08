@@ -33,8 +33,6 @@ import com.poesys.db.pk.IPrimaryKey;
 public class RootClass extends AbstractTestDto {
   /** Generated serial version UID for Serializable object */
   private static final long serialVersionUID = 1427047128267368268L;
-  /** Primary key of the root class object */
-  protected final AbstractSingleValuedPrimaryKey key;
   /** Root column of the root class object */
   protected String rootCol;
 

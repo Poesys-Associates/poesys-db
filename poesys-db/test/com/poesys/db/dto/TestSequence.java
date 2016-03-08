@@ -40,9 +40,6 @@ public class TestSequence extends AbstractTestDto {
   /** Generated serial version UID for Serializable object */
   private static final long serialVersionUID = -8723956213271643095L;
 
-  /** The identity primary key for the object */
-  private final AbstractSingleValuedPrimaryKey key;
-
   /** The String column col1 */
   private String col1 = null;
 

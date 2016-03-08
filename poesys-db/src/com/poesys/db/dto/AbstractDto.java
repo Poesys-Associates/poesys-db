@@ -32,6 +32,7 @@ import org.apache.log4j.Logger;
 
 import com.poesys.db.BatchException;
 import com.poesys.db.InvalidParametersException;
+import com.poesys.db.Message;
 import com.poesys.db.dao.CacheDaoManager;
 import com.poesys.db.dao.DataEvent;
 import com.poesys.db.dao.IDaoManager;
@@ -127,7 +128,7 @@ public abstract class AbstractDto implements IDbDto {
   protected boolean suppressNestedPreInserts = false;
 
   /** Stack of inserter DAOs that insert the class hierarchy of the object */
-  protected List<IInsert<? extends IDbDto>> inserters =
+  transient protected List<IInsert<? extends IDbDto>> inserters =
     new ArrayList<IInsert<? extends IDbDto>>();
 
   /** List of pre-operation setters for the DTO */
@@ -174,6 +175,8 @@ public abstract class AbstractDto implements IDbDto {
    */
   private static final String READ_OBJECT_MSG =
     "com.poesys.db.dto.msg.read_object";
+  private static final String NULL_KEY_MSG =
+    "com.poesys.db.dto.msg.no_object_key";
 
   /**
    * Create an AbstractDto object. This constructor takes no arguments (the
@@ -223,8 +226,7 @@ public abstract class AbstractDto implements IDbDto {
 
   @Override
   public synchronized void setChanged() {
-    if (status == Status.EXISTING
-        || status == Status.FAILED
+    if (status == Status.EXISTING || status == Status.FAILED
         || status == Status.CHANGED) {
       // Allow undo to EXISTING, FAILED, or CHANGED
       previousStatus = status;
@@ -248,8 +250,7 @@ public abstract class AbstractDto implements IDbDto {
 
   @Override
   public synchronized void delete() {
-    if (status == Status.EXISTING
-        || status == Status.CHANGED
+    if (status == Status.EXISTING || status == Status.CHANGED
         || status == Status.FAILED) {
       status = Status.DELETED;
       // Mark composite aggregates and links deleted.
@@ -258,23 +259,33 @@ public abstract class AbstractDto implements IDbDto {
       notify(DataEvent.MARKED_DELETED);
     } else if (status == Status.DELETED || status == Status.CASCADE_DELETED) {
       // do nothing, it's already DELETED
+    } else if (status == Status.NEW) {
+      // new object, just mark deleted, no notification required
+      status = Status.DELETED;
+      markChildrenDeleted();
     } else {
-      throw new DtoStatusException(CANNOT_DELETE_MSG);
+      logger.warn(Message.getMessage(CANNOT_DELETE_MSG, null) + ": status "
+                  + status + " for " + getPrimaryKey().getStringKey());
     }
   }
 
   @Override
   public synchronized void cascadeDelete() {
-    if (status == Status.EXISTING
-        || status == Status.CHANGED
+    if (status == Status.EXISTING || status == Status.CHANGED
         || status == Status.DELETED) {
       status = Status.CASCADE_DELETED;
       // Cascade the delete along the chain.
       markChildrenDeleted();
     } else if (status == Status.CASCADE_DELETED) {
       // do nothing, it's already CASCADE_DELETED
+    } else if (status == Status.NEW) {
+      // new object, just mark deleted, no notification required
+      status = Status.DELETED;
+      markChildrenDeleted();
     } else {
-      throw new DtoStatusException(CANNOT_DELETE_MSG + " status " + status);
+      logger.warn(Message.getMessage(CANNOT_DELETE_MSG, null) + " status "
+                  + status + " for " + getPrimaryKey().getStringKey());
+      // throw new DtoStatusException(CANNOT_DELETE_MSG + " status " + status);
     }
   }
 
@@ -347,6 +358,9 @@ public abstract class AbstractDto implements IDbDto {
       for (ISet set : insertSetters) {
         set.set(connection);
       }
+    } else {
+      // no setters, or setters suppressed, set main object to EXISTING
+      setExisting();
     }
   }
 
@@ -451,8 +465,19 @@ public abstract class AbstractDto implements IDbDto {
       ClassNotFoundException {
     Connection connection = null;
 
+    // Check the stream input.
+    if (in == null) {
+      throw new RuntimeException(READ_OBJECT_MSG);
+    }
+    
     // First de-serialize the non-transient data using the default process.
+    // Note: THIS MUST COME BEFORE ANY STREAM ACCESS.
     in.defaultReadObject();
+
+    // Check for the primary key.
+    if (key == null) {
+      throw new RuntimeException(NULL_KEY_MSG);
+    }
 
     // Cache the object in memory before getting nested objects.
     IDaoManager manager = CacheDaoManager.getInstance();

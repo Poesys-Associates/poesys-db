@@ -134,10 +134,17 @@ public class CacheDaoManager implements IDaoManager {
   }
 
   @Override
-  public synchronized <T extends IDbDto> void putObjectInCache(
-                                                               String cacheName,
+  public <T extends IDbDto> T getCachedObject(IPrimaryKey key, int expireTime) {
+    // expire time ignored for Java cache
+    return getCachedObject(key);
+  }
+
+  @Override
+  public synchronized <T extends IDbDto> void putObjectInCache(String cacheName,
                                                                int expireTime,
                                                                T object) {
+    // expire time ignored for Java cache
+    
     // Only proceed if cache name and object are not null
     if (cacheName != null && object != null) {
       IDtoCache<IDbDto> cache = getCache(cacheName);

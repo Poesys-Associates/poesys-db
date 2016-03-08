@@ -32,7 +32,6 @@ import com.poesys.db.NoPrimaryKeyException;
 import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.insert.Insert;
-import com.poesys.db.dao.insert.InsertMemcached;
 import com.poesys.db.dao.insert.InsertSqlTestSequence;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.dto.TestSequence;
@@ -44,11 +43,8 @@ import com.poesys.db.pk.PrimaryKeyFactory;
  * 
  * @author Bob Muller (muller@computer.org)
  */
-public class QueryListWithParametersTest extends ConnectionTest {
+public class QueryListWithParametersMemcachedTest extends ConnectionTest {
   private static final String CLASS_NAME = "com.poesys.test.TestSequence";
-
-  private static final int EXPIRE_TIME = 100;
-  private static final String SUBSYSTEM = "com.poesys.db.poesystest.mysql";
 
   /**
    * Test method for
@@ -85,29 +81,17 @@ public class QueryListWithParametersTest extends ConnectionTest {
     TestSequence dto1 = null;
     TestSequence dto2 = null;
     TestSequence dto3 = null;
-    inserter =
-      new InsertMemcached<TestSequence>(new InsertSqlTestSequence(),
-                                        SUBSYSTEM,
-                                        EXPIRE_TIME);
+    inserter = new Insert<TestSequence>(new InsertSqlTestSequence());
     try {
       AbstractSingleValuedPrimaryKey key1 =
-        PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                                 "test",
-                                                 "pkey",
-                                                 CLASS_NAME);
+        PrimaryKeyFactory.createMySqlSequenceKey(conn, "test", "pkey", CLASS_NAME);
       String col1 = "test";
       dto1 = new TestSequence(key1, col1);
       AbstractSingleValuedPrimaryKey key2 =
-        PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                                 "test",
-                                                 "pkey",
-                                                 CLASS_NAME);
+        PrimaryKeyFactory.createMySqlSequenceKey(conn, "test", "pkey", CLASS_NAME);
       dto2 = new TestSequence(key2, col1);
       AbstractSingleValuedPrimaryKey key3 =
-        PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                                 "test",
-                                                 "pkey",
-                                                 CLASS_NAME);
+        PrimaryKeyFactory.createMySqlSequenceKey(conn, "test", "pkey", CLASS_NAME);
       dto3 = new TestSequence(key3, "no test");
     } catch (NoPrimaryKeyException e1) {
       fail(Message.getMessage(e1.getMessage(), e1.getParameters().toArray()));
@@ -128,10 +112,8 @@ public class QueryListWithParametersTest extends ConnectionTest {
       IParameterizedQuerySql<TestSequence, TestSequence> sql =
         new TestSequenceQueryWithParametersSql();
       QueryListWithParameters<TestSequence, TestSequence, List<TestSequence>> dao =
-        new QueryMemcachedListWithParameters<TestSequence, TestSequence, List<TestSequence>>(sql,
-                                                                                             SUBSYSTEM,
-                                                                                             EXPIRE_TIME,
-                                                                                             10);
+        new QueryListWithParameters<TestSequence, TestSequence, List<TestSequence>>(sql,
+                                                                                    2);
       List<TestSequence> queriedDtos = dao.query(conn, dto1);
       assertTrue("null list queried", queriedDtos != null);
       // Should get back 2 of the 3 DTOs
@@ -153,4 +135,5 @@ public class QueryListWithParametersTest extends ConnectionTest {
       }
     }
   }
+
 }

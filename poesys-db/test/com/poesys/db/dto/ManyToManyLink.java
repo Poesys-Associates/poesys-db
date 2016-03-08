@@ -35,8 +35,6 @@ import com.poesys.db.pk.IPrimaryKey;
 public class ManyToManyLink extends AbstractTestDto {
   /** Generated serial version UID for Serializable object */
   private static final long serialVersionUID = -8938232208505366209L;
-  /** Primary key of the link class object */
-  protected final AssociationPrimaryKey key;
   /** test column of the association class object */
   protected String col;
   /** Associated Link1 object */

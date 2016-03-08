@@ -40,8 +40,6 @@ import com.poesys.db.pk.IPrimaryKey;
 public class Link1 extends AbstractTestDto {
   /** Generated serial version UID for Serializable object */
   private static final long serialVersionUID = -5568121515902331276L;
-  /** Primary key of the link class object */
-  protected final AbstractSingleValuedPrimaryKey key;
   /** test column of the link class object */
   protected String col = null;
   /** Many-to-many links */

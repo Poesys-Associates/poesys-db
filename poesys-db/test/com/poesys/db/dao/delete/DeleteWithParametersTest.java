@@ -53,7 +53,7 @@ import com.poesys.db.dto.TestMultipleParams;
 public class DeleteWithParametersTest extends ConnectionTest {
   /** SQL statement that inserts a test row into TestMultiple */
   private static final String INSERT =
-    "INSERT INTO TestMultiple (pkey, col1, colType) VALUES (?, ?, ?)";
+    "INSERT INTO TestMultipleDelete (pkey, col1, colType) VALUES (?, ?, ?)";
   private static final String NEW = "new";
 
   /**
@@ -72,10 +72,11 @@ public class DeleteWithParametersTest extends ConnectionTest {
       throw new RuntimeException("Connect failed: " + e.getMessage(), e);
     }
 
-    // Clear the test table.
-    Statement delStmt = conn.createStatement();
-    delStmt.execute("DELETE FROM TestMultiple");
-    delStmt.close();
+    // Clear the test table. Bug: seems to encounter weird metadata locking.
+    // Delete the "b" test rows.
+    DeleteWithParameters<TestMultipleParams, TestMultipleParams> clearer =
+      new DeleteWithParameters<TestMultipleParams, TestMultipleParams>(new DeleteSqlTestMultiple());
+    clearer.delete(conn, new TestMultipleParams(NEW, "b"));
 
     // Insert test rows that create a set of multiple rows identified by a
     // single value of the colType column, 'b'.
