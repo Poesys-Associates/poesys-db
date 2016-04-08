@@ -455,13 +455,15 @@ public abstract class AbstractDto implements IDbDto {
    * Read an object from an input stream, de-serializing it. This custom
    * de-serialization method calls the default read-object method to read in all
    * non-transient fields then runs a series of setters in the readObjectSetters
-   * list to de-serialize any transient elements.
+   * list to de-serialize any transient elements. This method has the public
+   * access class because subclasses AND proxies need to call it from their own
+   * readObject() methods.
    * 
    * @param in the object input stream
    * @throws ClassNotFoundException when a nested object class can't be found
    * @throws IOException when there is an IO problem reading the stream
    */
-  private void readObject(ObjectInputStream in) throws IOException,
+  public void readObject(ObjectInputStream in) throws IOException,
       ClassNotFoundException {
     Connection connection = null;
 

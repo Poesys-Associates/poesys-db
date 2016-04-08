@@ -71,31 +71,33 @@ abstract public class AbstractCollectionReadSetter<T extends IDbDto> extends
 
   @Override
   public void set(Connection connection) throws SQLException {
-    IDaoManager manager = DaoManagerFactory.getManager(subsystem);
-    IDaoFactory<T> factory =
-      manager.getFactory(getClassName(), subsystem, expiration);
-    IQueryByKey<T> dao = factory.getQueryByKey(getSql());
-    // Query using the primary keys.
-    Collection<T> collection = getEmptyCollection();
-    if (getPrimaryKeys() != null) {
-      try {
-        for (IPrimaryKey key : getPrimaryKeys()) {
-          T dto = dao.queryByKey(connection, key);
-          collection.add(dto);
+    if (!isSet()) {
+      IDaoManager manager = DaoManagerFactory.getManager(subsystem);
+      IDaoFactory<T> factory =
+        manager.getFactory(getClassName(), subsystem, expiration);
+      IQueryByKey<T> dao = factory.getQueryByKey(getSql());
+      // Query using the primary keys.
+      Collection<T> collection = getEmptyCollection();
+      if (getPrimaryKeys() != null) {
+        try {
+          for (IPrimaryKey key : getPrimaryKeys()) {
+            T dto = dao.queryByKey(connection, key);
+            collection.add(dto);
+          }
+        } catch (ConstraintViolationException e) {
+          throw new DbErrorException(e.getMessage(), e);
+        } catch (BatchException e) {
+          throw new DbErrorException(e.getMessage(), e);
+        } catch (DtoStatusException e) {
+          throw new DbErrorException(e.getMessage(), e);
         }
-      } catch (ConstraintViolationException e) {
-        throw new DbErrorException(e.getMessage(), e);
-      } catch (BatchException e) {
-        throw new DbErrorException(e.getMessage(), e);
-      } catch (DtoStatusException e) {
-        throw new DbErrorException(e.getMessage(), e);
       }
+
+      // Make the list thread safe and valid.
+      collection = getThreadSafeCollection(collection);
+
+      set(collection);
     }
-
-    // Make the list thread safe and valid.
-    collection = getThreadSafeCollection(collection);
-
-    set(collection);
   }
 
   /**

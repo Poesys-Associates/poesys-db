@@ -27,14 +27,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import net.spy.memcached.BinaryConnectionFactory;
 import net.spy.memcached.ClientMode;
 import net.spy.memcached.DefaultConnectionFactory;
 import net.spy.memcached.MemcachedClient;
+import net.spy.memcached.transcoders.SerializingTranscoder;
 
 import org.apache.log4j.Logger;
 
@@ -114,8 +112,8 @@ public final class MemcachedDaoManager implements IDaoManager {
     "com.poesys.db.dao.query.msg.memcached_unknown_protocol";
   private static final String MEMCACHED_GET_ERROR =
     "com.poesys.db.dao.query.msg.memcached_get";
-  private static final String TIMEOUT_MSG =
-    "com.poesys.db.dao.query.msg.memcached_timeout";
+  private static final String MEMCACHED_RETRY_WARNING =
+    "com.poesys.db.dao.query.msg.memcached_retry";
   private static final String STATS_COMPLETE =
     "com.poesys.db.dao.query.msg.memcached_stats_complete";
   private static final Object STATS_ERROR =
@@ -127,8 +125,6 @@ public final class MemcachedDaoManager implements IDaoManager {
   private static final String MEMCACHED_PROP_SERVERS = "servers";
   /** Memcached configuration property protocol */
   private static final String MEMCACHED_PROP_PROTOCOL = "protocol";
-  /** Memcached configuration property for client get timeout */
-  private static final String MEMCACHED_PROP_TIMEOUT = "client_timeout";
   /** Memcached configuration property for retries after client get timeout */
   private static final String MEMCACHED_PROP_RETRIES = "client_retries";
   /** Memcached configuration property for min number of clients in pool */
@@ -147,9 +143,6 @@ public final class MemcachedDaoManager implements IDaoManager {
   private static final String TEXT = "text";
 
   /* Memcached configuration value for 5-second timeout retries */
-  private static final int TIMEOUT =
-    new Integer(properties.getString(MEMCACHED_PROP_TIMEOUT));
-  /* Memcached configuration value for 5-second timeout retries */
   private static final int TIMEOUT_RETRIES =
     new Integer(properties.getString(MEMCACHED_PROP_RETRIES));
   private static final int MIN =
@@ -158,6 +151,9 @@ public final class MemcachedDaoManager implements IDaoManager {
     new Integer(properties.getString(MEMCACHED_PROP_POOL_MAX));
   private static final int INTERVAL =
     new Integer(properties.getString(MEMCACHED_PROP_POOL_INTERVAL));
+
+  /** Period in milliseconds to sleep before re-trying memcached get */
+  private static final long RETRY_SLEEP_PERIOD = 5L * 1000L;
 
   /**
    * Disable the default constructor.
@@ -313,27 +309,45 @@ public final class MemcachedDaoManager implements IDaoManager {
         // Not previously de-serialized, get it from the cache.
         logger.debug("Getting object " + key.getStringKey() + " from the cache");
 
-        // Get the object asynchronously to handle the server being unavailable.
-        Future<Object> future = client.asyncGet(key.getStringKey());
+        // Get the object synchronously but check for exceptions and retry to
+        // allow for memcached server being unavailable for a short period.
+
         int retries = TIMEOUT_RETRIES;
-        while (object == null && retries > 0) {
+        while (retries > 0) {
           try {
-            object = (T)future.get(TIMEOUT, TimeUnit.SECONDS);
-            retries--;
-          } catch (TimeoutException e) {
-            Object[] args = new Object[1];
-            args[0] = key.getStringKey();
-            logger.debug(Message.getMessage(TIMEOUT_MSG, args));
-            future.cancel(true);
-            retries--;
+            object = (T)client.get(key.getStringKey(), new SerializingTranscoder());
+            // Break out of loop after no-exception get; no need to check 
+            // object for null, just means not cached
+            break;
           } catch (Exception e) {
-            // InterruptedException, ExecutionException, or RuntimeException
-            Object[] args = new Object[1];
-            args[0] = key.getStringKey();
-            logger.error(Message.getMessage(MEMCACHED_GET_ERROR, args), e);
-            future.cancel(true);
-            throw new DbErrorException(Message.getMessage(MEMCACHED_GET_ERROR,
-                                                          args));
+            retries--;
+            if (retries == 0) {
+              // InterruptedException, ExecutionException, or RuntimeException
+              // Retries exhausted, fail with exception
+              Object[] args = new Object[1];
+              args[0] = key.getStringKey();
+              logger.error(Message.getMessage(MEMCACHED_GET_ERROR, args), e);
+              throw new DbErrorException(Message.getMessage(MEMCACHED_GET_ERROR,
+                                                            args));
+            } else {
+              // More retries, sleep for a short time and try again.
+
+              // First warn in log so as not to lose the exception sequence.
+              Object[] args1 = new Object[2];
+              args1[0] = key.getStringKey(); // object key
+              args1[1] = e.getMessage(); // exception message
+              logger.warn(Message.getMessage(MEMCACHED_RETRY_WARNING, args1), e);
+              try {
+                Thread.sleep(RETRY_SLEEP_PERIOD);
+              } catch (InterruptedException e1) {
+                // Externally interrupted sleep, something's wrong
+                Object[] args2 = new Object[1];
+                args2[0] = key.getStringKey();
+                logger.error(Message.getMessage(MEMCACHED_GET_ERROR, args2), e1);
+                throw new DbErrorException(Message.getMessage(MEMCACHED_GET_ERROR,
+                                                              args2));
+              }
+            }
           }
         }
 
@@ -359,7 +373,7 @@ public final class MemcachedDaoManager implements IDaoManager {
 
     try {
       String key = object.getPrimaryKey().getStringKey();
-      client.set(key, expireTime, object);
+      client.set(key, expireTime, object, new SerializingTranscoder());
       logger.debug("Cached object \"" + key + "\" of type "
                    + object.getClass().getName() + " with expiration time "
                    + expireTime + "ms");
@@ -372,8 +386,11 @@ public final class MemcachedDaoManager implements IDaoManager {
     } catch (IllegalArgumentException e) {
       Throwable cause = e.getCause();
       if (cause instanceof NotSerializableException) {
-        logger.error("Non-serializable object: " + object.getClass().getName(), cause);
-        DbErrorException e1 = new DbErrorException("Non-serializable object: " + object.getClass().getName(), e);
+        logger.error("Non-serializable object: " + object.getClass().getName(),
+                     cause);
+        DbErrorException e1 =
+          new DbErrorException("Non-serializable object: "
+                               + object.getClass().getName(), e);
         throw e1;
       }
     } finally {

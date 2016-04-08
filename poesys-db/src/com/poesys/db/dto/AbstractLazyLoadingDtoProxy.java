@@ -109,7 +109,7 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
    * @throws ClassNotFoundException when a nested object class can't be found
    * @throws IOException when there is an IO problem reading the stream
    */
-  private void readObject(ObjectInputStream in) throws IOException,
+  public void readObject(ObjectInputStream in) throws IOException,
       ClassNotFoundException {
     Connection connection = null;
 
