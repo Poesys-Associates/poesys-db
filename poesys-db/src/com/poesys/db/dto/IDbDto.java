@@ -18,6 +18,8 @@
 package com.poesys.db.dto;
 
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -123,6 +125,16 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
     /** An object in an invalid state after an operation such as nested query */
     FAILED
   };
+  
+  /**
+   * Standard readObject interface for deserialization; implemented in
+   * AbstractDto and in all subclasses and proxy objects to permit
+   * deserialization of transient linked objects.
+   *
+   * @param in the input serialized object as a stream
+   */
+  void readObject(ObjectInputStream in) throws IOException,
+      ClassNotFoundException;
 
   /**
    * Get the current status of the Data Transfer Object
