@@ -32,6 +32,7 @@ import net.spy.memcached.BinaryConnectionFactory;
 import net.spy.memcached.ClientMode;
 import net.spy.memcached.DefaultConnectionFactory;
 import net.spy.memcached.MemcachedClient;
+import net.spy.memcached.transcoders.SerializingTranscoder;
 
 import org.apache.log4j.Logger;
 
@@ -124,8 +125,6 @@ public final class MemcachedDaoManager implements IDaoManager {
   private static final String MEMCACHED_PROP_SERVERS = "servers";
   /** Memcached configuration property protocol */
   private static final String MEMCACHED_PROP_PROTOCOL = "protocol";
-  /** Memcached configuration property for client get timeout */
-  private static final String MEMCACHED_PROP_TIMEOUT = "client_timeout";
   /** Memcached configuration property for retries after client get timeout */
   private static final String MEMCACHED_PROP_RETRIES = "client_retries";
   /** Memcached configuration property for min number of clients in pool */
@@ -314,9 +313,12 @@ public final class MemcachedDaoManager implements IDaoManager {
         // allow for memcached server being unavailable for a short period.
 
         int retries = TIMEOUT_RETRIES;
-        while (object == null && retries > 0) {
+        while (retries > 0) {
           try {
-            object = (T)client.get(key.getStringKey());
+            object = (T)client.get(key.getStringKey(), new SerializingTranscoder());
+            // Break out of loop after no-exception get; no need to check 
+            // object for null, just means not cached
+            break;
           } catch (Exception e) {
             retries--;
             if (retries == 0) {
@@ -371,7 +373,7 @@ public final class MemcachedDaoManager implements IDaoManager {
 
     try {
       String key = object.getPrimaryKey().getStringKey();
-      client.set(key, expireTime, object);
+      client.set(key, expireTime, object, new SerializingTranscoder());
       logger.debug("Cached object \"" + key + "\" of type "
                    + object.getClass().getName() + " with expiration time "
                    + expireTime + "ms");
