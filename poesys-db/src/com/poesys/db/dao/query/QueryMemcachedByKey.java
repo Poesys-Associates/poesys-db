@@ -101,7 +101,7 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
 
     if (object == null) {
       logger.debug("Object not found in in-memory cache " + key.getCacheName()
-                   + "checking memcached: " + key.getStringKey());
+                   + ", checking memcached with key \"" + key.getStringKey() + "\"");
       // Check the cache for the object.
       object = manager.getCachedObject(key);
 
