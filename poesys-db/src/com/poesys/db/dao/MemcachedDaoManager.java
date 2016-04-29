@@ -315,7 +315,7 @@ public final class MemcachedDaoManager implements IDaoManager {
         int retries = TIMEOUT_RETRIES;
         while (retries > 0) {
           try {
-            object = (T)client.get(key.getStringKey(), new SerializingTranscoder());
+            object = (T)client.get(key.getStringKey());
             // Break out of loop after no-exception get; no need to check 
             // object for null, just means not cached
             break;
