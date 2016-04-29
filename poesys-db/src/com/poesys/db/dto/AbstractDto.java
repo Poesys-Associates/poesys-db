@@ -33,11 +33,8 @@ import org.apache.log4j.Logger;
 import com.poesys.db.BatchException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.Message;
-import com.poesys.db.dao.CacheDaoManager;
 import com.poesys.db.dao.DataEvent;
-import com.poesys.db.dao.IDaoManager;
 import com.poesys.db.dao.insert.IInsert;
-import com.poesys.db.pk.IPrimaryKey;
 
 
 /**
@@ -72,14 +69,11 @@ import com.poesys.db.pk.IPrimaryKey;
  * 
  * @author Robert J. Muller
  */
-public abstract class AbstractDto implements IDbDto {
+public abstract class AbstractDto extends AbstractDbDto {
   /** Serial version UID for serializable object */
-  private static final long serialVersionUID = -2993605561312120201L;
+  private static final long serialVersionUID = 1L;
   /** Log4j logging */
   private static final Logger logger = Logger.getLogger(AbstractDto.class);
-
-  /** primary key */
-  protected IPrimaryKey key;
 
   /**
    * Current status of the data transfer object; default NEW; can change only
@@ -137,9 +131,6 @@ public abstract class AbstractDto implements IDbDto {
   /** List of post-operation setters for the DTO */
   protected List<ISet> postSetters = null;
 
-  /** List of de-serialization setters for the DTO */
-  protected List<ISet> readObjectSetters = null;
-
   /** List of query-related validator objects for the DTO */
   protected Collection<IValidate> queryValidators = null;
 
@@ -168,15 +159,6 @@ public abstract class AbstractDto implements IDbDto {
   /** Message string when attempting to DELETE an object with an invalid status */
   private static final String CANNOT_DELETE_MSG =
     "com.poesys.db.dto.msg.cannot_delete";
-
-  /**
-   * Message string when attempting to de-serialize a cached object and there is
-   * some kind of exception
-   */
-  private static final String READ_OBJECT_MSG =
-    "com.poesys.db.dto.msg.read_object";
-  private static final String NULL_KEY_MSG =
-    "com.poesys.db.dto.msg.no_object_key";
 
   /**
    * Create an AbstractDto object. This constructor takes no arguments (the
@@ -463,50 +445,9 @@ public abstract class AbstractDto implements IDbDto {
    * @throws ClassNotFoundException when a nested object class can't be found
    * @throws IOException when there is an IO problem reading the stream
    */
-  public void readObject(ObjectInputStream in) throws IOException,
+  private void readObject(ObjectInputStream in) throws IOException,
       ClassNotFoundException {
-    Connection connection = null;
-
-    // Check the stream input.
-    if (in == null) {
-      throw new RuntimeException(READ_OBJECT_MSG);
-    }
-    
-    // First de-serialize the non-transient data using the default process.
-    // Note: THIS MUST COME BEFORE ANY STREAM ACCESS.
-    in.defaultReadObject();
-
-    // Check for the primary key.
-    if (key == null) {
-      throw new RuntimeException(NULL_KEY_MSG);
-    }
-
-    // Cache the object in memory before getting nested objects.
-    IDaoManager manager = CacheDaoManager.getInstance();
-    manager.putObjectInCache(key.getCacheName(), 0, this);
-
-    // Finally, iterate through the setters to process nested objects.
-    if (readObjectSetters != null) {
-      try {
-        connection = getConnection();
-        for (ISet set : readObjectSetters) {
-          set.set(connection);
-        }
-      } catch (SQLException e) {
-        // Should never happen, log and throw RuntimeException
-        logger.error(READ_OBJECT_MSG, e);
-        throw new RuntimeException(READ_OBJECT_MSG, e);
-      } finally {
-        try {
-          if (connection != null && !connection.isClosed()) {
-            connection.close();
-          }
-        } catch (SQLException e) {
-          logger.error(READ_OBJECT_MSG, e);
-          throw new RuntimeException(READ_OBJECT_MSG, e);
-        }
-      }
-    }
+    doReadObject(in);
   }
 
   /**
@@ -630,16 +571,6 @@ public abstract class AbstractDto implements IDbDto {
   public void update(ISubject subject, DataEvent event) {
     // Default action is to do nothing; concrete DTOs must implement the
     // appropriate method that handles actions for updating nested children.
-  }
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.IDbDto#getPrimaryKey()
-   */
-  @Override
-  public IPrimaryKey getPrimaryKey() {
-    return key;
   }
 
   @Override

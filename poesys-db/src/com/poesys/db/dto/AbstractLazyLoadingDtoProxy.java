@@ -28,10 +28,7 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import com.poesys.db.BatchException;
-import com.poesys.db.Message;
-import com.poesys.db.dao.CacheDaoManager;
 import com.poesys.db.dao.DataEvent;
-import com.poesys.db.dao.IDaoManager;
 import com.poesys.db.dao.insert.IInsert;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -55,25 +52,16 @@ import com.poesys.db.pk.IPrimaryKey;
  * 
  * @author Robert J. Muller
  */
-public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
+public abstract class AbstractLazyLoadingDtoProxy extends AbstractDbDto {
   /** Serial version UID for Serializable object */
   private static final long serialVersionUID = 1L;
   /** Log4j logging */
+  @SuppressWarnings("unused")
   private static final Logger logger =
     Logger.getLogger(AbstractLazyLoadingDtoProxy.class);
 
   /** proxied data transfer object */
   protected IDbDto dto;
-
-  /** List of de-serialization setters for the proxy */
-  protected List<ISet> readObjectSetters = null;
-
-  /**
-   * Message string when attempting to de-serialize a cached object and there is
-   * some kind of exception
-   */
-  private static final String READ_OBJECT_MSG =
-    "com.poesys.db.dto.msg.read_object";
 
   /**
    * Create a AbstractLazyLoadingDtoProxy object.
@@ -82,6 +70,8 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
    */
   public AbstractLazyLoadingDtoProxy(IDbDto dto) {
     this.dto = dto;
+    // set local copy of primary key for reference, not used anywhere
+    this.key = dto.getPrimaryKey();
   }
 
   @Override
@@ -109,44 +99,9 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
    * @throws ClassNotFoundException when a nested object class can't be found
    * @throws IOException when there is an IO problem reading the stream
    */
-  public void readObject(ObjectInputStream in) throws IOException,
+  private void readObject(ObjectInputStream in) throws IOException,
       ClassNotFoundException {
-    Connection connection = null;
-
-    // First de-serialize the non-transient data using the default process.
-    in.defaultReadObject();
-
-    // Cache the object in memory before getting nested objects.
-    IDaoManager manager = CacheDaoManager.getInstance();
-    manager.putObjectInCache(dto.getPrimaryKey().getCacheName(), 0, this);
-
-    // Finally, iterate through the setters to process nested objects.
-    if (readObjectSetters != null) {
-      try {
-        connection = getConnection();
-        for (ISet set : readObjectSetters) {
-          set.set(connection);
-        }
-      } catch (SQLException e) {
-        // Should never happen, log and throw RuntimeException
-        String msg = Message.getMessage(READ_OBJECT_MSG, null);
-        logger.error(msg + ": Connection problem", e);
-        throw new RuntimeException(READ_OBJECT_MSG, e);
-      } catch (Throwable e) {
-        // Probably a memcached problem, just log the error.
-        String msg = Message.getMessage(READ_OBJECT_MSG, null);
-        logger.error(msg, e);
-      } finally {
-        try {
-          if (connection != null && !connection.isClosed()) {
-            connection.close();
-          }
-        } catch (SQLException e) {
-          logger.error(READ_OBJECT_MSG, e);
-          throw new RuntimeException(READ_OBJECT_MSG, e);
-        }
-      }
-    }
+    doReadObject(in);
   }
 
   @Override

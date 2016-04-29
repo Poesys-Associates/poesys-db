@@ -18,8 +18,6 @@
 package com.poesys.db.dto;
 
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -125,16 +123,6 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
     /** An object in an invalid state after an operation such as nested query */
     FAILED
   };
-  
-  /**
-   * Standard readObject interface for deserialization; implemented in
-   * AbstractDto and in all subclasses and proxy objects to permit
-   * deserialization of transient linked objects.
-   *
-   * @param in the input serialized object as a stream
-   */
-  void readObject(ObjectInputStream in) throws IOException,
-      ClassNotFoundException;
 
   /**
    * Get the current status of the Data Transfer Object
@@ -213,14 +201,14 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
    * @return true if processed, false if not
    */
   boolean isProcessed();
-  
+
   /**
    * Set the DTO to processed (true) or unprocessed (false).
    * 
    * @param processed true or false
    */
   void setProcessed(boolean processed);
-  
+
   /**
    * Set the flag indicating whether the object was queried from the database.
    * 
@@ -434,14 +422,16 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
    * constructors other than the root class, which should execute all pre-insert
    * setters; the rest of the hierarchy should not execute such setters, so
    * should turn off this flag.
+   * 
    * @return true if suppressed, false if not
    */
   boolean isSuppressNestedPreInserts();
 
   /**
    * Set suppression of nested-object pre-insert setters on or off.
+   * 
    * @param suppressNestedPreInserts true to set suppression on, false to set
-   * suppression off
+   *          suppression off
    * @see #isSuppressNestedPreInserts()
    */
   void setSuppressNestedPreInserts(boolean suppressNestedPreInserts);
