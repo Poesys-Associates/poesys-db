@@ -207,7 +207,6 @@ public class PooledConnectionFactory implements IConnectionFactory {
       // suitable for batch processing and systems with long queries but would
       // not be helpful in a high-throughput, short-transaction system.
       p.setSuspectTimeout(TIMEOUT); // warn about possibly abandoned connections
-      p.setLogAbandoned(true); // log the abandoned connections
       p.setRemoveAbandoned(false); // never kill connections
       p.setJdbcInterceptors("ResetAbandonedTimer"); // resets abandoned timer
                                                     // for long-running queries
