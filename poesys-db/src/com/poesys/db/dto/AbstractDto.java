@@ -35,6 +35,7 @@ import com.poesys.db.InvalidParametersException;
 import com.poesys.db.Message;
 import com.poesys.db.dao.DataEvent;
 import com.poesys.db.dao.insert.IInsert;
+import com.poesys.db.pk.IPrimaryKey;
 
 
 /**
@@ -69,11 +70,14 @@ import com.poesys.db.dao.insert.IInsert;
  * 
  * @author Robert J. Muller
  */
-public abstract class AbstractDto extends AbstractDbDto {
+public abstract class AbstractDto implements IDbDto {
   /** Serial version UID for serializable object */
   private static final long serialVersionUID = 1L;
   /** Log4j logging */
   private static final Logger logger = Logger.getLogger(AbstractDto.class);
+
+  /** primary key */
+  protected IPrimaryKey key;
 
   /**
    * Current status of the data transfer object; default NEW; can change only
@@ -86,6 +90,13 @@ public abstract class AbstractDto extends AbstractDbDto {
 
   /** whether the DTO is an abstract class (true) or a concrete one (false) */
   protected boolean abstractClass = false;
+
+  /** the deserializer used by the readOnly method */
+  private static final Deserializer<AbstractDto> deserializer =
+    new Deserializer<AbstractDto>();
+
+  /** List of de-serialization setters for the DTO */
+  protected List<ISet> readObjectSetters = null;
 
   @Override
   public boolean isAbstractClass() {
@@ -447,7 +458,7 @@ public abstract class AbstractDto extends AbstractDbDto {
    */
   private void readObject(ObjectInputStream in) throws IOException,
       ClassNotFoundException {
-    doReadObject(in);
+    deserializer.doReadObject(in, this, readObjectSetters);
   }
 
   /**
@@ -462,6 +473,11 @@ public abstract class AbstractDto extends AbstractDbDto {
    */
   abstract public java.sql.Connection getConnection()
       throws java.sql.SQLException;
+
+  @Override
+  public IPrimaryKey getPrimaryKey() {
+    return key;
+  }
 
   @Override
   public void validateForQuery(Connection connection) throws SQLException,

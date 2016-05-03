@@ -52,7 +52,7 @@ import com.poesys.db.pk.IPrimaryKey;
  * 
  * @author Robert J. Muller
  */
-public abstract class AbstractLazyLoadingDtoProxy extends AbstractDbDto {
+public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
   /** Serial version UID for Serializable object */
   private static final long serialVersionUID = 1L;
   /** Log4j logging */
@@ -63,6 +63,13 @@ public abstract class AbstractLazyLoadingDtoProxy extends AbstractDbDto {
   /** proxied data transfer object */
   protected IDbDto dto;
 
+  /** the deserializer used by the readOnly method */
+  private static final Deserializer<AbstractLazyLoadingDtoProxy> deserializer =
+    new Deserializer<AbstractLazyLoadingDtoProxy>();
+
+  /** List of de-serialization setters for the DTO */
+  protected List<ISet> readObjectSetters = null;
+
   /**
    * Create a AbstractLazyLoadingDtoProxy object.
    * 
@@ -70,8 +77,6 @@ public abstract class AbstractLazyLoadingDtoProxy extends AbstractDbDto {
    */
   public AbstractLazyLoadingDtoProxy(IDbDto dto) {
     this.dto = dto;
-    // set local copy of primary key for reference, not used anywhere
-    this.key = dto.getPrimaryKey();
   }
 
   @Override
@@ -100,8 +105,8 @@ public abstract class AbstractLazyLoadingDtoProxy extends AbstractDbDto {
    * @throws IOException when there is an IO problem reading the stream
    */
   private void readObject(ObjectInputStream in) throws IOException,
-      ClassNotFoundException {
-    doReadObject(in);
+      ClassNotFoundException, SQLException {
+    deserializer.doReadObject(in, this, readObjectSetters);
   }
 
   @Override
