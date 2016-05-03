@@ -80,7 +80,7 @@ public class MySqlDriver implements IJdbcDriver {
 
   @Override
   public String getUrl() {
-    // jdbc:mysql://[host][,failoverhost...][:port]/[database] È
+    // jdbc:mysql://[host][,failoverhost...][:port]/[database]
     // [?propertyName1][=propertyValue1][&propertyName2][=propertyValue2]...
     if (url.length() == 0) {
       url.append("jdbc:mysql://");
