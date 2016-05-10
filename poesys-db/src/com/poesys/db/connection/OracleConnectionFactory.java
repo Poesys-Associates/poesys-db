@@ -97,6 +97,9 @@ public class OracleConnectionFactory implements IConnectionFactory {
       ods.setDatabaseName(database);
       ods.setUser(user);
     }
+    
+    logger.debug("Connecting to Oracle host " + host + ":" + port + " SID "
+                 + database + " as user " + user);
 
     // Set the password in case it has changed.
     ods.setPassword(password);

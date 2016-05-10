@@ -30,6 +30,7 @@ import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoFactory;
 import com.poesys.db.dao.IDaoManager;
+import com.poesys.db.dao.MemcachedDaoManager;
 import com.poesys.db.dao.query.IKeyQuerySql;
 import com.poesys.db.dao.query.IQueryByKey;
 import com.poesys.db.pk.IPrimaryKey;
@@ -81,8 +82,14 @@ abstract public class AbstractListReadSetter<T extends IDbDto> extends
       list = getEmptyList();
       try {
         for (IPrimaryKey key : getPrimaryKeys()) {
-          T dto = dao.queryByKey(connection, key);
-          list.add(dto);
+          try {
+            MemcachedDaoManager.putConnection(key, connection);
+            T dto = dao.queryByKey(connection, key);
+            list.add(dto);
+          } finally {
+            // Clean up the connection cache for this key.
+            MemcachedDaoManager.removeConnection(key);
+          }
         }
       } catch (ConstraintViolationException e) {
         throw new DbErrorException(e.getMessage(), e);

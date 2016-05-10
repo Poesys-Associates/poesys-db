@@ -77,7 +77,7 @@ public class QueryMemcachedListWithKeyList<T extends IDbDto> extends QueryListWi
     IPrimaryKey key = sql.getPrimaryKey(rs);
     // Look the object up in the cache, create if not there and cache it.
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
-    T object = manager.getCachedObject(key);
+    T object = manager.getCachedObject(connection, key);
     if (object == null) {
       object = sql.getData(rs);
       logger.debug("Queried " + key.getStringKey() + " from database for list");

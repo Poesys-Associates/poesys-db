@@ -31,6 +31,7 @@ import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoFactory;
 import com.poesys.db.dao.IDaoManager;
+import com.poesys.db.dao.MemcachedDaoManager;
 import com.poesys.db.dao.query.IKeyQuerySql;
 import com.poesys.db.dao.query.IQueryByKey;
 import com.poesys.db.pk.IPrimaryKey;
@@ -77,12 +78,21 @@ abstract public class AbstractCollectionReadSetter<T extends IDbDto> extends
         manager.getFactory(getClassName(), subsystem, expiration);
       IQueryByKey<T> dao = factory.getQueryByKey(getSql());
       // Query using the primary keys.
-      Collection<T> collection = getEmptyCollection();
+      Collection<T> collection = null;
       if (getPrimaryKeys() != null) {
+        // Never reuse old array, avoid ConcurrentModificationException
+        collection = new ArrayList<T>(getPrimaryKeys().size());
         try {
           for (IPrimaryKey key : getPrimaryKeys()) {
-            T dto = dao.queryByKey(connection, key);
-            collection.add(dto);
+            // Put the connection into the connection cache for this key.
+            try {
+              MemcachedDaoManager.putConnection(key, connection);
+              T dto = dao.queryByKey(connection, key);
+              collection.add(dto);
+            } finally {
+              // Clean up the connection cache for this key.
+              MemcachedDaoManager.removeConnection(key);
+            }
           }
         } catch (ConstraintViolationException e) {
           throw new DbErrorException(e.getMessage(), e);
@@ -90,7 +100,7 @@ abstract public class AbstractCollectionReadSetter<T extends IDbDto> extends
           throw new DbErrorException(e.getMessage(), e);
         } catch (DtoStatusException e) {
           throw new DbErrorException(e.getMessage(), e);
-        }
+        } 
       }
 
       // Make the list thread safe and valid.
@@ -113,32 +123,6 @@ abstract public class AbstractCollectionReadSetter<T extends IDbDto> extends
       collection = new CopyOnWriteArrayList<T>();
     } else {
       collection = new CopyOnWriteArrayList<T>(collection);
-    }
-    return collection;
-  }
-
-  /**
-   * Get an empty object list for T objects. This will either be a newly
-   * allocated list or an existing list in the implementing class which has been
-   * cleared.
-   * 
-   * @return the empty list
-   */
-  private Collection<T> getEmptyCollection() {
-    Collection<T> collection = null;
-    if (isSet()) {
-      collection = getObjectCollection();
-      if (collection != null) {
-        collection.clear();
-      } else if (getPrimaryKeys() != null) {
-        collection = new ArrayList<T>(getPrimaryKeys().size());
-      } else {
-        collection = new ArrayList<T>();
-      }
-    } else if (getPrimaryKeys() != null) {
-      collection = new ArrayList<T>(getPrimaryKeys().size());
-    } else {
-      collection = new ArrayList<T>();
     }
     return collection;
   }

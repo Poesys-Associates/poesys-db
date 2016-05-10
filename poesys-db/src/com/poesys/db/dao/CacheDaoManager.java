@@ -18,6 +18,7 @@
 package com.poesys.db.dao;
 
 
+import java.sql.Connection;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -119,7 +120,7 @@ public class CacheDaoManager implements IDaoManager {
 
   @SuppressWarnings("unchecked")
   @Override
-  public synchronized <T extends IDbDto> T getCachedObject(IPrimaryKey key) {
+  public synchronized <T extends IDbDto> T getCachedObject(Connection connection, IPrimaryKey key) {
     T object = null;
     // Only proceed if cache name and key are not null
     if (key.getCacheName() != null && key != null) {
@@ -134,9 +135,9 @@ public class CacheDaoManager implements IDaoManager {
   }
 
   @Override
-  public <T extends IDbDto> T getCachedObject(IPrimaryKey key, int expireTime) {
+  public <T extends IDbDto> T getCachedObject(Connection connection, IPrimaryKey key, int expireTime) {
     // expire time ignored for Java cache
-    return getCachedObject(key);
+    return getCachedObject(connection, key);
   }
 
   @Override

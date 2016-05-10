@@ -25,12 +25,11 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
 
-import org.apache.log4j.Logger;
-
 import com.poesys.db.BatchException;
 import com.poesys.db.dao.DataEvent;
 import com.poesys.db.dao.insert.IInsert;
 import com.poesys.db.pk.IPrimaryKey;
+import org.apache.log4j.Logger;
 
 
 /**
@@ -55,8 +54,7 @@ import com.poesys.db.pk.IPrimaryKey;
 public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
   /** Serial version UID for Serializable object */
   private static final long serialVersionUID = 1L;
-  /** Log4j logging */
-  @SuppressWarnings("unused")
+
   private static final Logger logger =
     Logger.getLogger(AbstractLazyLoadingDtoProxy.class);
 
@@ -69,6 +67,12 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
 
   /** List of de-serialization setters for the DTO */
   protected List<ISet> readObjectSetters = null;
+
+  /** List of de-serialization key-cache setters for the DTO */
+  protected List<ISet> connectionCacheSetters = null;
+
+  /** List of de-serialization key-cache unsetters for the DTO */
+  protected List<ISet> connectionCacheUnsetters = null;
 
   /**
    * Create a AbstractLazyLoadingDtoProxy object.
@@ -106,7 +110,13 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
    */
   private void readObject(ObjectInputStream in) throws IOException,
       ClassNotFoundException, SQLException {
+    logger.debug("Deserializing object of class " + this.getClass().getName()
+                 + " with readObject in AbstractLazyLoadingDtoProxy");
+    // Set the connection caches for the nested objects.
+    deserializer.runConnectionSetters(connectionCacheSetters);
+    // Do the read-object deserialization.
     deserializer.doReadObject(in, this, readObjectSetters);
+    // Don't remove connection here, the proxied DTO will remove it.
   }
 
   @Override

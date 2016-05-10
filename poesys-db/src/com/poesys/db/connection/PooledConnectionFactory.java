@@ -188,6 +188,7 @@ public class PooledConnectionFactory implements IConnectionFactory {
       p.setUrl(url);
       p.setDriverClassName(driver.getDriver());
       p.setUsername(user);
+      logger.debug("Connecting as user " + user);
       p.setPassword(password);
       p.setJmxEnabled(false);
       p.setTestWhileIdle(false);

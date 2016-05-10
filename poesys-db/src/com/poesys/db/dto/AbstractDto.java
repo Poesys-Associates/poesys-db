@@ -98,6 +98,12 @@ public abstract class AbstractDto implements IDbDto {
   /** List of de-serialization setters for the DTO */
   protected List<ISet> readObjectSetters = null;
 
+  /** List of de-serialization key-cache setters for the DTO */
+  protected List<ISet> connectionCacheSetters = null;
+
+  /** List of de-serialization key-cache unsetters for the DTO */
+  protected List<ISet> connectionCacheUnsetters = null;
+
   @Override
   public boolean isAbstractClass() {
     return abstractClass;
@@ -458,7 +464,14 @@ public abstract class AbstractDto implements IDbDto {
    */
   private void readObject(ObjectInputStream in) throws IOException,
       ClassNotFoundException {
+    logger.debug("Deserializing object of class " + this.getClass().getName()
+                 + " with readObject in AbstractLazyLoadingDtoProxy");
+    // Set the connection caches for the nested objects.
+    deserializer.runConnectionSetters(connectionCacheSetters);
+    // Do the read-object deserialization.
     deserializer.doReadObject(in, this, readObjectSetters);
+    // Remove the connections from the key cache.
+    deserializer.runConnectionSetters(connectionCacheUnsetters);
   }
 
   /**

@@ -97,17 +97,19 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
     // Check in memory for the object.
     logger.debug("Checking in-memory cache " + key.getCacheName()
                  + " for object " + key.getStringKey());
-    T object = cacheManager.getCachedObject(key);
+    T object = cacheManager.getCachedObject(connection, key);
 
     if (object == null) {
       logger.debug("Object not found in in-memory cache " + key.getCacheName()
-                   + ", checking memcached with key \"" + key.getStringKey() + "\"");
+                   + ", checking memcached with key \"" + key.getStringKey()
+                   + "\"");
       // Check the cache for the object.
-      object = manager.getCachedObject(key);
+      object = manager.getCachedObject(connection, key);
 
       // Only proceed if memcached did not return an object from its cache.
-      logger.debug("Object not found in memcached: " + key.getStringKey());
       if (object == null) {
+        logger.debug("Object not found in memcached: " + key.getStringKey()
+                     + ", querying with connection " + connection);
         try {
           stmt = connection.prepareStatement(sql.getSql(key));
           key.setParams(stmt, 1);
@@ -140,7 +142,8 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
           // the SQL statement class, then rethrow the exception.
           logger.error("Memcached query by key error: " + e.getMessage());
           logger.error("Memcached query by key sql: " + sql.getSql(key) + "\n");
-          logger.error("Memcached query by key parameter values: " + key.getValueList());
+          logger.error("Memcached query by key parameter values: "
+                       + key.getValueList());
           logger.debug("SQL statement in class: " + sql.getClass().getName());
           throw e;
         } finally {

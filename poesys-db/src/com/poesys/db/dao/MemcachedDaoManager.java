@@ -22,11 +22,13 @@ import java.io.IOException;
 import java.io.NotSerializableException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.concurrent.ConcurrentHashMap;
 
 import net.spy.memcached.BinaryConnectionFactory;
 import net.spy.memcached.ClientMode;
@@ -56,6 +58,14 @@ import com.poesys.db.pool.ObjectPool;
  * hierarchies by checking the registry for objects before getting them from the
  * external cache, so that once an object is retrieved, that tree branch will
  * not be duplicated by a later cache query.
+ * </p>
+ * <p>
+ * There is a singleton static cache map of SQL connections indexed on primary
+ * key. This cache contains the SQL connections in use during a single object
+ * retrieval initiated by the getCachedObject() method. Deserialized transient
+ * lists use this connection to query objects as required, thus reducing the
+ * need for multiple connections during object deserialization. When the method
+ * finishes, it removes the connection from the cache.
  * </p>
  * <p>
  * <strong> You should minimize the lifetime of the Java DTOs retrieved from the
@@ -91,6 +101,10 @@ public final class MemcachedDaoManager implements IDaoManager {
   /** Memcached client pool */
   private static ObjectPool<MemcachedClient> clients = null;
 
+  /** Map of SQL connections keyed on primary key */
+  private static final Map<IPrimaryKey, Connection> connections =
+    new ConcurrentHashMap<IPrimaryKey, Connection>();
+
   /** Name of the memcached properties resource bundle */
   protected static final String BUNDLE = "com.poesys.db.memcached";
 
@@ -116,7 +130,7 @@ public final class MemcachedDaoManager implements IDaoManager {
     "com.poesys.db.dao.query.msg.memcached_retry";
   private static final String STATS_COMPLETE =
     "com.poesys.db.dao.query.msg.memcached_stats_complete";
-  private static final Object STATS_ERROR =
+  private static final String STATS_ERROR =
     "com.poesys.db.dao.query.msg.memcached_stats_error";
 
   // Memcached options from property file
@@ -283,11 +297,13 @@ public final class MemcachedDaoManager implements IDaoManager {
   }
 
   @Override
-  public <T extends IDbDto> T getCachedObject(IPrimaryKey key, int expireTime) {
-    T object = getCachedObject(key);
+  public <T extends IDbDto> T getCachedObject(Connection connection,
+                                              IPrimaryKey key, int expireTime) {
+    T object = getCachedObject(connection, key);
     MemcachedClient client = clients.getObject();
     try {
       if (object != null) {
+        // update the access time in the cache to keep the object around
         client.touch(key.getStringKey(), expireTime);
       }
     } finally {
@@ -298,13 +314,17 @@ public final class MemcachedDaoManager implements IDaoManager {
 
   @SuppressWarnings("unchecked")
   @Override
-  public <T extends IDbDto> T getCachedObject(IPrimaryKey key) {
+  public <T extends IDbDto> T getCachedObject(Connection connection,
+                                              IPrimaryKey key) {
     MemcachedClient client = clients.getObject();
     T object = null;
 
+    // Cache the connection.
+    putConnection(key, connection);
+
     try {
       // Check the in-memory cache for the object first.
-      object = cacheManager.getCachedObject(key);
+      object = cacheManager.getCachedObject(connection, key);
       if (object == null) {
         // Not previously de-serialized, get it from the cache.
         logger.debug("Getting object " + key.getStringKey() + " from the cache");
@@ -316,7 +336,7 @@ public final class MemcachedDaoManager implements IDaoManager {
         while (retries > 0) {
           try {
             object = (T)client.get(key.getStringKey());
-            // Break out of loop after no-exception get; no need to check 
+            // Break out of loop after no-exception get; no need to check
             // object for null, just means not cached
             break;
           } catch (Exception e) {
@@ -360,6 +380,8 @@ public final class MemcachedDaoManager implements IDaoManager {
       }
     } finally {
       clients.returnObject(client);
+      // de-cache the connection without closing
+      removeConnection(key);
     }
 
     return object;
@@ -403,7 +425,8 @@ public final class MemcachedDaoManager implements IDaoManager {
     MemcachedClient client = clients.getObject();
 
     // Check the cache for the object first, remove it if it's there.
-    IDbDto object = cacheManager.getCachedObject(key);
+    // No SQL connection required here
+    IDbDto object = cacheManager.getCachedObject(null, key);
     if (object != null) {
       cacheManager.removeObjectFromCache(cacheName, key);
     }
@@ -456,6 +479,44 @@ public final class MemcachedDaoManager implements IDaoManager {
       logger.warn(STATS_ERROR, e);
     } finally {
       clients.returnObject(client);
+    }
+  }
+
+  /**
+   * Get the connection from the connection cache identified by the primary key.
+   *
+   * @param key the primary key for which to look up the connection
+   * @return a SQL connection or null if there is no connection for the key
+   */
+  public static Connection getConnection(IPrimaryKey key) {
+    return connections.get(key);
+  }
+
+  /**
+   * Put a connection into the connection cache identified by the key.
+   *
+   * @param key the primary key
+   * @param connection the connection for the key
+   */
+  public static void putConnection(IPrimaryKey key, Connection connection) {
+    if (key != null && connection != null) {
+      connections.put(key, connection);
+      logger.debug("Cached connection " + connection + " for object with key "
+                   + key.getStringKey() + " in DaoManager");
+    }
+  }
+
+  /**
+   * Remove a connection identified by a key from the connection cache.
+   *
+   * @param key
+   */
+  public static void removeConnection(IPrimaryKey key) {
+    if (key != null && connections.get(key) != null) {
+      logger.debug("Removed connection " + connections.get(key)
+                   + " for object with key " + key.getStringKey()
+                   + " in DaoManager");
+      connections.remove(key);
     }
   }
 }
