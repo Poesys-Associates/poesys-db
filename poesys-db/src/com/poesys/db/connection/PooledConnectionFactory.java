@@ -207,19 +207,35 @@ public class PooledConnectionFactory implements IConnectionFactory {
       // The following settings support long-running queries. The setup is
       // suitable for batch processing and systems with long queries but would
       // not be helpful in a high-throughput, short-transaction system.
-      p.setSuspectTimeout(TIMEOUT); // warn about possibly abandoned connections
-      p.setRemoveAbandoned(false); // never kill connections
-      p.setJdbcInterceptors("ResetAbandonedTimer"); // resets abandoned timer
-                                                    // for long-running queries
-                                                    // support
+      //p.setSuspectTimeout(TIMEOUT); // warn about possibly abandoned connections
+      p.setRemoveAbandoned(true);
+      p.setRemoveAbandonedTimeout(1000);
+      p.setAbandonWhenPercentageFull(100);
+      // Reset abandoned timer for long-running queries
+      p.setJdbcInterceptors("ResetAbandonedTimer"); 
+      
       readWriteDataSource.setPoolProperties(p);
+      logger.debug("Set JDBC connection pool properties");
     }
 
     Connection connection = readWriteDataSource.getConnection();
+    logger.debug("Acquired JDBC pooled connection " + connection);
+    
+    int retries = 10;
+    if (connection.isClosed() && retries > 0) {
+      // closed connection, try another
+      logger.debug("Retrying closed connection");
+      connection = readWriteDataSource.getConnection();
+      logger.debug("Acquired JDBC pooled connection " + connection);
+      retries--;
+    } else if (connection.isClosed()) {
+      throw new SQLException("JDBC pooled connection already closed after multiple retries");
+    }
 
     // Set the autocommit feature off to handle transaction logic in the
     // business delegates or remote interfaces.
     connection.setAutoCommit(false);
+    
     return connection;
   }
 

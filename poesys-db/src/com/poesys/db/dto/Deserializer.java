@@ -112,6 +112,8 @@ public class Deserializer<T extends IDbDto> {
           if (connection != null && !connection.isClosed() && createdConnection) {
             // created rather than from connection cache, close here
             connection.close();
+            // reset the flag to the default for the next call
+            createdConnection = false;
           }
         } catch (SQLException e) {
           logger.error(READ_OBJECT_MSG, e);

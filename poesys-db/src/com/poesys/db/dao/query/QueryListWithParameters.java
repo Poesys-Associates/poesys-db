@@ -98,6 +98,10 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
     } catch (SQLException e) {
       // Log the message and the SQL statement, then rethrow the exception.
       logger.error("Query list with parameters error: " + e.getMessage());
+      // Log a debugging message for the "already been closed" error
+      if ("PooledConnection has already been closed.".equals(e.getMessage())) {
+        logger.debug("Closed connection: " + connection);
+      }
       logger.error("Query list with parameters sql: " + sql.getSql() + "\n");
       logger.debug("SQL statement in class: " + sql.getClass().getName());
       throw e;
