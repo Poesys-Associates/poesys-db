@@ -31,9 +31,6 @@ public class Deserializer<T extends IDbDto> {
    */
   private static final String READ_OBJECT_MSG =
     "com.poesys.db.dto.msg.read_object";
-  /** Unexpected SQL error message */
-  private static final String UNEXPECTED_SQL_ERROR =
-    "com.poesys.db.dto.msg.unexpected_sql_error";
   /** Message string when the primary key is null */
   private static final String NULL_KEY_MSG =
     "com.poesys.db.dto.msg.no_object_key";
