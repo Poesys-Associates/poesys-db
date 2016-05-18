@@ -113,7 +113,7 @@ public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
           // CASCADE-DELETED objects.
           if (dto.getStatus() == IDbDto.Status.DELETED
               || dto.getStatus() == IDbDto.Status.CASCADE_DELETED) {
-            dto.validateForDelete(connection);
+            dto.validateForDelete();
             dto.preprocessNestedObjects(connection);
           }
 

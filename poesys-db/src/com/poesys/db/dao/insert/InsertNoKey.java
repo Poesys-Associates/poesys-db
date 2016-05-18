@@ -107,8 +107,8 @@ public class InsertNoKey<T extends IDbDto> implements IInsert<T> {
 
       // Run any validation after querying nested objects to be able to use
       // them in validation.
-      dto.queryNestedObjectsForValidation(connection);
-      dto.validateForInsert(connection);
+      dto.queryNestedObjectsForValidation();
+      dto.validateForInsert();
 
       try {
         // Prepare the statement, bind in the non-key column values, and execute

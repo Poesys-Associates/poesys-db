@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.BatchException;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.insert.Insert;
 import com.poesys.db.dao.insert.InsertSqlParent;
@@ -64,35 +63,47 @@ public class QueryByKeyTest extends ConnectionTest {
    */
   public void testQueryByKeySequenceTest() throws IOException, SQLException,
       BatchException {
-    Connection conn;
-    try {
-      conn = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
-    } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
-    }
+    Connection conn = null;
+    SequencePrimaryKey key = null;
+    TestSequence dto = null;
 
-    // Create the sequence key and the object to insert.
-    Insert<TestSequence> inserter =
-      new Insert<TestSequence>(new InsertSqlTestSequence());
-    SequencePrimaryKey key =
-      PrimaryKeyFactory.createMySqlSequenceKey(conn, "test", "pkey", CLASS_NAME);
-    String col1 = "test";
-    TestSequence dto = new TestSequence(key, col1);
-
-    // Insert the object.
     try {
+      try {
+        conn = getConnection();
+      } catch (SQLException e) {
+        throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      }
+
+      // Create the sequence key and the object to insert.
+      Insert<TestSequence> inserter =
+        new Insert<TestSequence>(new InsertSqlTestSequence());
+      key =
+        PrimaryKeyFactory.createMySqlSequenceKey(conn,
+                                                 "test",
+                                                 "pkey",
+                                                 CLASS_NAME);
+      String col1 = "test";
+      dto = new TestSequence(key, col1);
+
+      // Insert the object.
       inserter.insert(conn, dto);
       assertTrue(true);
     } catch (SQLException e) {
       fail("Insert test object failed: " + e.getMessage());
+    } finally {
+      if (conn != null) {
+        conn.commit();
+        conn.close();
+      }
     }
 
     // Query the object and test against the original.
     try {
       IKeyQuerySql<TestSequence> sql = new TestSequenceKeyQuerySql();
-      QueryByKey<TestSequence> query = new QueryByKey<TestSequence>(sql);
-      IDbDto queriedDto = query.queryByKey(conn, key);
-      assertTrue(queriedDto != null);
+      QueryByKey<TestSequence> query =
+        new QueryByKey<TestSequence>(sql, getSubsystem());
+      IDbDto queriedDto = query.queryByKey(key);
+      assertTrue("no object found", queriedDto != null);
       assertTrue("data not equal", dto.compareTo(queriedDto) == 0);
       assertTrue("queried dto set to NEW",
                  queriedDto.getStatus() != IDbDto.Status.NEW);
@@ -100,10 +111,6 @@ public class QueryByKeyTest extends ConnectionTest {
                  queriedDto.getStatus() != IDbDto.Status.CHANGED);
     } catch (SQLException e) {
       fail("Query by key exception: " + e.getMessage());
-    } finally {
-      if (conn != null) {
-        conn.close();
-      }
     }
   }
 
@@ -118,7 +125,7 @@ public class QueryByKeyTest extends ConnectionTest {
       BatchException {
     Connection conn;
     try {
-      conn = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+      conn = getConnection();
     } catch (SQLException e) {
       throw new RuntimeException("Connect failed: " + e.getMessage(), e);
     }
@@ -127,7 +134,8 @@ public class QueryByKeyTest extends ConnectionTest {
     Insert<Parent> inserter = new Insert<Parent>(new InsertSqlParent());
 
     // Create the GUID primary key for the parent.
-    GuidPrimaryKey key = PrimaryKeyFactory.createGuidKey(PARENT_KEY_NAME, CLASS_NAME);
+    GuidPrimaryKey key =
+      PrimaryKeyFactory.createGuidKey(PARENT_KEY_NAME, CLASS_NAME);
 
     // Create the parent DTO with the key and the empty setters list.
     String col1 = new String(COL1_VALUE);
@@ -137,18 +145,24 @@ public class QueryByKeyTest extends ConnectionTest {
     List<Child> children = new CopyOnWriteArrayList<Child>();
     NaturalPrimaryKey subKey1 =
       PrimaryKeyFactory.createSingleNumberKey(CHILD_SUBKEY_NAME,
-                                              new BigInteger("1"), CLASS_NAME);
-    CompositePrimaryKey key1 = new CompositePrimaryKey(key, subKey1, CLASS_NAME);
+                                              new BigInteger("1"),
+                                              CLASS_NAME);
+    CompositePrimaryKey key1 =
+      new CompositePrimaryKey(key, subKey1, CLASS_NAME);
     children.add(new Child(key1, new BigInteger("1"), COL1_VALUE));
     NaturalPrimaryKey subKey2 =
       PrimaryKeyFactory.createSingleNumberKey(CHILD_SUBKEY_NAME,
-                                              new BigInteger("2"), CLASS_NAME);
-    CompositePrimaryKey key2 = new CompositePrimaryKey(key, subKey2, CLASS_NAME);
+                                              new BigInteger("2"),
+                                              CLASS_NAME);
+    CompositePrimaryKey key2 =
+      new CompositePrimaryKey(key, subKey2, CLASS_NAME);
     children.add(new Child(key2, new BigInteger("2"), COL1_VALUE));
     NaturalPrimaryKey subKey3 =
       PrimaryKeyFactory.createSingleNumberKey(CHILD_SUBKEY_NAME,
-                                              new BigInteger("3"), CLASS_NAME);
-    CompositePrimaryKey key3 = new CompositePrimaryKey(key, subKey3, CLASS_NAME);
+                                              new BigInteger("3"),
+                                              CLASS_NAME);
+    CompositePrimaryKey key3 =
+      new CompositePrimaryKey(key, subKey3, CLASS_NAME);
     children.add(new Child(key3, new BigInteger("3"), COL1_VALUE));
     dto.setChildren(children);
 
@@ -180,8 +194,8 @@ public class QueryByKeyTest extends ConnectionTest {
     // Query the object and test against the original.
     try {
       IKeyQuerySql<Parent> sql = new ParentKeyQuerySql();
-      QueryByKey<Parent> dao = new QueryByKey<Parent>(sql);
-      IDbDto queriedDto = dao.queryByKey(conn, key);
+      QueryByKey<Parent> dao = new QueryByKey<Parent>(sql, getSubsystem());
+      IDbDto queriedDto = dao.queryByKey(key);
       assertTrue(queriedDto != null);
       assertTrue("data not equal", dto.compareTo(queriedDto) == 0);
       assertTrue("queried dto set to NEW",

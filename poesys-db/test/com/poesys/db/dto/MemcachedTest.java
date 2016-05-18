@@ -115,6 +115,7 @@ public class MemcachedTest {
     putObjectInCache(TESTKEY, c1);
     // get object from cache
     ConcreteSubClass c2 = getCachedObject(TESTKEY);
+    assertTrue("No concrete class object in cache", c2 != null);
     // test object contents
     assertTrue("Object value not retrieved properly", c2.getNestedObject().equals(TEST_VALUE));
   }

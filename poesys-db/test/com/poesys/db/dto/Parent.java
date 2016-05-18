@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.DataEvent;
 import com.poesys.db.dao.IDaoFactory;
@@ -69,7 +70,7 @@ public class Parent extends AbstractTestDto {
     private static final long serialVersionUID = 1L;
 
     public QueryChildren() {
-      super("com.poesys.db.dto", Integer.MAX_VALUE);
+      super(getSubsystem(), DBMS.MYSQL, Integer.MAX_VALUE);
     }
 
     @Override
@@ -119,7 +120,7 @@ public class Parent extends AbstractTestDto {
     private static final long serialVersionUID = 1L;
 
     public InsertChildren() {
-      super("com.poesys.db.dto", Integer.MAX_VALUE);
+      super(getSubsystem(), DBMS.MYSQL, Integer.MAX_VALUE);
     }
 
     @Override
@@ -157,7 +158,7 @@ public class Parent extends AbstractTestDto {
     private static final long serialVersionUID = 1L;
 
     public PreprocessChildren() {
-      super("com.poesys.db.dto", Integer.MAX_VALUE);
+      super(getSubsystem(), DBMS.MYSQL, Integer.MAX_VALUE);
     }
 
     @Override
@@ -175,9 +176,9 @@ public class Parent extends AbstractTestDto {
     @Override
     protected void doDeleted(Connection connection, List<Child> dtos)
         throws SQLException, BatchException {
-      IDaoManager manager = DaoManagerFactory.getManager("com.poesys.db.dto");
+      IDaoManager manager = DaoManagerFactory.getManager(getSubsystem());
       IDaoFactory<Child> factory =
-        manager.getFactory(getClassName(), "com.poesys.db.dto", expiration);
+        manager.getFactory(getClassName(), getSubsystem(), expiration);
       IDeleteBatch<Child> dao = factory.getDeleteBatch(new DeleteSqlChild());
       dao.delete(connection, dtos, 2);
     }
@@ -205,7 +206,7 @@ public class Parent extends AbstractTestDto {
     private static final long serialVersionUID = 1L;
 
     public PostprocessChildren() {
-      super("com.poesys.db.dto", Integer.MAX_VALUE);
+      super(getSubsystem(), DBMS.MYSQL, Integer.MAX_VALUE);
     }
 
     /*
@@ -241,7 +242,7 @@ public class Parent extends AbstractTestDto {
     protected void doNew(Connection connection, List<Child> dtos)
         throws SQLException, BatchException {
       // Insert the children.
-      IDaoManager manager = DaoManagerFactory.getManager("com.poesys.db.dto");
+      IDaoManager manager = DaoManagerFactory.getManager(getSubsystem());
       IDaoFactory<Child> factory =
         manager.getFactory(getClassName(), subsystem, expiration);
       IInsertBatch<Child> dao = factory.getInsertBatch(new InsertSqlChild());
@@ -251,7 +252,7 @@ public class Parent extends AbstractTestDto {
     @Override
     protected void doChanged(Connection connection, List<Child> dtos)
         throws SQLException, BatchException {
-      IDaoManager manager = DaoManagerFactory.getManager("com.poesys.db.dto");
+      IDaoManager manager = DaoManagerFactory.getManager(getSubsystem());
       IDaoFactory<Child> factory =
         manager.getFactory(getClassName(), subsystem, expiration);
       // Update the children.

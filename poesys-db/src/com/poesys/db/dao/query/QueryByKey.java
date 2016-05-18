@@ -18,6 +18,7 @@
 package com.poesys.db.dao.query;
 
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -29,6 +30,8 @@ import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
 import com.poesys.db.NoPrimaryKeyException;
+import com.poesys.db.connection.ConnectionFactoryFactory;
+import com.poesys.db.connection.IConnectionFactory;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -61,27 +64,28 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
   private static final Logger logger = Logger.getLogger(QueryByKey.class);
   /** Internal Strategy-pattern object containing the SQL query */
   protected final IKeyQuerySql<T> sql;
+  /** the client subsystem owning the queried object */
+  protected final String subsystem;
   /** Error message about not having a primary key with which to query */
   protected static final String NO_PRIMARY_KEY_MSG =
     "com.poesys.db.dao.query.msg.no_primary_key";
+  /** Error getting resource bundle, can't resolve to bundle text so a constant */
+  private static final String RESOURCE_BUNDLE_ERROR =
+    "Problem getting Poesys/DB resource bundle";
 
   /**
    * Create a QueryByKey object.
    * 
    * @param sql the SQL SELECT statement object for the query
+   * @param subsystem the subsystem that owns the object to query
    */
-  public QueryByKey(IKeyQuerySql<T> sql) {
+  public QueryByKey(IKeyQuerySql<T> sql, String subsystem) {
     this.sql = sql;
+    this.subsystem = subsystem;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.IQueryByKey#queryByKey(java.sql.Connection,
-   * com.poesys.db.IDto)
-   */
-  public T queryByKey(Connection connection, IPrimaryKey key)
-      throws SQLException, BatchException {
+  @Override
+  public T queryByKey(IPrimaryKey key) throws SQLException, BatchException {
     PreparedStatement stmt = null;
     ResultSet rs = null;
     T object = null;
@@ -91,7 +95,12 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
       throw new NoPrimaryKeyException(NO_PRIMARY_KEY_MSG);
     }
 
+    Connection connection = null;
+
     try {
+      IConnectionFactory factory =
+        ConnectionFactoryFactory.getInstance(subsystem);
+      connection = factory.getConnection();
       stmt = connection.prepareStatement(sql.getSql(key));
       key.setParams(stmt, 1);
       logger.debug("Querying by key: " + sql.getSql(key));
@@ -104,7 +113,7 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
         // Only proceed if object retrieved.
         if (object != null) {
           // Query any nested objects.
-          object.queryNestedObjects(connection);
+          object.queryNestedObjects();
           // Set the new and changed flags to show this object exists and is
           // unchanged from the version in the database.
           object.setExisting();
@@ -120,6 +129,9 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
       logger.error("Query by key sql: " + sql.getSql(key) + "\n");
       logger.debug("SQL statement in class: " + sql.getClass().getName());
       throw e;
+    } catch (IOException e) {
+      // Problem with resource bundle, rethrow as SQLException
+      throw new SQLException(RESOURCE_BUNDLE_ERROR);
     } finally {
       if (stmt != null) {
         stmt.close();
@@ -127,12 +139,15 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
       if (rs != null) {
         rs.close();
       }
+      if (connection != null) {
+        connection.close();
+      }
     }
 
     // Query any nested objects. This is outside the fetch above to make sure
     // that the statement and result set are closed before recursing.
     if (object != null) {
-      object.queryNestedObjects(connection);
+      object.queryNestedObjects();
     }
 
     return object;
@@ -140,11 +155,11 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
 
   @Override
   public void close() {
-    // Nothing to do    
+    // Nothing to do
   }
 
   @Override
   public void setExpiration(int expiration) {
-    // Does nothing, no expiration on objects here    
+    // Does nothing, no expiration on objects here
   }
 }

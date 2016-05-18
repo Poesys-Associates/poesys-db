@@ -30,7 +30,6 @@ import com.poesys.db.DuplicateKeyNameException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.col.AbstractColumnValue;
 import com.poesys.db.col.UuidColumnValue;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 
 
@@ -120,8 +119,7 @@ public class GuidPrimaryKeyTest extends ConnectionTest {
    */
   public void testSetParams() throws SQLException, IOException,
       InvalidParametersException {
-    Connection connection =
-      getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+    Connection connection = getConnection();
     GuidPrimaryKey key1 = new GuidPrimaryKey("col", CLASS_NAME);
     PreparedStatement stmt =
       connection.prepareStatement("SELECT * FROM TEST WHERE testGuid = ?");

@@ -18,7 +18,6 @@
 package com.poesys.db.dao;
 
 
-import java.sql.Connection;
 import java.util.Collection;
 
 import org.apache.log4j.Logger;
@@ -59,8 +58,7 @@ public final class DirectDaoManager implements IDaoManager {
   }
 
   @Override
-  public <T extends IDbDto, C extends Collection<T>> IDaoFactory<T> getFactory(
-                                                                               String name,
+  public <T extends IDbDto, C extends Collection<T>> IDaoFactory<T> getFactory(String name,
                                                                                String subsystem,
                                                                                Integer expiration) {
     return new DaoDirectFactory<T>();
@@ -94,21 +92,19 @@ public final class DirectDaoManager implements IDaoManager {
     return null;
   }
 
-
   @Override
-  public <T extends IDbDto> T getCachedObject(Connection connection, IPrimaryKey key, int expireTime) {
+  public <T extends IDbDto> T getCachedObject(IPrimaryKey key, int expireTime) {
     // no caching
     return null;
   }
-  
+
   @Override
-  public synchronized <T extends IDbDto> T getCachedObject(Connection connection, IPrimaryKey key) {
+  public synchronized <T extends IDbDto> T getCachedObject(IPrimaryKey key) {
     return null; // no caching
   }
 
   @Override
-  public synchronized <T extends IDbDto> void putObjectInCache(
-                                                               String cacheName,
+  public synchronized <T extends IDbDto> void putObjectInCache(String cacheName,
                                                                int expireTime,
                                                                T object) {
     // Does nothing, no caching

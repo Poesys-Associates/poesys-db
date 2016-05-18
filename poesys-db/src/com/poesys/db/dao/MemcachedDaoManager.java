@@ -22,13 +22,11 @@ import java.io.IOException;
 import java.io.NotSerializableException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
-import java.util.concurrent.ConcurrentHashMap;
 
 import net.spy.memcached.BinaryConnectionFactory;
 import net.spy.memcached.ClientMode;
@@ -100,10 +98,6 @@ public final class MemcachedDaoManager implements IDaoManager {
 
   /** Memcached client pool */
   private static ObjectPool<MemcachedClient> clients = null;
-
-  /** Map of SQL connections keyed on primary key */
-  private static final Map<IPrimaryKey, Connection> connections =
-    new ConcurrentHashMap<IPrimaryKey, Connection>();
 
   /** Name of the memcached properties resource bundle */
   protected static final String BUNDLE = "com.poesys.db.memcached";
@@ -245,8 +239,8 @@ public final class MemcachedDaoManager implements IDaoManager {
   /**
    * Get the hostname/port combinations for the sockets to which the client will
    * connect. The sockets are in a single property string in the format
-   * <hostname>:<port>,... where <hostname> is a valid authority (domain or IP
-   * address) and <port> is an integer between 0 and 65,535.
+   * &lt;hostname&gt;:&lt;port&gt;,... where &lt;hostname&gt; is a valid authority (domain or IP
+   * address) and &lt;port&gt; is an integer between 0 and 65,535.
    *
    * @return a list of Internet Socket Address objects
    */
@@ -297,9 +291,8 @@ public final class MemcachedDaoManager implements IDaoManager {
   }
 
   @Override
-  public <T extends IDbDto> T getCachedObject(Connection connection,
-                                              IPrimaryKey key, int expireTime) {
-    T object = getCachedObject(connection, key);
+  public <T extends IDbDto> T getCachedObject(IPrimaryKey key, int expireTime) {
+    T object = getCachedObject(key);
     MemcachedClient client = clients.getObject();
     try {
       if (object != null) {
@@ -314,17 +307,13 @@ public final class MemcachedDaoManager implements IDaoManager {
 
   @SuppressWarnings("unchecked")
   @Override
-  public <T extends IDbDto> T getCachedObject(Connection connection,
-                                              IPrimaryKey key) {
+  public <T extends IDbDto> T getCachedObject(IPrimaryKey key) {
     MemcachedClient client = clients.getObject();
     T object = null;
 
-    // Cache the connection.
-    putConnection(key, connection);
-
     try {
       // Check the in-memory cache for the object first.
-      object = cacheManager.getCachedObject(connection, key);
+      object = cacheManager.getCachedObject(key);
       if (object == null) {
         // Not previously de-serialized, get it from the cache.
         logger.debug("Getting object " + key.getStringKey() + " from the cache");
@@ -380,8 +369,6 @@ public final class MemcachedDaoManager implements IDaoManager {
       }
     } finally {
       clients.returnObject(client);
-      // de-cache the connection without closing
-      removeConnection(key);
     }
 
     return object;
@@ -425,8 +412,7 @@ public final class MemcachedDaoManager implements IDaoManager {
     MemcachedClient client = clients.getObject();
 
     // Check the cache for the object first, remove it if it's there.
-    // No SQL connection required here
-    IDbDto object = cacheManager.getCachedObject(null, key);
+    IDbDto object = cacheManager.getCachedObject(key);
     if (object != null) {
       cacheManager.removeObjectFromCache(cacheName, key);
     }
@@ -479,44 +465,6 @@ public final class MemcachedDaoManager implements IDaoManager {
       logger.warn(STATS_ERROR, e);
     } finally {
       clients.returnObject(client);
-    }
-  }
-
-  /**
-   * Get the connection from the connection cache identified by the primary key.
-   *
-   * @param key the primary key for which to look up the connection
-   * @return a SQL connection or null if there is no connection for the key
-   */
-  public static Connection getConnection(IPrimaryKey key) {
-    return connections.get(key);
-  }
-
-  /**
-   * Put a connection into the connection cache identified by the key.
-   *
-   * @param key the primary key
-   * @param connection the connection for the key
-   */
-  public static void putConnection(IPrimaryKey key, Connection connection) {
-    if (key != null && connection != null) {
-      connections.put(key, connection);
-      logger.debug("Cached connection " + connection + " for object with key "
-                   + key.getStringKey() + " in DaoManager");
-    }
-  }
-
-  /**
-   * Remove a connection identified by a key from the connection cache.
-   *
-   * @param key
-   */
-  public static void removeConnection(IPrimaryKey key) {
-    if (key != null && connections.get(key) != null) {
-      logger.debug("Removed connection " + connections.get(key)
-                   + " for object with key " + key.getStringKey()
-                   + " in DaoManager");
-      connections.remove(key);
     }
   }
 }

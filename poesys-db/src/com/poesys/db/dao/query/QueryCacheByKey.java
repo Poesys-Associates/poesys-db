@@ -18,6 +18,7 @@
 package com.poesys.db.dao.query;
 
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -29,6 +30,8 @@ import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
 import com.poesys.db.NoPrimaryKeyException;
+import com.poesys.db.connection.ConnectionFactoryFactory;
+import com.poesys.db.connection.IConnectionFactory;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.dto.IDtoCache;
 import com.poesys.db.pk.IPrimaryKey;
@@ -54,9 +57,10 @@ public class QueryCacheByKey<T extends IDbDto> extends QueryByKey<T> implements
   /** Reference to the DTO cache of data transfer objects (DTOs) */
   IDtoCache<T> cache;
 
-  /**
-   * Error message resource for the no-object-cache error message
-   */
+  /** Error getting resource bundle, can't resolve to bundle text so a constant */
+  private static final String RESOURCE_BUNDLE_ERROR =
+    "Problem getting Poesys/DB resource bundle";
+  /** Error message resource for the no-object-cache error message */
   private static final String NO_CACHE =
     "com.poesys.db.dao.query.msg.no_object_cache";
 
@@ -65,24 +69,20 @@ public class QueryCacheByKey<T extends IDbDto> extends QueryByKey<T> implements
    * 
    * @param sql the SQL statement specification
    * @param cache the DTO cache
+   * @param subsystem the subsystem that owns the object being queried
    */
-  public QueryCacheByKey(IKeyQuerySql<T> sql, IDtoCache<T> cache) {
-    super(sql);
+  public QueryCacheByKey(IKeyQuerySql<T> sql,
+                         IDtoCache<T> cache,
+                         String subsystem) {
+    super(sql, subsystem);
     if (cache == null) {
       throw new RuntimeException(NO_CACHE);
     }
     this.cache = cache;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.IQueryByKey#queryByKey(java.sql.Connection,
-   * com.poesys.db.IDto)
-   */
   @Override
-  public T queryByKey(Connection connection, IPrimaryKey key)
-      throws SQLException, BatchException {
+  public T queryByKey(IPrimaryKey key) throws SQLException, BatchException {
     PreparedStatement stmt = null;
     ResultSet rs = null;
 
@@ -97,9 +97,14 @@ public class QueryCacheByKey<T extends IDbDto> extends QueryByKey<T> implements
       object = cache.get(key);
     }
 
+    Connection connection = null;
+
     // Only proceed if the object is not cached.
     if (object == null) {
       try {
+        IConnectionFactory factory =
+          ConnectionFactoryFactory.getInstance(subsystem);
+        connection = factory.getConnection();
         stmt = connection.prepareStatement(sql.getSql(key));
         key.setParams(stmt, 1);
         logger.debug("Querying uncached object by key: " + sql.getSql(key));
@@ -127,6 +132,9 @@ public class QueryCacheByKey<T extends IDbDto> extends QueryByKey<T> implements
         logger.error("Caching query by key sql: " + sql.getSql(key) + "\n");
         logger.debug("SQL statement in class: " + sql.getClass().getName());
         throw e;
+      } catch (IOException e) {
+        // Problem with resource bundle, rethrow as SQLException
+        throw new SQLException(RESOURCE_BUNDLE_ERROR);
       } finally {
         if (stmt != null) {
           stmt.close();
@@ -134,13 +142,17 @@ public class QueryCacheByKey<T extends IDbDto> extends QueryByKey<T> implements
         if (rs != null) {
           rs.close();
         }
+        // Close the connection.
+        if (connection != null) {
+          connection.close();
+        }
       }
     }
 
     // Query any nested objects. This is outside the fetch above to make sure
     // that the statement and result set are closed before recursing.
     if (object != null) {
-      object.queryNestedObjects(connection);
+      object.queryNestedObjects();
     }
 
     return object;

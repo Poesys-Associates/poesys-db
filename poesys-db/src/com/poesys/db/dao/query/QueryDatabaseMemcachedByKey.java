@@ -18,6 +18,7 @@
 package com.poesys.db.dao.query;
 
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -29,6 +30,8 @@ import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
 import com.poesys.db.NoPrimaryKeyException;
+import com.poesys.db.connection.ConnectionFactoryFactory;
+import com.poesys.db.connection.IConnectionFactory;
 import com.poesys.db.dao.CacheDaoManager;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoManager;
@@ -60,28 +63,30 @@ public class QueryDatabaseMemcachedByKey<T extends IDbDto> extends
   /** expiration time in milliseconds for cached objects */
   private Integer expiration;
 
+  /** Error getting resource bundle, can't resolve to bundle text so a constant */
+  private static final String RESOURCE_BUNDLE_ERROR =
+    "Problem getting Poesys/DB resource bundle";
+
   /**
    * Create a QueryCacheByKey object with the appropriate SQL class, the
    * subsystem that contains the T class, and the memcached expiration time for
    * objects of type T in the cache.
    * 
    * @param sql the SQL statement specification
-   * @param subsystem the subsystem name for the subsystem containing the T
-   *          class
+   * @param subsystem the subsystem that owns the object being queried
    * @param expiration the memcached expiration time in milliseconds for the
    *          cached object
    */
   public QueryDatabaseMemcachedByKey(IKeyQuerySql<T> sql,
                                      String subsystem,
                                      Integer expiration) {
-    super(sql);
+    super(sql, subsystem);
     this.subsystem = subsystem;
     this.expiration = expiration;
   }
 
   @Override
-  public T queryByKey(Connection connection, IPrimaryKey key)
-      throws SQLException, BatchException {
+  public T queryByKey(IPrimaryKey key) throws SQLException, BatchException {
     PreparedStatement stmt = null;
     ResultSet rs = null;
 
@@ -96,7 +101,12 @@ public class QueryDatabaseMemcachedByKey<T extends IDbDto> extends
 
     T object = null;
 
+    Connection connection = null;
+
     try {
+      IConnectionFactory factory =
+        ConnectionFactoryFactory.getInstance(subsystem);
+      connection = factory.getConnection();
       stmt = connection.prepareStatement(sql.getSql(key));
       key.setParams(stmt, 1);
       logger.debug("Querying database object by key: " + sql.getSql(key));
@@ -127,11 +137,15 @@ public class QueryDatabaseMemcachedByKey<T extends IDbDto> extends
       // Log the message, the SQL statement, the key value parameters, and
       // the SQL statement class, then rethrow the exception.
       logger.error("Memcached database query by key error: " + e.getMessage());
-      logger.error("Memcached database query by key sql: " + sql.getSql(key) + "\n");
+      logger.error("Memcached database query by key sql: " + sql.getSql(key)
+                   + "\n");
       logger.error("Memcached database query by key parameter values: "
                    + key.getValueList());
       logger.debug("SQL statement in class: " + sql.getClass().getName());
       throw e;
+    } catch (IOException e) {
+      // Problem with resource bundle, rethrow as SQLException
+      throw new SQLException(RESOURCE_BUNDLE_ERROR);
     } finally {
       if (stmt != null) {
         stmt.close();
@@ -139,12 +153,16 @@ public class QueryDatabaseMemcachedByKey<T extends IDbDto> extends
       if (rs != null) {
         rs.close();
       }
+      // Close the connection.
+      if (connection != null) {
+        connection.close();
+      }
     }
 
     // Query any nested objects. This is outside the fetch above to make sure
     // that the statement and result set are closed before recursing.
     if (object != null) {
-      object.queryNestedObjects(connection);
+      object.queryNestedObjects();
       // If the object was queried, cache it.
       if (object.isQueried()) {
         // Now cache the object as all the details have been filled in.

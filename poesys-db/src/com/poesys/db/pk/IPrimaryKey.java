@@ -287,7 +287,7 @@ public interface IPrimaryKey extends Iterable<AbstractColumnValue>,
    * objects of this class in Java foreach loops. The order is the correct
    * order (alphabetical order).
    * 
-   * @return a List of ColumnValue<Object> objects of different data types
+   * @return a List of ColumnValue&lt;Object&gt; objects of different data types
    */
   Iterator<AbstractColumnValue> iterator();
 

@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.pk;
 
@@ -32,7 +31,6 @@ import com.poesys.db.InvalidParametersException;
 import com.poesys.db.col.AbstractColumnValue;
 import com.poesys.db.col.BigIntegerColumnValue;
 import com.poesys.db.col.StringColumnValue;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 
 
@@ -51,7 +49,8 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for single-column key
-   * {@link com.poesys.db.pk.NaturalPrimaryKey#NaturalPrimaryKey(java.util.List,java.lang.String)}.
+   * {@link com.poesys.db.pk.NaturalPrimaryKey#NaturalPrimaryKey(java.util.List,java.lang.String)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
    * @throws DuplicateKeyNameException when more than one column has the same
@@ -59,8 +58,7 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
    */
   public void testNaturalPrimaryKey1() throws InvalidParametersException,
       DuplicateKeyNameException {
-    List<AbstractColumnValue> list =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
     list.add(new StringColumnValue(col1Name, "A"));
     NaturalPrimaryKey key = new NaturalPrimaryKey(list, CLASS_NAME);
     assertTrue(key != null);
@@ -78,7 +76,8 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for multiple-column key
-   * {@link com.poesys.db.pk.NaturalPrimaryKey#NaturalPrimaryKey(java.util.List,java.lang.String)}.
+   * {@link com.poesys.db.pk.NaturalPrimaryKey#NaturalPrimaryKey(java.util.List,java.lang.String)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
    * @throws DuplicateKeyNameException when more than one column has the same
@@ -86,8 +85,7 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
    */
   public void testNaturalPrimaryKey2() throws InvalidParametersException,
       DuplicateKeyNameException {
-    List<AbstractColumnValue> list =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
     list.add(new StringColumnValue(col1Name, "A"));
     list.add(new BigIntegerColumnValue(col2Name, new BigInteger("1")));
     NaturalPrimaryKey key = new NaturalPrimaryKey(list, CLASS_NAME);
@@ -109,13 +107,13 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for multiple-column key with a duplicate name
-   * {@link com.poesys.db.pk.NaturalPrimaryKey#NaturalPrimaryKey(java.util.List,java.lang.String)}.
+   * {@link com.poesys.db.pk.NaturalPrimaryKey#NaturalPrimaryKey(java.util.List,java.lang.String)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
    */
   public void testNaturalPrimaryKey3() throws InvalidParametersException {
-    List<AbstractColumnValue> list =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
     list.add(new StringColumnValue(col1Name, "A"));
     list.add(new StringColumnValue(col1Name, "B"));
     try {
@@ -128,15 +126,15 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for attempt to create key with no key columns
-   * {@link com.poesys.db.pk.NaturalPrimaryKey#NaturalPrimaryKey(java.util.List,java.lang.String)}.
+   * {@link com.poesys.db.pk.NaturalPrimaryKey#NaturalPrimaryKey(java.util.List,java.lang.String)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
    * @throws DuplicateKeyNameException when more than one column has the same
    *           name in the key
    */
   public void testNaturalPrimaryKeyNoColumns() throws DuplicateKeyNameException {
-    List<AbstractColumnValue> list =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
     try {
       @SuppressWarnings("unused")
       NaturalPrimaryKey key = new NaturalPrimaryKey(list, CLASS_NAME);
@@ -148,7 +146,8 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for single-column key
-   * {@link com.poesys.db.pk.AbstractMultiValuedPrimaryKey#equals(com.poesys.db.pk.IPrimaryKey)}.
+   * {@link com.poesys.db.pk.AbstractMultiValuedPrimaryKey#equals(com.poesys.db.pk.IPrimaryKey)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
    * @throws DuplicateKeyNameException when more than one column has the same
@@ -156,24 +155,19 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
    */
   public void testEqualsIPrimaryKey1() throws InvalidParametersException,
       DuplicateKeyNameException {
-    List<AbstractColumnValue> list1 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list1 = new ArrayList<AbstractColumnValue>();
     list1.add(new StringColumnValue(col1Name, "A"));
     NaturalPrimaryKey key1 = new NaturalPrimaryKey(list1, CLASS_NAME);
-    List<AbstractColumnValue> list2 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list2 = new ArrayList<AbstractColumnValue>();
     list2.add(new StringColumnValue(col1Name, "B"));
     NaturalPrimaryKey key2 = new NaturalPrimaryKey(list2, CLASS_NAME);
-    List<AbstractColumnValue> list3 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list3 = new ArrayList<AbstractColumnValue>();
     list3.add(new StringColumnValue(col1Name, "A"));
     NaturalPrimaryKey key3 = new NaturalPrimaryKey(list3, CLASS_NAME);
-    List<AbstractColumnValue> list4 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list4 = new ArrayList<AbstractColumnValue>();
     list4.add(new StringColumnValue(col2Name, "A"));
     NaturalPrimaryKey key4 = new NaturalPrimaryKey(list4, CLASS_NAME);
-    List<AbstractColumnValue> list5 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list5 = new ArrayList<AbstractColumnValue>();
     list5.add(new StringColumnValue(col2Name, "B"));
     NaturalPrimaryKey key5 = new NaturalPrimaryKey(list5, CLASS_NAME);
     assertTrue(key1.equals(key3)); // same name, same value
@@ -184,7 +178,8 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for multiple-column key
-   * {@link com.poesys.db.pk.AbstractMultiValuedPrimaryKey#equals(com.poesys.db.pk.IPrimaryKey)}.
+   * {@link com.poesys.db.pk.AbstractMultiValuedPrimaryKey#equals(com.poesys.db.pk.IPrimaryKey)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
    * @throws DuplicateKeyNameException when more than one column has the same
@@ -192,33 +187,27 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
    */
   public void testEqualsIPrimaryKey2() throws InvalidParametersException,
       DuplicateKeyNameException {
-    List<AbstractColumnValue> list1 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list1 = new ArrayList<AbstractColumnValue>();
     list1.add(new StringColumnValue(col1Name, "A"));
     list1.add(new BigIntegerColumnValue(col2Name, new BigInteger("1")));
     NaturalPrimaryKey key1 = new NaturalPrimaryKey(list1, CLASS_NAME);
-    List<AbstractColumnValue> list2 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list2 = new ArrayList<AbstractColumnValue>();
     list2.add(new StringColumnValue(col1Name, "B"));
     list2.add(new BigIntegerColumnValue(col2Name, new BigInteger("1")));
     NaturalPrimaryKey key2 = new NaturalPrimaryKey(list2, CLASS_NAME);
-    List<AbstractColumnValue> list3 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list3 = new ArrayList<AbstractColumnValue>();
     list3.add(new StringColumnValue(col1Name, "A"));
     list3.add(new BigIntegerColumnValue(col2Name, new BigInteger("1")));
     NaturalPrimaryKey key3 = new NaturalPrimaryKey(list3, CLASS_NAME);
-    List<AbstractColumnValue> list4 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list4 = new ArrayList<AbstractColumnValue>();
     list4.add(new StringColumnValue(col3Name, "A"));
     list4.add(new BigIntegerColumnValue(col4Name, new BigInteger("1")));
     NaturalPrimaryKey key4 = new NaturalPrimaryKey(list4, CLASS_NAME);
-    List<AbstractColumnValue> list5 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list5 = new ArrayList<AbstractColumnValue>();
     list5.add(new StringColumnValue(col1Name, "B"));
     list5.add(new BigIntegerColumnValue(col3Name, new BigInteger("2")));
     NaturalPrimaryKey key5 = new NaturalPrimaryKey(list5, CLASS_NAME);
-    List<AbstractColumnValue> list6 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list6 = new ArrayList<AbstractColumnValue>();
     list6.add(new StringColumnValue(col3Name, "A"));
     list6.add(new BigIntegerColumnValue(col2Name, new BigInteger("1")));
     NaturalPrimaryKey key6 = new NaturalPrimaryKey(list1, CLASS_NAME);
@@ -239,8 +228,7 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
    */
   public void testIterator1() throws InvalidParametersException,
       DuplicateKeyNameException {
-    List<AbstractColumnValue> list =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
     list.add(new StringColumnValue(col3Name, "A"));
     NaturalPrimaryKey key1 = new NaturalPrimaryKey(list, CLASS_NAME);
     int i = 0;
@@ -261,8 +249,7 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
    */
   public void testIterator2() throws InvalidParametersException,
       DuplicateKeyNameException {
-    List<AbstractColumnValue> list =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
     list.add(new StringColumnValue(col3Name, "A"));
     list.add(new BigIntegerColumnValue(col2Name, new BigInteger("1")));
     NaturalPrimaryKey key1 = new NaturalPrimaryKey(list, CLASS_NAME);
@@ -276,7 +263,8 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for single-valued key
-   * {@link com.poesys.db.pk.AbstractMultiValuedPrimaryKey#getSqlColumnList(java.lang.String)}.
+   * {@link com.poesys.db.pk.AbstractMultiValuedPrimaryKey#getSqlColumnList(java.lang.String)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
    * @throws DuplicateKeyNameException when more than one column has the same
@@ -284,8 +272,7 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
    */
   public void testGetSqlColumnList1() throws InvalidParametersException,
       DuplicateKeyNameException {
-    List<AbstractColumnValue> list =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
     list.add(new StringColumnValue(col1Name, "A"));
     NaturalPrimaryKey key1 = new NaturalPrimaryKey(list, CLASS_NAME);
     String colList = key1.getSqlColumnList("c");
@@ -294,7 +281,8 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for multiple-valued key
-   * {@link com.poesys.db.pk.AbstractMultiValuedPrimaryKey#getSqlColumnList(java.lang.String)}.
+   * {@link com.poesys.db.pk.AbstractMultiValuedPrimaryKey#getSqlColumnList(java.lang.String)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
    * @throws DuplicateKeyNameException when more than one column has the same
@@ -302,8 +290,7 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
    */
   public void testGetSqlColumnList2() throws InvalidParametersException,
       DuplicateKeyNameException {
-    List<AbstractColumnValue> list =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
     list.add(new StringColumnValue(col1Name, "A"));
     list.add(new BigIntegerColumnValue(col2Name, new BigInteger("1")));
     NaturalPrimaryKey key1 = new NaturalPrimaryKey(list, CLASS_NAME);
@@ -313,7 +300,8 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for single-valued key
-   * {@link com.poesys.db.pk.AbstractMultiValuedPrimaryKey#getSqlWhereExpression(java.lang.String)}.
+   * {@link com.poesys.db.pk.AbstractMultiValuedPrimaryKey#getSqlWhereExpression(java.lang.String)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
    * @throws DuplicateKeyNameException when more than one column has the same
@@ -321,8 +309,7 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
    */
   public void testGetSqlWhereExpression1() throws InvalidParametersException,
       DuplicateKeyNameException {
-    List<AbstractColumnValue> list =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
     list.add(new StringColumnValue(col1Name, "A"));
     NaturalPrimaryKey key1 = new NaturalPrimaryKey(list, CLASS_NAME);
     String colList = key1.getSqlWhereExpression("c");
@@ -331,7 +318,8 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for multiple-valued key
-   * {@link com.poesys.db.pk.AbstractMultiValuedPrimaryKey#getSqlWhereExpression(java.lang.String)}.
+   * {@link com.poesys.db.pk.AbstractMultiValuedPrimaryKey#getSqlWhereExpression(java.lang.String)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
    * @throws DuplicateKeyNameException when more than one column has the same
@@ -339,8 +327,7 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
    */
   public void testGetSqlWhereExpression2() throws InvalidParametersException,
       DuplicateKeyNameException {
-    List<AbstractColumnValue> list =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
     list.add(new StringColumnValue(col1Name, "A"));
     list.add(new BigIntegerColumnValue(col2Name, new BigInteger("1")));
     NaturalPrimaryKey key1 = new NaturalPrimaryKey(list, CLASS_NAME);
@@ -350,7 +337,8 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for single-valued key
-   * {@link com.poesys.db.pk.NaturalPrimaryKey#setParams(java.sql.PreparedStatement, int)}.
+   * {@link com.poesys.db.pk.NaturalPrimaryKey#setParams(java.sql.PreparedStatement, int)}
+   * .
    * 
    * @throws SQLException when can't get a connection
    * @throws InvalidParametersException when a parameter is null
@@ -360,10 +348,8 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
    */
   public void testSetParams1() throws SQLException, InvalidParametersException,
       IOException, DuplicateKeyNameException {
-    Connection connection =
-      getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
-    List<AbstractColumnValue> list =
-      new ArrayList<AbstractColumnValue>();
+    Connection connection = getConnection();
+    List<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
     list.add(new StringColumnValue(col1Name, "A"));
     NaturalPrimaryKey key1 = new NaturalPrimaryKey(list, CLASS_NAME);
     PreparedStatement stmt =
@@ -374,7 +360,8 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for multiple-valued key
-   * {@link com.poesys.db.pk.NaturalPrimaryKey#setParams(java.sql.PreparedStatement, int)}.
+   * {@link com.poesys.db.pk.NaturalPrimaryKey#setParams(java.sql.PreparedStatement, int)}
+   * .
    * 
    * @throws SQLException when can't get a connection
    * @throws InvalidParametersException when a parameter is null
@@ -384,10 +371,8 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
    */
   public void testSetParams2() throws SQLException, InvalidParametersException,
       IOException, DuplicateKeyNameException {
-    Connection connection =
-      getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
-    List<AbstractColumnValue> list =
-      new ArrayList<AbstractColumnValue>();
+    Connection connection = getConnection();
+    List<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
     list.add(new StringColumnValue(col1Name, "A"));
     list.add(new BigIntegerColumnValue(col2Name, new BigInteger("1")));
     NaturalPrimaryKey key1 = new NaturalPrimaryKey(list, CLASS_NAME);
@@ -398,7 +383,8 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
   }
 
   /**
-   * Test method for {@link com.poesys.db.pk.NaturalPrimaryKey#getColumnNames()}.
+   * Test method for {@link com.poesys.db.pk.NaturalPrimaryKey#getColumnNames()}
+   * .
    * 
    * @throws InvalidParametersException when a parameter is null
    * @throws DuplicateKeyNameException when more than one column has the same
@@ -406,8 +392,7 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
    */
   public void testGetColumnNames() throws InvalidParametersException,
       DuplicateKeyNameException {
-    List<AbstractColumnValue> list =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
     list.add(new StringColumnValue(col1Name, "A"));
     list.add(new BigIntegerColumnValue(col2Name, new BigInteger("1")));
     NaturalPrimaryKey key1 = new NaturalPrimaryKey(list, CLASS_NAME);
@@ -415,8 +400,9 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
   }
 
   /**
-   * Test method for {@link com.poesys.db.pk.AbstractPrimaryKey#compareTo(IPrimaryKey)}.
-   * Tests equality of two single-valued keys.
+   * Test method for
+   * {@link com.poesys.db.pk.AbstractPrimaryKey#compareTo(IPrimaryKey)}. Tests
+   * equality of two single-valued keys.
    * 
    * @throws InvalidParametersException when a parameter is null
    * @throws DuplicateKeyNameException when more than one column has the same
@@ -424,13 +410,11 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
    */
   public void testCompareToEqual1() throws InvalidParametersException,
       DuplicateKeyNameException {
-    List<AbstractColumnValue> list1 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list1 = new ArrayList<AbstractColumnValue>();
     list1.add(new StringColumnValue(col1Name, "A"));
     NaturalPrimaryKey key1 = new NaturalPrimaryKey(list1, CLASS_NAME);
     assertTrue(key1 != null);
-    List<AbstractColumnValue> list2 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list2 = new ArrayList<AbstractColumnValue>();
     list2.add(new StringColumnValue(col1Name, "A"));
     NaturalPrimaryKey key2 = new NaturalPrimaryKey(list2, CLASS_NAME);
     assertTrue(key2 != null);
@@ -438,8 +422,9 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
   }
 
   /**
-   * Test method for {@link com.poesys.db.pk.AbstractPrimaryKey#compareTo(IPrimaryKey)}.
-   * Tests equality of two multi-valued keys.
+   * Test method for
+   * {@link com.poesys.db.pk.AbstractPrimaryKey#compareTo(IPrimaryKey)}. Tests
+   * equality of two multi-valued keys.
    * 
    * @throws InvalidParametersException when a parameter is null
    * @throws DuplicateKeyNameException when more than one column has the same
@@ -447,14 +432,12 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
    */
   public void testCompareToEqual2() throws InvalidParametersException,
       DuplicateKeyNameException {
-    List<AbstractColumnValue> list1 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list1 = new ArrayList<AbstractColumnValue>();
     list1.add(new StringColumnValue(col1Name, "A"));
     list1.add(new StringColumnValue(col2Name, "B"));
     NaturalPrimaryKey key1 = new NaturalPrimaryKey(list1, CLASS_NAME);
     assertTrue(key1 != null);
-    List<AbstractColumnValue> list2 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list2 = new ArrayList<AbstractColumnValue>();
     list2.add(new StringColumnValue(col1Name, "A"));
     list2.add(new StringColumnValue(col2Name, "B"));
     NaturalPrimaryKey key2 = new NaturalPrimaryKey(list2, CLASS_NAME);
@@ -463,8 +446,9 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
   }
 
   /**
-   * Test method for {@link com.poesys.db.pk.AbstractPrimaryKey#compareTo(IPrimaryKey)}.
-   * Tests greater-than relation of two single-valued keys.
+   * Test method for
+   * {@link com.poesys.db.pk.AbstractPrimaryKey#compareTo(IPrimaryKey)}. Tests
+   * greater-than relation of two single-valued keys.
    * 
    * @throws InvalidParametersException when a parameter is null
    * @throws DuplicateKeyNameException when more than one column has the same
@@ -473,23 +457,23 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
   public void testCompareToGreaterThan1() throws InvalidParametersException,
       DuplicateKeyNameException {
     assertTrue("B is not greater than A", "(col1=B)".compareTo("(col1=A)") > 0);
-    List<AbstractColumnValue> list1 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list1 = new ArrayList<AbstractColumnValue>();
     list1.add(new StringColumnValue(col1Name, "B"));
     NaturalPrimaryKey key1 = new NaturalPrimaryKey(list1, CLASS_NAME);
     assertTrue("Could not create first natural key", key1 != null);
-    List<AbstractColumnValue> list2 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list2 = new ArrayList<AbstractColumnValue>();
     list2.add(new StringColumnValue(col1Name, "A"));
     NaturalPrimaryKey key2 = new NaturalPrimaryKey(list2, CLASS_NAME);
     assertTrue("Could not create second natural key", key2 != null);
     assertTrue(key1.getValueList() + " is not greater than "
-               + key2.getValueList(), key1.compareTo(key2) > 0);
+                   + key2.getValueList(),
+               key1.compareTo(key2) > 0);
   }
 
   /**
-   * Test method for {@link com.poesys.db.pk.AbstractPrimaryKey#compareTo(IPrimaryKey)}.
-   * Tests greater-than relation of two multi-valued keys.
+   * Test method for
+   * {@link com.poesys.db.pk.AbstractPrimaryKey#compareTo(IPrimaryKey)}. Tests
+   * greater-than relation of two multi-valued keys.
    * 
    * @throws InvalidParametersException when a parameter is null
    * @throws DuplicateKeyNameException when more than one column has the same
@@ -497,14 +481,12 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
    */
   public void testCompareToGreaterThan2() throws InvalidParametersException,
       DuplicateKeyNameException {
-    List<AbstractColumnValue> list1 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list1 = new ArrayList<AbstractColumnValue>();
     list1.add(new StringColumnValue(col1Name, "A"));
     list1.add(new StringColumnValue(col2Name, "C"));
     NaturalPrimaryKey key1 = new NaturalPrimaryKey(list1, CLASS_NAME);
     assertTrue(key1 != null);
-    List<AbstractColumnValue> list2 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list2 = new ArrayList<AbstractColumnValue>();
     list2.add(new StringColumnValue(col1Name, "A"));
     list2.add(new StringColumnValue(col2Name, "B"));
     NaturalPrimaryKey key2 = new NaturalPrimaryKey(list2, CLASS_NAME);
@@ -513,8 +495,9 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
   }
 
   /**
-   * Test method for {@link com.poesys.db.pk.AbstractPrimaryKey#compareTo(IPrimaryKey)}.
-   * Tests less-than relation of two single-valued keys.
+   * Test method for
+   * {@link com.poesys.db.pk.AbstractPrimaryKey#compareTo(IPrimaryKey)}. Tests
+   * less-than relation of two single-valued keys.
    * 
    * @throws InvalidParametersException when a parameter is null
    * @throws DuplicateKeyNameException when more than one column has the same
@@ -522,13 +505,11 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
    */
   public void testCompareToLessThan1() throws InvalidParametersException,
       DuplicateKeyNameException {
-    List<AbstractColumnValue> list1 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list1 = new ArrayList<AbstractColumnValue>();
     list1.add(new StringColumnValue(col1Name, "A"));
     NaturalPrimaryKey key1 = new NaturalPrimaryKey(list1, CLASS_NAME);
     assertTrue(key1 != null);
-    List<AbstractColumnValue> list2 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list2 = new ArrayList<AbstractColumnValue>();
     list2.add(new StringColumnValue(col1Name, "B"));
     NaturalPrimaryKey key2 = new NaturalPrimaryKey(list2, CLASS_NAME);
     assertTrue(key2 != null);
@@ -536,8 +517,9 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
   }
 
   /**
-   * Test method for {@link com.poesys.db.pk.AbstractPrimaryKey#compareTo(IPrimaryKey)}.
-   * Tests less-than relation of two multi-valued keys.
+   * Test method for
+   * {@link com.poesys.db.pk.AbstractPrimaryKey#compareTo(IPrimaryKey)}. Tests
+   * less-than relation of two multi-valued keys.
    * 
    * @throws InvalidParametersException when a parameter is null
    * @throws DuplicateKeyNameException when more than one column has the same
@@ -545,14 +527,12 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
    */
   public void testCompareToLessThan2() throws InvalidParametersException,
       DuplicateKeyNameException {
-    List<AbstractColumnValue> list1 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list1 = new ArrayList<AbstractColumnValue>();
     list1.add(new StringColumnValue(col1Name, "A"));
     list1.add(new StringColumnValue(col2Name, "B"));
     NaturalPrimaryKey key1 = new NaturalPrimaryKey(list1, CLASS_NAME);
     assertTrue(key1 != null);
-    List<AbstractColumnValue> list2 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list2 = new ArrayList<AbstractColumnValue>();
     list2.add(new StringColumnValue(col1Name, "A"));
     list2.add(new StringColumnValue(col2Name, "C"));
     NaturalPrimaryKey key2 = new NaturalPrimaryKey(list2, CLASS_NAME);
@@ -569,8 +549,7 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
    */
   public void testGetValueListSingle() throws InvalidParametersException,
       DuplicateKeyNameException {
-    List<AbstractColumnValue> list1 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list1 = new ArrayList<AbstractColumnValue>();
     list1.add(new StringColumnValue(col1Name, "A"));
     NaturalPrimaryKey key1 = new NaturalPrimaryKey(list1, CLASS_NAME);
     assertTrue(key1 != null);
@@ -588,8 +567,7 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
    */
   public void testGetValueListDouble() throws InvalidParametersException,
       DuplicateKeyNameException {
-    List<AbstractColumnValue> list1 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list1 = new ArrayList<AbstractColumnValue>();
     list1.add(new StringColumnValue(col1Name, "A"));
     list1.add(new StringColumnValue(col2Name, "B"));
     NaturalPrimaryKey key1 = new NaturalPrimaryKey(list1, CLASS_NAME);
@@ -608,8 +586,7 @@ public class NaturalPrimaryKeyTest extends ConnectionTest {
    */
   public void testGetValueListMany() throws InvalidParametersException,
       DuplicateKeyNameException {
-    List<AbstractColumnValue> list1 =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list1 = new ArrayList<AbstractColumnValue>();
     list1.add(new StringColumnValue(col1Name, "A"));
     list1.add(new StringColumnValue(col2Name, "B"));
     list1.add(new StringColumnValue(col3Name, "C"));

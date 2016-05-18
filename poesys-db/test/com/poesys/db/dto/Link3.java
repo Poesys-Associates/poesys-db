@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.insert.IInsertSql;
 import com.poesys.db.dao.insert.InsertSqlTernaryLink;
 import com.poesys.db.pk.AbstractSingleValuedPrimaryKey;
@@ -44,7 +45,7 @@ public class Link3 extends AbstractTestDto {
   /** Ternary links */
   protected List<TernaryLink> ternaryLinks;
   /** Subsystem for DTO */
-  protected String subsystem = "com.poesys.db.dto";
+  protected String subsystem = getSubsystem();
 
   /**
    * Private implementation of ISet interface that inserts ternary link objects.
@@ -57,7 +58,7 @@ public class Link3 extends AbstractTestDto {
     private static final long serialVersionUID = 1L;
 
     public InsertTernaryLinks() {
-      super("com.poesys.db.dto", Integer.MAX_VALUE);
+      super(getSubsystem(), DBMS.MYSQL, Integer.MAX_VALUE);
     }
     @Override
     protected int getBatchSize() {

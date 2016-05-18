@@ -86,8 +86,8 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
       // NEW DTO, proceed.
 
       // Query nested objects to be able to use them in validation.
-      dto.queryNestedObjectsForValidation(connection);
-      dto.validateForInsert(connection);
+      dto.queryNestedObjectsForValidation();
+      dto.validateForInsert();
 
       try {
         // Get the primary key.

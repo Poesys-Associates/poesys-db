@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.pk;
 
@@ -30,7 +29,6 @@ import org.junit.Test;
 import com.poesys.db.DuplicateKeyNameException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.col.AbstractColumnValue;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 
 
@@ -44,7 +42,8 @@ public class IdentityPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for
-   * {@link com.poesys.db.pk.IdentityPrimaryKey#IdentityPrimaryKey(java.lang.String,java.lang.String)}.
+   * {@link com.poesys.db.pk.IdentityPrimaryKey#IdentityPrimaryKey(java.lang.String,java.lang.String)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
    * @throws DuplicateKeyNameException when more than one column has the same
@@ -73,7 +72,8 @@ public class IdentityPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for
-   * {@link com.poesys.db.pk.IdentityPrimaryKey#setInsertParams(java.sql.PreparedStatement, int)}.
+   * {@link com.poesys.db.pk.IdentityPrimaryKey#setInsertParams(java.sql.PreparedStatement, int)}
+   * .
    * 
    * @throws SQLException when can't get a connection
    * @throws InvalidParametersException when a parameter is null
@@ -82,8 +82,7 @@ public class IdentityPrimaryKeyTest extends ConnectionTest {
   @Test
   public void testSetInsertParams() throws SQLException,
       InvalidParametersException, IOException {
-    Connection connection =
-      getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+    Connection connection = getConnection();
     IdentityPrimaryKey key1 = new IdentityPrimaryKey("col", CLASS_NAME);
     PreparedStatement stmt =
       connection.prepareStatement("INSERT INTO Test () VALUES ()");
@@ -94,7 +93,8 @@ public class IdentityPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for Oracle version of
-   * {@link com.poesys.db.pk.IdentityPrimaryKey#finalizeInsert(java.sql.PreparedStatement)}.
+   * {@link com.poesys.db.pk.IdentityPrimaryKey#finalizeInsert(java.sql.PreparedStatement)}
+   * .
    * 
    * @throws IOException when can't get a property
    * @throws SQLException when can't get a connection
@@ -114,7 +114,8 @@ public class IdentityPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for MySQL version of
-   * {@link com.poesys.db.pk.IdentityPrimaryKey#finalizeInsert(java.sql.PreparedStatement)}.
+   * {@link com.poesys.db.pk.IdentityPrimaryKey#finalizeInsert(java.sql.PreparedStatement)}
+   * .
    * 
    * @throws IOException when can't get a property
    * @throws SQLException when can't get a connection
@@ -123,8 +124,7 @@ public class IdentityPrimaryKeyTest extends ConnectionTest {
   @Test
   public void testFinalizeInsertMySql() throws SQLException, IOException,
       InvalidParametersException {
-    Connection connection =
-      getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+    Connection connection = getConnection();
     IdentityPrimaryKey key1 = new IdentityPrimaryKey("col", CLASS_NAME);
     PreparedStatement stmt =
       connection.prepareStatement("INSERT INTO TestIdentity () VALUES ()",

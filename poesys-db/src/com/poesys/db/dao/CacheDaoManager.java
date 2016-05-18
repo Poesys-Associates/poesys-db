@@ -18,7 +18,6 @@
 package com.poesys.db.dao;
 
 
-import java.sql.Connection;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -69,11 +68,10 @@ public class CacheDaoManager implements IDaoManager {
   }
 
   @Override
-  public <T extends IDbDto, C extends Collection<T>> IDaoFactory<T> getFactory(
-                                                                               String name,
+  public <T extends IDbDto, C extends Collection<T>> IDaoFactory<T> getFactory(String name,
                                                                                String subsystem,
                                                                                Integer expiration) {
-    return new DaoCacheFactory<T>(name, manager);
+    return new DaoCacheFactory<T>(name, manager, subsystem);
   }
 
   @Override
@@ -120,7 +118,7 @@ public class CacheDaoManager implements IDaoManager {
 
   @SuppressWarnings("unchecked")
   @Override
-  public synchronized <T extends IDbDto> T getCachedObject(Connection connection, IPrimaryKey key) {
+  public synchronized <T extends IDbDto> T getCachedObject(IPrimaryKey key) {
     T object = null;
     // Only proceed if cache name and key are not null
     if (key.getCacheName() != null && key != null) {
@@ -135,9 +133,9 @@ public class CacheDaoManager implements IDaoManager {
   }
 
   @Override
-  public <T extends IDbDto> T getCachedObject(Connection connection, IPrimaryKey key, int expireTime) {
+  public <T extends IDbDto> T getCachedObject(IPrimaryKey key, int expireTime) {
     // expire time ignored for Java cache
-    return getCachedObject(connection, key);
+    return getCachedObject(key);
   }
 
   @Override
@@ -145,7 +143,7 @@ public class CacheDaoManager implements IDaoManager {
                                                                int expireTime,
                                                                T object) {
     // expire time ignored for Java cache
-    
+
     // Only proceed if cache name and object are not null
     if (cacheName != null && object != null) {
       IDtoCache<IDbDto> cache = getCache(cacheName);

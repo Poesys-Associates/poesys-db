@@ -33,7 +33,6 @@ import com.poesys.db.NoPrimaryKeyException;
 import com.poesys.db.col.AbstractColumnValue;
 import com.poesys.db.col.BigIntegerColumnValue;
 import com.poesys.db.col.StringColumnValue;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 
 
@@ -134,7 +133,7 @@ public class PrimaryKeyFactoryTest extends ConnectionTest {
     Statement stmt = null;
 
     try {
-      conn = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+      conn = getConnection();
       stmt = conn.createStatement();
       stmt.execute("UPDATE mysql_sequence set value = 0 where name = 'test'");
     } catch (SQLException e1) {

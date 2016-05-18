@@ -88,7 +88,7 @@ public class UpdateWithParameters<P extends IDbDto> implements
     if (parameters == null) {
       throw new InvalidParametersException(NO_DTO_MSG);
     } else {
-      parameters.validateForUpdate(connection);
+      parameters.validateForUpdate();
     }
 
     try {

@@ -30,7 +30,6 @@ import java.util.List;
 import com.poesys.db.BatchException;
 import com.poesys.db.col.AbstractColumnValue;
 import com.poesys.db.col.StringColumnValue;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoFactory;
@@ -50,7 +49,6 @@ import com.poesys.db.pk.NaturalPrimaryKey;
 public class InsertTestNaturalTest extends ConnectionTest {
   private static final String QUERY =
     "SELECT col1 FROM TestNatural WHERE key1 = 'A' and key2 = 'B'";
-  private static final String SUBSYSTEM = "com.poesys.db.dto";
 
   /**
    * Test the insert method.
@@ -62,7 +60,7 @@ public class InsertTestNaturalTest extends ConnectionTest {
   public void testInsert() throws IOException, SQLException, BatchException {
     Connection conn;
     try {
-      conn = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+      conn = getConnection();
     } catch (SQLException e) {
       throw new RuntimeException("Connect failed: " + e.getMessage(), e);
     }
@@ -112,7 +110,8 @@ public class InsertTestNaturalTest extends ConnectionTest {
    */
   public class Query implements IKeyQuerySql<TestNatural> {
     /** SQL query statement for TestX */
-    private static final String SQL = "SELECT key1, key2, col1 FROM TestNatural WHERE ";
+    private static final String SQL =
+      "SELECT key1, key2, col1 FROM TestNatural WHERE ";
 
     public TestNatural getData(IPrimaryKey key, ResultSet rs)
         throws SQLException {
@@ -138,18 +137,19 @@ public class InsertTestNaturalTest extends ConnectionTest {
       BatchException {
     Connection conn;
     try {
-      conn = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+      conn = getConnection();
     } catch (SQLException e) {
       throw new RuntimeException("Connect failed: " + e.getMessage(), e);
     }
 
-    IDaoManager manager = DaoManagerFactory.initMemcachedManager(SUBSYSTEM);
+    IDaoManager manager = DaoManagerFactory.initMemcachedManager(getSubsystem());
     IDaoFactory<TestNatural> factory =
-      manager.getFactory(TestNatural.class.getName(), SUBSYSTEM, null);
+      manager.getFactory(TestNatural.class.getName(), getSubsystem(), null);
 
     IInsert<TestNatural> cut =
       factory.getInsert(new InsertSqlTestNatural(), true);
-    IQueryByKey<TestNatural> query = factory.getQueryByKey(new Query());
+    IQueryByKey<TestNatural> query =
+      factory.getQueryByKey(new Query(), getSubsystem());
 
     // Create the DTO.
     BigDecimal col1 = new BigDecimal("1234.5678");
@@ -170,9 +170,10 @@ public class InsertTestNaturalTest extends ConnectionTest {
       List<AbstractColumnValue> keyList = new ArrayList<AbstractColumnValue>(2);
       keyList.add(new StringColumnValue("key1", "A"));
       keyList.add(new StringColumnValue("key2", "B"));
-      NaturalPrimaryKey key = new NaturalPrimaryKey(keyList, TestNatural.class.getName());
-      
-      TestNatural queried = query.queryByKey(conn, key);
+      NaturalPrimaryKey key =
+        new NaturalPrimaryKey(keyList, TestNatural.class.getName());
+
+      TestNatural queried = query.queryByKey(key);
       assertTrue(queried != null);
       // Must use compareTo here, not equals, because of precision difference
       assertTrue(queried.getCol1().compareTo(col1) == 0);

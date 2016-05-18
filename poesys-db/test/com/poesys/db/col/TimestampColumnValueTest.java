@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.col;
 
@@ -26,8 +25,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 
 import com.poesys.db.InvalidParametersException;
-import com.poesys.db.col.TimestampColumnValue;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 
 
@@ -40,14 +37,15 @@ public class TimestampColumnValueTest extends ConnectionTest {
   String name2 = "name2";
   String name3 = "name3";
   Timestamp value1 = new Timestamp(System.currentTimeMillis());
-  Timestamp value2 =
-      new Timestamp(System.currentTimeMillis() + 24 * 60 * 60 * 1000); // current
-                                                                        // + 1
-                                                                        // day
+  Timestamp value2 = new Timestamp(System.currentTimeMillis() + 24 * 60 * 60
+                                   * 1000); // current
+                                            // + 1
+                                            // day
 
   /**
    * Test method for {@link com.poesys.db.col.TimestampColumnValue#hashCode()}.
-   * @throws InvalidParametersException  when there is a null parameter
+   * 
+   * @throws InvalidParametersException when there is a null parameter
    */
   public void testHashCode() throws InvalidParametersException {
     TimestampColumnValue colValue = new TimestampColumnValue(name1, value1);
@@ -56,8 +54,10 @@ public class TimestampColumnValueTest extends ConnectionTest {
 
   /**
    * Test method for
-   * {@link com.poesys.db.col.TimestampColumnValue#equals(com.poesys.db.col.AbstractColumnValue)}.
-   * @throws InvalidParametersException  when there is a null parameter
+   * {@link com.poesys.db.col.TimestampColumnValue#equals(com.poesys.db.col.AbstractColumnValue)}
+   * .
+   * 
+   * @throws InvalidParametersException when there is a null parameter
    */
   public void testEqualsColumnValue() throws InvalidParametersException {
     TimestampColumnValue colValue1 = new TimestampColumnValue(name1, value1);
@@ -72,25 +72,29 @@ public class TimestampColumnValueTest extends ConnectionTest {
 
   /**
    * Test method for
-   * {@link com.poesys.db.col.TimestampColumnValue#setParam(java.sql.PreparedStatement, int)}.
-   * @throws InvalidParametersException  when there is a null parameter
+   * {@link com.poesys.db.col.TimestampColumnValue#setParam(java.sql.PreparedStatement, int)}
+   * .
+   * 
+   * @throws InvalidParametersException when there is a null parameter
    * @throws IOException when can't get property
    * @throws SQLException when can't get connection
    */
-  public void testSetParam() throws InvalidParametersException, SQLException, IOException {
-    Connection connection = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+  public void testSetParam() throws InvalidParametersException, SQLException,
+      IOException {
+    Connection connection = getConnection();
     TimestampColumnValue colValue1 = new TimestampColumnValue(name1, value1);
     PreparedStatement stmt =
-        connection
-            .prepareStatement("SELECT * FROM TEST WHERE testTimestamp = ?");
+      connection.prepareStatement("SELECT * FROM TEST WHERE testTimestamp = ?");
     colValue1.setParam(stmt, 1);
     assertTrue(true);
   }
 
   /**
    * Test method for
-   * {@link com.poesys.db.col.TimestampColumnValue#TimestampColumnValue(java.lang.String, java.sql.Timestamp)}.
-   * @throws InvalidParametersException  when there is a null parameter
+   * {@link com.poesys.db.col.TimestampColumnValue#TimestampColumnValue(java.lang.String, java.sql.Timestamp)}
+   * .
+   * 
+   * @throws InvalidParametersException when there is a null parameter
    */
   public void testTimestampColumnValue() throws InvalidParametersException {
     TimestampColumnValue colValue1 = new TimestampColumnValue(name1, value1);

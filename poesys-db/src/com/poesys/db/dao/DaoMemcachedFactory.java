@@ -111,27 +111,33 @@ public class DaoMemcachedFactory<T extends IDbDto> implements IDaoFactory<T> {
   }
 
   @Override
-  public IQueryByKey<T> getQueryByKey(IKeyQuerySql<T> sql) {
+  public IQueryByKey<T> getQueryByKey(IKeyQuerySql<T> sql, String subsystem) {
     return new QueryMemcachedByKey<T>(sql, subsystem, expiration);
   }
 
   @Override
-  public IQueryByKey<T> getDatabaseQueryByKey(IKeyQuerySql<T> sql) {
+  public IQueryByKey<T> getDatabaseQueryByKey(IKeyQuerySql<T> sql,
+                                              String subsystem) {
     return new QueryDatabaseMemcachedByKey<T>(sql, subsystem, expiration);
   }
 
   @Override
-  public IQueryList<T> getQueryList(IQuerySql<T> sql, int rows) {
+  public IQueryList<T> getQueryList(IQuerySql<T> sql, String subsystem, int rows) {
     return new QueryMemcachedList<T>(sql, subsystem, expiration, rows);
   }
 
   @Override
-  public IQueryList<T> getQueryListWithKeyList(IKeyListQuerySql<T> sql, int rows) {
-    return new QueryMemcachedListWithKeyList<T>(sql, subsystem, expiration, rows);
+  public IQueryList<T> getQueryListWithKeyList(IKeyListQuerySql<T> sql,
+                                               String subsystem, int rows) {
+    return new QueryMemcachedListWithKeyList<T>(sql,
+                                                subsystem,
+                                                expiration,
+                                                rows);
   }
 
   @Override
   public <S extends IDbDto, C extends Collection<T>> IQueryListWithParameters<T, S, C> getQueryListWithParameters(IParameterizedQuerySql<T, S> sql,
+                                                                                                                  String subsystem,
                                                                                                                   int rows) {
     return new QueryMemcachedListWithParameters<T, S, C>(sql,
                                                          subsystem,

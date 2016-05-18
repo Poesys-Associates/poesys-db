@@ -27,7 +27,6 @@ import java.sql.SQLException;
 import com.poesys.db.DuplicateKeyNameException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.col.AbstractColumnValue;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 
 
@@ -173,8 +172,7 @@ public class SequencePrimaryKeyTest extends ConnectionTest {
    */
   public void testSetParams() throws SQLException, InvalidParametersException,
       IOException {
-    Connection connection =
-      getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+    Connection connection = getConnection();
     AbstractSingleValuedPrimaryKey key1 =
       new SequencePrimaryKey("col", new BigInteger("1"), CLASS_NAME);
     PreparedStatement stmt =
@@ -194,8 +192,7 @@ public class SequencePrimaryKeyTest extends ConnectionTest {
    */
   public void testSetInsertParams() throws SQLException,
       InvalidParametersException, IOException {
-    Connection connection =
-      getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+    Connection connection = getConnection();
     AbstractSingleValuedPrimaryKey key1 =
       new SequencePrimaryKey("col", new BigInteger("1"), CLASS_NAME);
     PreparedStatement stmt =

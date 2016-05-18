@@ -51,21 +51,17 @@ public class QueryCacheListWithParameters<T extends IDbDto, S extends IDbDto, C 
    * 
    * @param sql the SQL statement specification
    * @param cache the DTO cache for the queried objects
+   * @param subsystem the subsystem that owns the object to query
    * @param rows the number of rows to fetch at once; optimizes query fetching
    */
   public QueryCacheListWithParameters(IParameterizedQuerySql<T, S> sql,
                                       IDtoCache<T> cache,
+                                      String subsystem,
                                       int rows) {
-    super(sql, rows);
+    super(sql, subsystem, rows);
     this.cache = cache;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.query.QueryList#getObject(java.sql.Connection,
-   * java.sql.ResultSet)
-   */
   @Override
   protected T getObject(Connection connection, ResultSet rs)
       throws SQLException, BatchException {

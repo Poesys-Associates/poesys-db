@@ -73,7 +73,7 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
     if (dto == null) {
       throw new InvalidParametersException(NO_DTO_MSG);
     } else {
-      dto.validateForUpdate(connection);
+      dto.validateForUpdate();
       dto.preprocessNestedObjects(connection);
     }
 

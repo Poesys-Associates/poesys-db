@@ -19,12 +19,11 @@
 package com.poesys.db.dao.ddl;
 
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.SQLException;
 
 import org.junit.Test;
 
-import java.sql.Connection;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 
 /**
@@ -44,7 +43,7 @@ public class TruncateTableTest extends ConnectionTest {
     ISql sql = new TruncateTableSql("TestNatural");
     IExecuteSql executive = new ExecuteSql(sql);
     try {
-      connection = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+      connection = getConnection();
     } catch (SQLException e) {
       throw new RuntimeException("Connect failed: " + e.getMessage(), e);
     }

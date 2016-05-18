@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao;
 
@@ -45,28 +44,27 @@ public abstract class ConnectionTest extends TestCase {
   private static Logger logger = Logger.getLogger(ConnectionTest.class);
   /** I18N message name for no connection */
   protected static final String noConnectionError =
-      "com.poesys.db.msg.noConnection";
+    "com.poesys.db.msg.noConnection";
 
   /**
-   * Get a connection to the poesystest subsystem. This method calls a private
-   * method, getPassword(), to get the database password.
+   * Get a connection to the poesystest subsystem using MySQL JDBC. This method
+   * calls a private method, getPassword(), to get the database password.
    * 
-   * @param dbms the kind of DBMS from which to get the connection
-   * @param subsystem the subsystem to test; corresponds to the actual test database
+   * @param subsystem the subsystem to test; corresponds to the actual test
+   *          database
    * 
    * @return an open connection to the database
    * @throws SQLException when there is a database problem getting the
-   *             connection
+   *           connection
    * @throws IOException when there is a problem reading the database.properties
-   *             file that initializes connections
+   *           file that initializes connections
    */
-  protected Connection getConnection(DBMS dbms, String subsystem) throws SQLException,
-      IOException {
+  protected Connection getConnection() throws SQLException, IOException {
     Connection connection = null;
     try {
       connection =
-          ConnectionFactoryFactory.getInstance(subsystem, dbms)
-              .getConnection(getPassword());
+        ConnectionFactoryFactory.getInstance(getSubsystem(),
+                                             DBMS.MYSQL).getConnection(getPassword());
     } catch (SQLException e) {
       logger.error(e.getMessage(), e);
       throw e;
@@ -78,6 +76,10 @@ public abstract class ConnectionTest extends TestCase {
       throw new DbErrorException("Couldn't get default connection", e);
     }
     return connection;
+  }
+  
+  protected String getSubsystem() {
+    return "com.poesys.db.poesystest.mysql";
   }
 
   /**

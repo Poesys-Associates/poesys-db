@@ -18,7 +18,6 @@
 package com.poesys.db.dao.query;
 
 
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -39,7 +38,8 @@ import com.poesys.db.pk.IPrimaryKey;
  * @author Robert J. Muller
  * @param <T> the type of IDbDto to query
  */
-public class QueryCacheListWithKeyList<T extends IDbDto> extends QueryListWithKeyList<T> {
+public class QueryCacheListWithKeyList<T extends IDbDto> extends
+    QueryListWithKeyList<T> {
   /** The cache of data transfer objects (DTOs) */
   IDtoCache<T> cache;
 
@@ -48,17 +48,20 @@ public class QueryCacheListWithKeyList<T extends IDbDto> extends QueryListWithKe
    * 
    * @param sql the SQL statement specification
    * @param cache the DTO cache
+   * @param subsystem the subsystem that owns the object to query
    * @param rows the number of rows to fetch at once; optimizes the query
    *          results fetching
    */
-  public QueryCacheListWithKeyList(IKeyListQuerySql<T> sql, IDtoCache<T> cache, int rows) {
-    super(sql, rows);
+  public QueryCacheListWithKeyList(IKeyListQuerySql<T> sql,
+                                   IDtoCache<T> cache,
+                                   String subsystem,
+                                   int rows) {
+    super(sql, subsystem, rows);
     this.cache = cache;
   }
 
   @Override
-  protected T getObject(Connection connection, ResultSet rs)
-      throws SQLException, BatchException {
+  protected T getObject(ResultSet rs) throws SQLException, BatchException {
     IPrimaryKey key = sql.getPrimaryKey(rs);
     // Look the object up in the cache, create if not there and cache it.
     T object = cache.get(key);

@@ -26,7 +26,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import com.poesys.db.BatchException;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dto.TestSequence;
 import com.poesys.db.pk.IPrimaryKey;
@@ -43,30 +42,6 @@ public class InsertTestSequenceTest extends ConnectionTest {
     "SELECT col1 FROM TestSequence WHERE pkey = ?";
   private static final String CLASS_NAME = "com.poesys.db.test.TestSequence";
 
-  /*
-   * TODO public void testInsertOracle() throws IOException, SQLException,
-   * BatchException { Connection conn; try { conn = getConnection(DBMS.ORACLE,
-   * "com.poesys.db.poesystest.oracle"); } catch (SQLException e) { throw new
-   * RuntimeException("Connect failed: " + e.getMessage(), e); }
-   * 
-   * Insert<TestSequence> cut = new Insert<TestSequence>(new
-   * InsertSqlTestSequence()); // Create the primary key. IPrimaryKey key =
-   * PrimaryKeyFactory.createOracleSequenceKey(conn, "TESTKEY", "pkey"); //
-   * Create the DTO. String col1 = "test"; TestSequence dto = new
-   * TestSequence(key, col1);
-   * 
-   * Statement stmt = null; PreparedStatement query = null;
-   * 
-   * try { // Insert the test row. stmt = conn.createStatement();
-   * cut.insert(conn, dto); // Set the key value into the query as an argument.
-   * query = conn.prepareStatement(QUERY); key.setParams(query, 1); // Query the
-   * row. ResultSet rs = query.executeQuery(); String queriedCol1 = null; if
-   * (rs.next()) { queriedCol1 = rs.getString("col1"); } assertTrue(queriedCol1
-   * != null); assertTrue(col1.equals(queriedCol1)); } catch (SQLException e) {
-   * fail("insert method failed: " + e.getMessage()); } finally { if (stmt !=
-   * null) { stmt.close(); } if (conn != null) { conn.close(); } } }
-   */
-
   /**
    * Test the insert method using a MySQL sequence.
    * 
@@ -82,7 +57,7 @@ public class InsertTestSequenceTest extends ConnectionTest {
     Statement stmt = null;
 
     try {
-      conn = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+      conn = getConnection();
     } catch (SQLException e) {
       throw new RuntimeException("Connect failed: " + e.getMessage(), e);
     }

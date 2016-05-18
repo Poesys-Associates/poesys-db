@@ -29,7 +29,6 @@ import com.poesys.db.BatchException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.Message;
 import com.poesys.db.NoPrimaryKeyException;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.dto.RootClass;
@@ -66,7 +65,7 @@ public class InsertSubSubClassTest extends ConnectionTest {
   public void testInsert() throws IOException, SQLException, BatchException {
     Connection conn;
     try {
-      conn = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+      conn = getConnection();
     } catch (SQLException e) {
       throw new RuntimeException("Connect failed: " + e.getMessage(), e);
     }
@@ -80,12 +79,13 @@ public class InsertSubSubClassTest extends ConnectionTest {
     // Create the sequence primary key for the class.
     AbstractSingleValuedPrimaryKey key = null;
     try {
-      key = PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                               "root_class",
-                                               KEY_NAME,
-                                               CLASS_NAME);
+      key =
+        PrimaryKeyFactory.createMySqlSequenceKey(conn,
+                                                 "root_class",
+                                                 KEY_NAME,
+                                                 CLASS_NAME);
     } catch (InvalidParametersException e1) {
-     fail(e1.getMessage());
+      fail(e1.getMessage());
     } catch (NoPrimaryKeyException e1) {
       fail(Message.getMessage(e1.getMessage(), e1.getParameters().toArray()));
     }

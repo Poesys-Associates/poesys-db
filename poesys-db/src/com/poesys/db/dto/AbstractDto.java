@@ -320,26 +320,26 @@ public abstract class AbstractDto implements IDbDto {
   }
 
   @Override
-  public void queryNestedObjects(Connection connection) throws SQLException,
+  public void queryNestedObjects() throws SQLException,
       BatchException {
     if (querySetters != null) {
       for (ISet set : querySetters) {
         // Only set if not already set
         if (!set.isSet()) {
-          set.set(connection);
+          set.set(null);
         }
       }
     }
   }
 
   @Override
-  public void queryNestedObjectsForValidation(Connection connection)
+  public void queryNestedObjectsForValidation()
       throws SQLException, BatchException {
     if (insertQuerySetters != null) {
       for (ISet set : insertQuerySetters) {
         // Only set the object if not already set
         if (!set.isSet()) {
-          set.set(connection);
+          set.set(null);
         }
       }
     }
@@ -466,12 +466,8 @@ public abstract class AbstractDto implements IDbDto {
       ClassNotFoundException {
     logger.debug("Deserializing object of class " + this.getClass().getName()
                  + " with readObject in AbstractLazyLoadingDtoProxy");
-    // Set the connection caches for the nested objects.
-    deserializer.runConnectionSetters(connectionCacheSetters);
     // Do the read-object deserialization.
     deserializer.doReadObject(in, this, readObjectSetters);
-    // Remove the connections from the key cache.
-    deserializer.runConnectionSetters(connectionCacheUnsetters);
   }
 
   /**
@@ -493,38 +489,38 @@ public abstract class AbstractDto implements IDbDto {
   }
 
   @Override
-  public void validateForQuery(Connection connection) throws SQLException,
+  public void validateForQuery() throws SQLException,
       InvalidParametersException {
     if (queryValidators != null) {
       for (IValidate validator : queryValidators) {
-        validator.validate(connection);
+        validator.validate(null);
       }
     }
   }
 
   @Override
-  public void validateForInsert(Connection connection) throws SQLException {
+  public void validateForInsert() throws SQLException {
     if (insertValidators != null) {
       for (IValidate validator : insertValidators) {
-        validator.validate(connection);
+        validator.validate(null);
       }
     }
   }
 
   @Override
-  public void validateForUpdate(Connection connection) throws SQLException {
+  public void validateForUpdate() throws SQLException {
     if (updateValidators != null) {
       for (IValidate validator : updateValidators) {
-        validator.validate(connection);
+        validator.validate(null);
       }
     }
   }
 
   @Override
-  public void validateForDelete(Connection connection) throws SQLException {
+  public void validateForDelete() throws SQLException {
     if (deleteValidators != null) {
       for (IValidate validator : deleteValidators) {
-        validator.validate(connection);
+        validator.validate(null);
       }
     }
   }

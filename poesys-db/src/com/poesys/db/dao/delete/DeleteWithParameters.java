@@ -76,13 +76,14 @@ public class DeleteWithParameters<T extends IDbDto, P extends IDbDto>
     this.sql = sql;
   }
 
+  @Override
   public void delete(Connection connection, P parameters) throws SQLException {
     PreparedStatement stmt = null;
 
     if (parameters == null) {
       throw new InvalidParametersException(NO_DTO_MSG);
     } else {
-      parameters.validateForDelete(connection);
+      parameters.validateForDelete();
     }
 
     String sqlText = null;

@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.BatchException;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dto.TestNatural;
 
@@ -59,12 +58,14 @@ public class InsertBatchTestNaturalMemcachedTest extends ConnectionTest {
   public void testInsert() throws IOException, SQLException, BatchException {
     Connection conn;
     try {
-      conn = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+      conn = getConnection();
     } catch (SQLException e) {
       throw new RuntimeException("Connect failed: " + e.getMessage(), e);
     }
     InsertBatch<TestNatural> cut =
-      new InsertMemcachedBatch<TestNatural>(new InsertSqlTestNatural(), SUBSYSTEM, EXPIRE_TIME);
+      new InsertMemcachedBatch<TestNatural>(new InsertSqlTestNatural(),
+                                            SUBSYSTEM,
+                                            EXPIRE_TIME);
     List<TestNatural> dtos = new CopyOnWriteArrayList<TestNatural>();
     BigDecimal col1 = new BigDecimal("1234.5678");
 
@@ -126,12 +127,14 @@ public class InsertBatchTestNaturalMemcachedTest extends ConnectionTest {
   public void testInsertError() throws IOException, SQLException {
     Connection conn;
     try {
-      conn = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+      conn = getConnection();
     } catch (SQLException e) {
       throw new RuntimeException("Connect failed: " + e.getMessage(), e);
     }
     InsertBatch<TestNatural> cut =
-      new InsertMemcachedBatch<TestNatural>(new InsertSqlTestNatural(), SUBSYSTEM, EXPIRE_TIME);
+      new InsertMemcachedBatch<TestNatural>(new InsertSqlTestNatural(),
+                                            SUBSYSTEM,
+                                            EXPIRE_TIME);
     List<TestNatural> errorDtos = new CopyOnWriteArrayList<TestNatural>();
     Collection<TestNatural> goodDtos = new CopyOnWriteArrayList<TestNatural>();
     BigDecimal col1 = new BigDecimal("1234.5678");
@@ -226,12 +229,14 @@ public class InsertBatchTestNaturalMemcachedTest extends ConnectionTest {
   public void testInsertNull() throws IOException, SQLException, BatchException {
     Connection conn;
     try {
-      conn = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+      conn = getConnection();
     } catch (SQLException e) {
       throw new RuntimeException("Connect failed: " + e.getMessage(), e);
     }
     InsertBatch<TestNatural> cut =
-      new InsertMemcachedBatch<TestNatural>(new InsertSqlTestNatural(), SUBSYSTEM, EXPIRE_TIME);
+      new InsertMemcachedBatch<TestNatural>(new InsertSqlTestNatural(),
+                                            SUBSYSTEM,
+                                            EXPIRE_TIME);
     List<TestNatural> dtos = null;
     Statement stmt = null;
 

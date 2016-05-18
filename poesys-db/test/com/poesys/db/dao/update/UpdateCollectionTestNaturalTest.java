@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.BatchException;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.insert.InsertBatch;
 import com.poesys.db.dao.insert.InsertSqlTestNatural;
@@ -58,7 +57,7 @@ public class UpdateCollectionTestNaturalTest extends ConnectionTest {
   public void testUpdate() throws IOException, SQLException, BatchException {
     Connection conn;
     try {
-      conn = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+      conn = getConnection();
     } catch (SQLException e) {
       throw new RuntimeException("Connect failed: " + e.getMessage(), e);
     }
@@ -139,7 +138,7 @@ public class UpdateCollectionTestNaturalTest extends ConnectionTest {
   public void testInsertNull() throws IOException, SQLException, BatchException {
     Connection conn;
     try {
-      conn = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+      conn = getConnection();
     } catch (SQLException e) {
       throw new RuntimeException("Connect failed: " + e.getMessage(), e);
     }

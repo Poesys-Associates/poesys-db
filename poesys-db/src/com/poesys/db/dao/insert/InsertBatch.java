@@ -121,8 +121,8 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
              * The DTO is NEW. Run any validation after querying nested objects
              * to be able to use them in validation.
              */
-            dto.queryNestedObjectsForValidation(connection);
-            dto.validateForInsert(connection);
+            dto.queryNestedObjectsForValidation();
+            dto.validateForInsert();
             /*
              * Preprocess any nested objects to insert them, if required. This
              * sets the key to which the foreign key in the current object will

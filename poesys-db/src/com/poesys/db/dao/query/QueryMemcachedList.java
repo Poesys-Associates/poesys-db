@@ -66,7 +66,7 @@ public class QueryMemcachedList<T extends IDbDto> extends QueryList<T> {
                             String subsystem,
                             Integer expiration,
                             int rows) {
-    super(sql, rows);
+    super(sql, subsystem, rows);
     this.subsystem = subsystem;
     this.expiration = expiration;
   }
@@ -77,7 +77,7 @@ public class QueryMemcachedList<T extends IDbDto> extends QueryList<T> {
     IPrimaryKey key = sql.getPrimaryKey(rs);
     // Look the object up in the cache, create if not there and cache it.
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
-    T object = manager.getCachedObject(connection, key);
+    T object = manager.getCachedObject(key);
     if (object == null) {
       object = sql.getData(rs);
       logger.debug("Queried " + key.getStringKey() + " from database for list");
@@ -101,14 +101,14 @@ public class QueryMemcachedList<T extends IDbDto> extends QueryList<T> {
   }
 
   @Override
-  protected void queryNestedObjectsForList(Connection connection, List<T> list)
-      throws SQLException, BatchException {
+  protected void queryNestedObjectsForList(List<T> list) throws SQLException,
+      BatchException {
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     // Query any nested objects using the current memcached session. This is
     // outside the fetch above to make sure that the statement and result set
     // are closed before recursing.
     for (T object : list) {
-      object.queryNestedObjects(connection);
+      object.queryNestedObjects();
       // Cache the object to ensure all nested object keys get serialized.
       if (object.isQueried()) {
         manager.putObjectInCache(object.getPrimaryKey().getCacheName(),

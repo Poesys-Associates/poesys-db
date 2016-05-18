@@ -18,7 +18,6 @@
 package com.poesys.db.dao.query;
 
 
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
@@ -44,7 +43,8 @@ import com.poesys.db.pk.IPrimaryKey;
  * @author Robert J. Muller
  * @param <T> the type of IDbDto to query
  */
-public class QueryMemcachedListWithKeyList<T extends IDbDto> extends QueryListWithKeyList<T> {
+public class QueryMemcachedListWithKeyList<T extends IDbDto> extends
+    QueryListWithKeyList<T> {
   private static final Logger logger =
     Logger.getLogger(QueryMemcachedListWithKeyList.class);
   /** the name of the subsystem containing the T class */
@@ -63,21 +63,20 @@ public class QueryMemcachedListWithKeyList<T extends IDbDto> extends QueryListWi
    *          results fetching
    */
   public QueryMemcachedListWithKeyList(IKeyListQuerySql<T> sql,
-                            String subsystem,
-                            Integer expiration,
-                            int rows) {
-    super(sql, rows);
+                                       String subsystem,
+                                       Integer expiration,
+                                       int rows) {
+    super(sql, subsystem, rows);
     this.subsystem = subsystem;
     this.expiration = expiration;
   }
 
   @Override
-  protected T getObject(Connection connection, ResultSet rs)
-      throws SQLException, BatchException {
+  protected T getObject(ResultSet rs) throws SQLException, BatchException {
     IPrimaryKey key = sql.getPrimaryKey(rs);
     // Look the object up in the cache, create if not there and cache it.
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
-    T object = manager.getCachedObject(connection, key);
+    T object = manager.getCachedObject(key);
     if (object == null) {
       object = sql.getData(rs);
       logger.debug("Queried " + key.getStringKey() + " from database for list");
@@ -101,14 +100,14 @@ public class QueryMemcachedListWithKeyList<T extends IDbDto> extends QueryListWi
   }
 
   @Override
-  protected void queryNestedObjectsForList(Connection connection, List<T> list)
-      throws SQLException, BatchException {
+  protected void queryNestedObjectsForList(List<T> list) throws SQLException,
+      BatchException {
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     // Query any nested objects using the current memcached session. This is
     // outside the fetch above to make sure that the statement and result set
     // are closed before recursing.
     for (T object : list) {
-      object.queryNestedObjects(connection);
+      object.queryNestedObjects();
       // Cache the object to ensure all nested object keys get serialized.
       if (object.isQueried()) {
         manager.putObjectInCache(object.getPrimaryKey().getCacheName(),

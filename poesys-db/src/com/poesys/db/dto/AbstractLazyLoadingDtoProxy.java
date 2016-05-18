@@ -26,9 +26,11 @@ import java.sql.SQLException;
 import java.util.List;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.DataEvent;
 import com.poesys.db.dao.insert.IInsert;
 import com.poesys.db.pk.IPrimaryKey;
+
 import org.apache.log4j.Logger;
 
 
@@ -98,6 +100,11 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
     return dto.getSubsystem();
   }
 
+  @Override
+  public DBMS getDbms() {
+    return dto.getDbms();
+  }
+
   /**
    * Read an object from an input stream, de-serializing it. This custom
    * de-serialization method calls the default read-object method to read in all
@@ -109,11 +116,9 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
    * @throws IOException when there is an IO problem reading the stream
    */
   private void readObject(ObjectInputStream in) throws IOException,
-      ClassNotFoundException, SQLException {
+      ClassNotFoundException {
     logger.debug("Deserializing object of class " + this.getClass().getName()
                  + " with readObject in AbstractLazyLoadingDtoProxy");
-    // Set the connection caches for the nested objects.
-    deserializer.runConnectionSetters(connectionCacheSetters);
     // Do the read-object deserialization.
     deserializer.doReadObject(in, this, readObjectSetters);
     // Don't remove connection here, the proxied DTO will remove it.
@@ -173,15 +178,14 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
   }
 
   @Override
-  public void queryNestedObjects(Connection connection) throws SQLException,
-      BatchException {
-    dto.queryNestedObjects(connection);
+  public void queryNestedObjects() throws SQLException, BatchException {
+    dto.queryNestedObjects();
   }
 
   @Override
-  public void queryNestedObjectsForValidation(Connection connection)
-      throws SQLException, BatchException {
-    dto.queryNestedObjectsForValidation(connection);
+  public void queryNestedObjectsForValidation() throws SQLException,
+      BatchException {
+    dto.queryNestedObjectsForValidation();
   }
 
   @Override
@@ -220,23 +224,23 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
   }
 
   @Override
-  public void validateForDelete(Connection connection) throws SQLException {
-    dto.validateForDelete(connection);
+  public void validateForDelete() throws SQLException {
+    dto.validateForDelete();
   }
 
   @Override
-  public void validateForInsert(Connection connection) throws SQLException {
-    dto.validateForInsert(connection);
+  public void validateForInsert() throws SQLException {
+    dto.validateForInsert();
   }
 
   @Override
-  public void validateForQuery(Connection connection) throws SQLException {
-    dto.validateForQuery(connection);
+  public void validateForQuery() throws SQLException {
+    dto.validateForQuery();
   }
 
   @Override
-  public void validateForUpdate(Connection connection) throws SQLException {
-    dto.validateForUpdate(connection);
+  public void validateForUpdate() throws SQLException {
+    dto.validateForUpdate();
   }
 
   @Override

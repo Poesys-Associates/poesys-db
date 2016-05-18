@@ -32,12 +32,17 @@ import com.poesys.db.InvalidParametersException;
 
 
 /**
+ * <p>
  * Creates and caches singleton database connection factories for subsystems.
  * Each factory becomes a singleton in the cache, mapped by subsystem name. The
  * class provides methods to create subsystem factories, to get those factories,
  * and to restart the factories (clearing any caches or connections in the
  * subsystem factory).
- * 
+ * </p>
+ * <p>
+ * The database properties bundle sets the default subsystem and a default
+ * DBMS for each subsystem.
+ * </p>
  * @see IConnectionFactory
  * 
  * @author Robert J. Muller
@@ -57,7 +62,7 @@ public class ConnectionFactoryFactory {
   protected static final String SUBSYSTEM = "com.poesys.db.default.subsystem";
 
   /** String representing the name of the default subsystem */
-  private static final String DEFAULT = properties.getString(SUBSYSTEM);
+  private static final String DEFAULT_SUBSYSTEM = properties.getString(SUBSYSTEM);
 
   /** The property for the user name */
   private static final String USER = ".user";
@@ -79,8 +84,10 @@ public class ConnectionFactoryFactory {
 
   /** The property for the JNDI name */
   private static final String NAME = ".name";
+  
   /** The property for the DBMS type */
   private static final String DBMS = ".dbms";
+  
   /** The property for the database user's password */
   private static final String PASSWORD = ".password";
 
@@ -119,14 +126,14 @@ public class ConnectionFactoryFactory {
 
     // If the subsystem is null, use the DEFAULT subsystem from the properties
     // file.
-    String key = subsystem == null ? DEFAULT : subsystem;
+    String key = subsystem == null ? DEFAULT_SUBSYSTEM : subsystem;
 
     // Check for null subsystem.
     if (subsystem == null || subsystem.equals("")) {
       throw new InvalidParametersException(NO_SUBSYSTEM);
     }
 
-    // If the DBMS is null, get it from the properties file.
+    // If the DBMS is null, get it from the cache or the properties file.
     if (dbms == null) {
       dbms = getDbms(subsystem);
     }
@@ -240,9 +247,19 @@ public class ConnectionFactoryFactory {
   public static IConnectionFactory.DBMS getDbms(String subsystem) {
     // If the subsystem is null, use the DEFAULT subsystem from the properties
     // file.
-    String key = subsystem == null ? DEFAULT : subsystem;
-    String dbms = properties.getString(key + DBMS).toUpperCase();
-    return IConnectionFactory.DBMS.stringValue(dbms);
+    String key = subsystem == null ? DEFAULT_SUBSYSTEM : subsystem;
+    
+    // Get the cached DBMS for the subsystem.
+    IConnectionFactory factory = cache.get(subsystem);
+    IConnectionFactory.DBMS dbms;
+    if (factory == null) {
+      // No cached factory for the subsystem, get it from the properties file.
+      dbms = IConnectionFactory.DBMS.stringValue(properties.getString(key + DBMS).toUpperCase());
+    } else {
+      // Cached factory exists for subsystem, get the DBMS from it.
+      dbms = factory.getDbms();
+    }
+    return dbms;
   }
 
   /**
@@ -273,7 +290,7 @@ public class ConnectionFactoryFactory {
     initializeCache();
     initializeSubsystem(null, dbms);
 
-    return cache.get(DEFAULT);
+    return cache.get(DEFAULT_SUBSYSTEM);
   }
 
   /**
@@ -297,7 +314,7 @@ public class ConnectionFactoryFactory {
     initializeSubsystem(subsystem, dbms);
 
     // Get the requested factory.
-    String key = subsystem == null ? DEFAULT : subsystem;
+    String key = subsystem == null ? DEFAULT_SUBSYSTEM : subsystem;
     if (cache != null) {
       factory = cache.get(key);
     } else {
@@ -313,8 +330,9 @@ public class ConnectionFactoryFactory {
   }
 
   /**
-   * Get the singleton instance of the connectionfactory for a specific
-   * subsystem using the default DBMS defined in the database.properties file.
+   * Get the singleton instance of the connection factory for a specific
+   * subsystem. The DBMS is set either by an already-cached factory for
+   * the subsystem or from the properties file.
    * 
    * @param subsystem the name of the subsystem factory to get, such as
    *          "com.poesys.test.mysql.writer"
@@ -325,9 +343,7 @@ public class ConnectionFactoryFactory {
    */
   public static IConnectionFactory getInstance(String subsystem)
       throws IOException, InvalidParametersException {
-    String dbmsString = properties.getString(subsystem + DBMS);
-    IConnectionFactory.DBMS dbms = IConnectionFactory.DBMS.valueOf(dbmsString);
-    return getInstance(subsystem, dbms);
+    return getInstance(subsystem, null);
   }
 
   /**

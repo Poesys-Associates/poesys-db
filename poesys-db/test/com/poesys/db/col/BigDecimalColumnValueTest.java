@@ -14,9 +14,9 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.col;
+
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -26,78 +26,101 @@ import java.sql.SQLException;
 
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.col.BigDecimalColumnValue;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
+
 
 /**
  * Test the BigDecimalColumnValue class.
  * 
  * @author Bob Muller (muller@computer.org)
  */
-public class BigDecimalColumnValueTest extends ConnectionTest  {
+public class BigDecimalColumnValueTest extends ConnectionTest {
   private static final String NAME = "name1";
   private static final String NUMBER = "2345.6789";
   private static final String NUMBER2 = "845639.95748";
-  
 
   /**
    * Test method for {@link com.poesys.db.col.BigDecimalColumnValue#hashCode()}.
-   * @throws InvalidParametersException when the BigDecimal can't be created properly
+   * 
+   * @throws InvalidParametersException when the BigDecimal can't be created
+   *           properly
    */
   public void testHashCode() throws InvalidParametersException {
-    BigDecimalColumnValue value = new BigDecimalColumnValue(NAME, new BigDecimal(NUMBER));
+    BigDecimalColumnValue value =
+      new BigDecimalColumnValue(NAME, new BigDecimal(NUMBER));
     BigDecimal testValue = new BigDecimal(NUMBER);
     BigDecimal testValue2 = new BigDecimal(NUMBER2);
-    
+
     assertEquals(value.hashCode(), testValue.hashCode());
     assertTrue(value.hashCode() != testValue2.hashCode());
   }
 
   /**
-   * Test method for {@link com.poesys.db.col.BigDecimalColumnValue#equals(com.poesys.db.col.AbstractColumnValue)}.
-   * @throws InvalidParametersException when the BigDecimal can't be created properly
+   * Test method for
+   * {@link com.poesys.db.col.BigDecimalColumnValue#equals(com.poesys.db.col.AbstractColumnValue)}
+   * .
+   * 
+   * @throws InvalidParametersException when the BigDecimal can't be created
+   *           properly
    */
   public void testEqualsColumnValue() throws InvalidParametersException {
-    BigDecimalColumnValue value = new BigDecimalColumnValue(NAME, new BigDecimal(NUMBER));
-    BigDecimalColumnValue testValue = new BigDecimalColumnValue(NAME, new BigDecimal(NUMBER));
+    BigDecimalColumnValue value =
+      new BigDecimalColumnValue(NAME, new BigDecimal(NUMBER));
+    BigDecimalColumnValue testValue =
+      new BigDecimalColumnValue(NAME, new BigDecimal(NUMBER));
     BigDecimal testValue2 = new BigDecimal(NUMBER2);
-    
+
     assertTrue(value.equals(testValue));
     assertFalse(value.equals(testValue2));
   }
 
   /**
-   * Test method for {@link com.poesys.db.col.BigDecimalColumnValue#setParam(java.sql.PreparedStatement, int)}.
-   * @throws InvalidParametersException when the BigDecimal can't be created properly
-   * @throws IOException when the connection factory can't get the login parameters
-   * @throws SQLException when the SQL statement with parameters fails to prepare
+   * Test method for
+   * {@link com.poesys.db.col.BigDecimalColumnValue#setParam(java.sql.PreparedStatement, int)}
+   * .
+   * 
+   * @throws InvalidParametersException when the BigDecimal can't be created
+   *           properly
+   * @throws IOException when the connection factory can't get the login
+   *           parameters
+   * @throws SQLException when the SQL statement with parameters fails to
+   *           prepare
    */
-  public void testSetParam() throws InvalidParametersException, SQLException, IOException {
-    Connection connection = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
-    BigDecimalColumnValue colValue1 = new BigDecimalColumnValue(NAME, new BigDecimal(NUMBER));
+  public void testSetParam() throws InvalidParametersException, SQLException,
+      IOException {
+    Connection connection = getConnection();
+    BigDecimalColumnValue colValue1 =
+      new BigDecimalColumnValue(NAME, new BigDecimal(NUMBER));
     PreparedStatement stmt =
-        connection.prepareStatement("SELECT * FROM TEST WHERE testBigDecimal = ?");
+      connection.prepareStatement("SELECT * FROM TEST WHERE testBigDecimal = ?");
     colValue1.setParam(stmt, 1);
     assertTrue(true);
   }
 
   /**
-   * Test method for {@link com.poesys.db.col.BigDecimalColumnValue#BigDecimalColumnValue(java.lang.String, java.math.BigDecimal)}.
-   * @throws InvalidParametersException when the BigDecimal can't be created properly
+   * Test method for
+   * {@link com.poesys.db.col.BigDecimalColumnValue#BigDecimalColumnValue(java.lang.String, java.math.BigDecimal)}
+   * .
+   * 
+   * @throws InvalidParametersException when the BigDecimal can't be created
+   *           properly
    */
   public void testBigDecimalColumnValue() throws InvalidParametersException {
     @SuppressWarnings("unused")
-    BigDecimalColumnValue value = new BigDecimalColumnValue(NAME, new BigDecimal(NUMBER));
+    BigDecimalColumnValue value =
+      new BigDecimalColumnValue(NAME, new BigDecimal(NUMBER));
     try {
       // Bad parameter, string not number
       @SuppressWarnings("unused")
-      BigDecimalColumnValue value2 = new BigDecimalColumnValue(NAME, new BigDecimal(NAME));
+      BigDecimalColumnValue value2 =
+        new BigDecimalColumnValue(NAME, new BigDecimal(NAME));
       // Bad parameter, null value
       @SuppressWarnings("unused")
       BigDecimalColumnValue value3 = new BigDecimalColumnValue(NAME, null);
       // Bad parameter, null column name
       @SuppressWarnings("unused")
-      BigDecimalColumnValue value4 = new BigDecimalColumnValue(null, new BigDecimal(NUMBER));
+      BigDecimalColumnValue value4 =
+        new BigDecimalColumnValue(null, new BigDecimal(NUMBER));
       assertTrue(false);
     } catch (NumberFormatException e) {
       assertTrue(true);

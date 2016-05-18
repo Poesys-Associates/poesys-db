@@ -25,7 +25,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import com.poesys.db.connection.IConnectionFactory.DBMS;
+import com.poesys.db.InvalidParametersException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dto.TestMultipleParams;
 
@@ -65,48 +65,56 @@ public class UpdateWithParametersTest extends ConnectionTest {
    * @throws SQLException when can't get a connection
    */
   public void testUpdate() throws IOException, SQLException {
-    Connection conn;
+    Connection conn = null;
     try {
-      conn = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
-    } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      try {
+        conn = getConnection();
+      } catch (SQLException e) {
+        throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      }
+
+      // Insert test rows that create a set of multiple rows identified by a
+      // single value of the colType column, 'b'.
+      PreparedStatement stmt = conn.prepareStatement(INSERT);
+      for (long i = 1; i < 10; i++) {
+        // insert key, col1, colType a
+        stmt.setLong(1, i);
+        stmt.setString(2, "Col Value " + i);
+        stmt.setString(3, "a");
+        stmt.execute();
+      }
+
+      for (long i = 10; i < 15; i++) {
+        // insert key, col1, colType b
+        stmt.setLong(1, i);
+        stmt.setString(2, "Col Value " + i);
+        stmt.setString(3, "b");
+        stmt.execute();
+      }
+
+      stmt.close();
+
+      // Update the "b" test rows with a different col1 value, "new".
+      UpdateWithParameters<TestMultipleParams> updater =
+        new UpdateWithParameters<TestMultipleParams>(new UpdateSqlTestMultiple());
+      TestMultipleParams parameters = new TestMultipleParams(NEW, "b");
+      updater.update(conn, parameters);
+
+      // Query the five "b" rows and see if the col1 value is "new".
+      Statement query = conn.createStatement();
+      ResultSet rs =
+        query.executeQuery("SELECT col1 FROM TestMultiple WHERE colType = 'b'");
+      while (rs.next()) {
+        String col1 = rs.getString("col1");
+        assertTrue("b col1 = " + col1, NEW.compareTo(col1) == 0);
+      }
+      query.close();
+    } catch (InvalidParametersException e) {
+      fail("Failed");
+    } finally {
+      if (conn != null) {
+        conn.close();
+      }
     }
-
-    // Insert test rows that create a set of multiple rows identified by a
-    // single value of the colType column, 'b'.
-    PreparedStatement stmt = conn.prepareStatement(INSERT);
-    for (long i = 1; i < 10; i++) {
-      // insert key, col1, colType a
-      stmt.setLong(1, i);
-      stmt.setString(2, "Col Value " + i);
-      stmt.setString(3, "a");
-      stmt.execute();
-    }
-
-    for (long i = 10; i < 15; i++) {
-      // insert key, col1, colType b
-      stmt.setLong(1, i);
-      stmt.setString(2, "Col Value " + i);
-      stmt.setString(3, "b");
-      stmt.execute();
-    }
-
-    stmt.close();
-
-    // Update the "b" test rows with a different col1 value, "new".
-    UpdateWithParameters<TestMultipleParams> updater =
-      new UpdateWithParameters<TestMultipleParams>(new UpdateSqlTestMultiple());
-    TestMultipleParams parameters = new TestMultipleParams(NEW, "b");
-    updater.update(conn, parameters);
-
-    // Query the five "b" rows and see if the col1 value is "new".
-    Statement query = conn.createStatement();
-    ResultSet rs =
-      query.executeQuery("SELECT col1 FROM TestMultiple WHERE colType = 'b'");
-    while (rs.next()) {
-      String col1 = rs.getString("col1");
-      assertTrue("b col1 = " + col1, NEW.compareTo(col1) == 0);
-    }
-    query.close();
   }
 }

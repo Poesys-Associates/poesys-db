@@ -26,7 +26,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import com.poesys.db.BatchException;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dto.TestIdentity;
 import com.poesys.db.pk.IdentityPrimaryKey;
@@ -53,7 +52,7 @@ public class InsertTestIdentityTest extends ConnectionTest {
   public void testInsert() throws IOException, SQLException, BatchException {
     Connection conn;
     try {
-      conn = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+      conn = getConnection();
     } catch (SQLException e) {
       throw new RuntimeException("Connect failed: " + e.getMessage(), e);
     }
@@ -112,7 +111,7 @@ public class InsertTestIdentityTest extends ConnectionTest {
       BatchException {
     Connection conn;
     try {
-      conn = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+      conn = getConnection();
     } catch (SQLException e) {
       throw new RuntimeException("Connect failed: " + e.getMessage(), e);
     }

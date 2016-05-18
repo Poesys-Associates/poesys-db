@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.BatchException;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.insert.Insert;
@@ -70,17 +69,19 @@ public class QueryByKeyMemcachedTest extends ConnectionTest {
       BatchException {
     Connection conn;
     try {
-      conn = getConnection(DBMS.MYSQL, SUBSYSTEM);
+      conn = getConnection();
     } catch (SQLException e) {
       throw new RuntimeException("Connect failed: " + e.getMessage(), e);
     }
-    
+
     // Create the memcached DAO manager for this subsystem.
     DaoManagerFactory.initMemcachedManager(SUBSYSTEM);
 
     // Create the sequence key and the object to insert.
     Insert<TestSequence> inserter =
-      new InsertMemcached<TestSequence>(new InsertSqlTestSequence(), SUBSYSTEM, EXPIRE_TIME);
+      new InsertMemcached<TestSequence>(new InsertSqlTestSequence(),
+                                        SUBSYSTEM,
+                                        EXPIRE_TIME);
     SequencePrimaryKey key =
       PrimaryKeyFactory.createMySqlSequenceKey(conn, "test", "pkey", CLASS_NAME);
     String col1 = "test";
@@ -97,8 +98,9 @@ public class QueryByKeyMemcachedTest extends ConnectionTest {
     // Query the object and test against the original.
     try {
       IKeyQuerySql<TestSequence> sql = new TestSequenceKeyQuerySql();
-      QueryByKey<TestSequence> query = new QueryMemcachedByKey<TestSequence>(sql, SUBSYSTEM, EXPIRE_TIME);
-      IDbDto queriedDto = query.queryByKey(conn, key);
+      QueryByKey<TestSequence> query =
+        new QueryMemcachedByKey<TestSequence>(sql, SUBSYSTEM, EXPIRE_TIME);
+      IDbDto queriedDto = query.queryByKey(key);
       assertTrue(queriedDto != null);
       assertTrue("data not equal", dto.compareTo(queriedDto) == 0);
       assertTrue("queried dto set to NEW",
@@ -123,49 +125,62 @@ public class QueryByKeyMemcachedTest extends ConnectionTest {
    */
   public void testQueryByKeyParentTest() throws IOException, SQLException,
       BatchException {
-    Connection conn;
-    try {
-      conn = getConnection(DBMS.MYSQL, SUBSYSTEM);
-    } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
-    }
-
-    // Create the memcached DAO manager for this subsystem.
-    DaoManagerFactory.initMemcachedManager(SUBSYSTEM);
-
-    // Create the insert command for the parent.
-    Insert<Parent> inserter = new InsertMemcached<Parent>(new InsertSqlParent(), SUBSYSTEM, EXPIRE_TIME);
-
-    // Create the GUID primary key for the parent.
-    GuidPrimaryKey key = PrimaryKeyFactory.createGuidKey(PARENT_KEY_NAME, CLASS_NAME);
-    assertTrue("Couldn't create GUID key", key != null);
-
-    // Create the parent DTO with the key and the empty setters list.
-    String col1 = new String(COL1_VALUE);
-    Parent dto = new Parent(key, col1);
-
-    // Create three children in a list and set the children into the parent.
-    List<Child> children = new CopyOnWriteArrayList<Child>();
-    NaturalPrimaryKey subKey1 =
-      PrimaryKeyFactory.createSingleNumberKey(CHILD_SUBKEY_NAME,
-                                              new BigInteger("1"), CLASS_NAME);
-    CompositePrimaryKey key1 = new CompositePrimaryKey(key, subKey1, CLASS_NAME);
-    children.add(new Child(key1, new BigInteger("1"), COL1_VALUE));
-    NaturalPrimaryKey subKey2 =
-      PrimaryKeyFactory.createSingleNumberKey(CHILD_SUBKEY_NAME,
-                                              new BigInteger("2"), CLASS_NAME);
-    CompositePrimaryKey key2 = new CompositePrimaryKey(key, subKey2, CLASS_NAME);
-    children.add(new Child(key2, new BigInteger("2"), COL1_VALUE));
-    NaturalPrimaryKey subKey3 =
-      PrimaryKeyFactory.createSingleNumberKey(CHILD_SUBKEY_NAME,
-                                              new BigInteger("3"), CLASS_NAME);
-    CompositePrimaryKey key3 = new CompositePrimaryKey(key, subKey3, CLASS_NAME);
-    children.add(new Child(key3, new BigInteger("3"), COL1_VALUE));
-    dto.setChildren(children);
-
+    Connection conn = null;
     Statement stmt = null;
     PreparedStatement pstmt = null;
+
+    GuidPrimaryKey key = null;
+    Parent dto = null;
+
     try {
+      try {
+        conn = getConnection();
+      } catch (SQLException e) {
+        throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      }
+
+      // Create the memcached DAO manager for this subsystem.
+      DaoManagerFactory.initMemcachedManager(SUBSYSTEM);
+
+      // Create the insert command for the parent.
+      Insert<Parent> inserter =
+        new InsertMemcached<Parent>(new InsertSqlParent(),
+                                    SUBSYSTEM,
+                                    EXPIRE_TIME);
+
+      // Create the GUID primary key for the parent.
+      key = PrimaryKeyFactory.createGuidKey(PARENT_KEY_NAME, CLASS_NAME);
+      assertTrue("Couldn't create GUID key", key != null);
+
+      // Create the parent DTO with the key and the empty setters list.
+      String col1 = new String(COL1_VALUE);
+      dto = new Parent(key, col1);
+
+      // Create three children in a list and set the children into the parent.
+      List<Child> children = new CopyOnWriteArrayList<Child>();
+      NaturalPrimaryKey subKey1 =
+        PrimaryKeyFactory.createSingleNumberKey(CHILD_SUBKEY_NAME,
+                                                new BigInteger("1"),
+                                                CLASS_NAME);
+      CompositePrimaryKey key1 =
+        new CompositePrimaryKey(key, subKey1, CLASS_NAME);
+      children.add(new Child(key1, new BigInteger("1"), COL1_VALUE));
+      NaturalPrimaryKey subKey2 =
+        PrimaryKeyFactory.createSingleNumberKey(CHILD_SUBKEY_NAME,
+                                                new BigInteger("2"),
+                                                CLASS_NAME);
+      CompositePrimaryKey key2 =
+        new CompositePrimaryKey(key, subKey2, CLASS_NAME);
+      children.add(new Child(key2, new BigInteger("2"), COL1_VALUE));
+      NaturalPrimaryKey subKey3 =
+        PrimaryKeyFactory.createSingleNumberKey(CHILD_SUBKEY_NAME,
+                                                new BigInteger("3"),
+                                                CLASS_NAME);
+      CompositePrimaryKey key3 =
+        new CompositePrimaryKey(key, subKey3, CLASS_NAME);
+      children.add(new Child(key3, new BigInteger("3"), COL1_VALUE));
+      dto.setChildren(children);
+
       // Delete any rows in the Parent and Child tables.
       stmt = conn.createStatement();
       stmt.executeUpdate("DELETE FROM Child");
@@ -187,12 +202,16 @@ public class QueryByKeyMemcachedTest extends ConnectionTest {
       if (pstmt != null) {
         pstmt.close();
       }
+      if (conn != null) {
+        conn.close();
+      }
     }
     // Query the object and test against the original.
     try {
       IKeyQuerySql<Parent> sql = new ParentKeyQuerySql();
-      QueryByKey<Parent> dao = new QueryMemcachedByKey<Parent>(sql, SUBSYSTEM, EXPIRE_TIME);
-      IDbDto queriedDto = dao.queryByKey(conn, key);
+      QueryByKey<Parent> dao =
+        new QueryMemcachedByKey<Parent>(sql, SUBSYSTEM, EXPIRE_TIME);
+      IDbDto queriedDto = dao.queryByKey(key);
       assertTrue(queriedDto != null);
       assertTrue("data not equal", dto.compareTo(queriedDto) == 0);
       assertTrue("queried dto set to NEW",
@@ -201,10 +220,6 @@ public class QueryByKeyMemcachedTest extends ConnectionTest {
                  queriedDto.getStatus() != IDbDto.Status.CHANGED);
     } catch (SQLException e) {
       fail("Query by key exception: " + e.getMessage());
-    } finally {
-      if (conn != null) {
-        conn.close();
-      }
     }
   }
 }

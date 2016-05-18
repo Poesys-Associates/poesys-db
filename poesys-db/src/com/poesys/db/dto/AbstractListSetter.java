@@ -26,6 +26,7 @@ import java.util.Collection;
 import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
+import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoFactory;
 import com.poesys.db.dao.IDaoManager;
@@ -39,9 +40,8 @@ import com.poesys.db.dao.query.IQueryListWithParameters;
  * comprehensive transaction, taking in a connection and not closing it. The
  * abstract methods parameterize the class with objects that the set() method
  * uses in processing the query. The class that implements a concrete subclass
- * of this setter implementation calls the set(Connection) method, which
- * queries the objects and then calls the set(List) method to update the
- * internal list.
+ * of this setter implementation calls the set(Connection) method, which queries
+ * the objects and then calls the set(List) method to update the internal list.
  * 
  * @author Robert J. Muller
  * @param <T> the type of IDbDto to query
@@ -58,11 +58,12 @@ abstract public class AbstractListSetter<T extends IDbDto, S extends IDbDto, C e
    * Create a AbstractListSetter object.
    * 
    * @param subsystem the subsystem for the setter
+   * @param dbms the type of DBMS to which to connect
    * @param expiration the time in milliseconds after which the object expires
    *          in a cache that supports expiration
    */
-  public AbstractListSetter(String subsystem, Integer expiration) {
-    super(subsystem, expiration);
+  public AbstractListSetter(String subsystem, DBMS dbms, Integer expiration) {
+    super(subsystem, dbms, expiration);
   }
 
   @Override
@@ -72,11 +73,11 @@ abstract public class AbstractListSetter<T extends IDbDto, S extends IDbDto, C e
     IDaoFactory<T> factory =
       manager.getFactory(getClassName(), subsystem, expiration);
     IQueryListWithParameters<T, S, C> dao =
-      factory.getQueryListWithParameters(getSql(), getFetchSize());
+      factory.getQueryListWithParameters(getSql(), subsystem, getFetchSize());
     // Query using the outer object as parameters (that is, the parent key).
     C list;
     try {
-      list = dao.query(connection, getParametersDto());
+      list = dao.query(getParametersDto());
     } catch (ConstraintViolationException e) {
       throw new DbErrorException(e.getMessage(), e);
     } catch (BatchException e) {

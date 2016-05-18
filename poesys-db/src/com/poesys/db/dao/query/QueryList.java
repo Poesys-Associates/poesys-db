@@ -18,6 +18,7 @@
 package com.poesys.db.dao.query;
 
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -29,6 +30,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.log4j.Logger;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.connection.ConnectionFactoryFactory;
+import com.poesys.db.connection.IConnectionFactory;
 import com.poesys.db.dto.IDbDto;
 
 
@@ -53,23 +56,30 @@ public class QueryList<T extends IDbDto> implements IQueryList<T> {
    * parameters
    */
   protected final IQuerySql<T> sql;
+  /** the client subsystem owning the queried object */
+  protected final String subsystem;
   /** Number of rows to fetch at once, optimizes query fetching */
   protected final int rows;
+
+  /** Error getting resource bundle, can't resolve to bundle text so a constant */
+  private static final String RESOURCE_BUNDLE_ERROR =
+    "Problem getting Poesys/DB resource bundle";
 
   /**
    * Create a QueryList object.
    * 
    * @param sql the SQL statement specification
+   * @param subsystem the subsystem that owns the object being queried
    * @param rows the number of rows to fetch at once; optimizes results fetching
    */
-  public QueryList(IQuerySql<T> sql, int rows) {
+  public QueryList(IQuerySql<T> sql, String subsystem, int rows) {
     this.sql = sql;
+    this.subsystem = subsystem;
     this.rows = rows;
   }
 
   @Override
-  public List<T> query(Connection connection) throws SQLException,
-      BatchException {
+  public List<T> query() throws SQLException, BatchException {
     List<T> list = new ArrayList<T>();
     PreparedStatement stmt = null;
     ResultSet rs = null;
@@ -79,7 +89,11 @@ public class QueryList<T extends IDbDto> implements IQueryList<T> {
     long startTime = time;
 
     // Query the list of objects.
+    Connection connection = null;
     try {
+      IConnectionFactory factory =
+        ConnectionFactoryFactory.getInstance(subsystem);
+      connection = factory.getConnection();
       stmt = connection.prepareStatement(sql.getSql());
       logger.debug("Querying list without parameters with SQL: " + sql.getSql());
       stmt.setFetchSize(rows);
@@ -109,6 +123,9 @@ public class QueryList<T extends IDbDto> implements IQueryList<T> {
       logger.error(sql.getSql());
       logger.debug("SQL statement in class: " + sql.getClass().getName());
       throw e;
+    } catch (IOException e) {
+      // Problem with resource bundle, rethrow as SQLException
+      throw new SQLException(RESOURCE_BUNDLE_ERROR);
     } finally {
       // Close the statement and result set as required.
       if (stmt != null) {
@@ -117,9 +134,13 @@ public class QueryList<T extends IDbDto> implements IQueryList<T> {
       if (rs != null) {
         rs.close();
       }
+      // Close the connection.
+      if (connection != null) {
+        connection.close();
+      }
     }
 
-    queryNestedObjectsForList(connection, list);
+    queryNestedObjectsForList(list);
 
     // Copy the list to a threadsafe list.
     CopyOnWriteArrayList<T> threadsafeList = new CopyOnWriteArrayList<T>(list);
@@ -131,17 +152,16 @@ public class QueryList<T extends IDbDto> implements IQueryList<T> {
    * T. You can override this method in subclasses to provide a session ID in
    * the call to queryNestedObjects.
    * 
-   * @param connection the current JDBC connection
    * @param list the list of objects of type T
    * @throws SQLException when there is a database problem
    * @throws BatchException when there is a batch processing problem
    */
-  protected void queryNestedObjectsForList(Connection connection, List<T> list)
-      throws SQLException, BatchException {
+  protected void queryNestedObjectsForList(List<T> list) throws SQLException,
+      BatchException {
     // Query any nested objects. This is outside the fetch above to make sure
     // that the statement and result set are closed before recursing.
     for (T object : list) {
-      object.queryNestedObjects(connection);
+      object.queryNestedObjects();
     }
   }
 
@@ -171,6 +191,6 @@ public class QueryList<T extends IDbDto> implements IQueryList<T> {
 
   @Override
   public void setExpiration(int expiration) {
-    // Does nothing in this class, no expiration    
+    // Does nothing in this class, no expiration
   }
 }

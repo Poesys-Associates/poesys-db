@@ -6,7 +6,6 @@ package com.poesys.db.dto;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -14,7 +13,6 @@ import org.apache.log4j.Logger;
 
 import com.poesys.db.dao.CacheDaoManager;
 import com.poesys.db.dao.IDaoManager;
-import com.poesys.db.dao.MemcachedDaoManager;
 
 
 /**
@@ -39,14 +37,8 @@ public class Deserializer<T extends IDbDto> {
   /** Message string when the primary key is null */
   private static final String NULL_KEY_MSG =
     "com.poesys.db.dto.msg.no_object_key";
-  /** Message string when the connection is null */
-  private static final String NO_CONN_MSG =
-    "com.poesys.db.connection.msg.noConnection";
   /** Message string when the DTO is null */
   private static final String NO_DTO_MSG = "com.poesys.db.dao.msg.no_dto";
-
-  /** Was the connection created by this object? */
-  private boolean createdConnection = false;
 
   /**
    * Create a AbstractDbDto object.
@@ -94,84 +86,16 @@ public class Deserializer<T extends IDbDto> {
     IDaoManager manager = CacheDaoManager.getInstance();
     manager.putObjectInCache(object.getPrimaryKey().getCacheName(), 0, object);
 
-    // Get the connection to use in the setter if required.
-    Connection connection = getConnection(object);
-
     // Finally, iterate through the setters to process nested objects.
     if (readObjectSetters != null) {
       try {
         for (ISet set : readObjectSetters) {
-          set.set(connection);
+          set.set(null);
         }
       } catch (SQLException e) {
         // Should never happen, log and throw RuntimeException
         logger.error(READ_OBJECT_MSG, e);
         throw new RuntimeException(READ_OBJECT_MSG, e);
-      } finally {
-        try {
-          if (connection != null && !connection.isClosed() && createdConnection) {
-            // created rather than from connection cache, close here
-            connection.close();
-            // reset the flag to the default for the next call
-            createdConnection = false;
-          }
-        } catch (SQLException e) {
-          logger.error(READ_OBJECT_MSG, e);
-          throw new RuntimeException(READ_OBJECT_MSG, e);
-        }
-      }
-    }
-  }
-
-  /**
-   * Get a SQL connection. This will be either a connection from the
-   * MemcachedDaoManager connection cache or a fresh connection from the input
-   * object.
-   *
-   * @param object the input object
-   * @return a SQL connection
-   */
-  public Connection getConnection(T object) {
-    // Get the database connection for the key from the static cache.
-    Connection connection =
-      MemcachedDaoManager.getConnection(object.getPrimaryKey());
-
-    if (connection == null) {
-      // Not cached for this key, get new connection from object
-      try {
-        connection = object.getConnection();
-        createdConnection = true;
-      } catch (SQLException e) {
-        logger.error("Exception getting connection from object", e);
-        throw new RuntimeException(NO_CONN_MSG);
-      }
-    } else {
-      logger.debug("Got cached connection " + connection + " for key "
-                   + object.getPrimaryKey().getStringKey());
-    }
-
-    if (connection == null) {
-      // Still can't get connection, stop trying.
-      throw new RuntimeException(NO_CONN_MSG);
-    }
-    return connection;
-  }
-
-  /**
-  *
-  *
-  */
-  public void runConnectionSetters(List<ISet> setters) {
-    // Set the connection caches for the nested objects.
-    if (setters != null) {
-      for (ISet set : setters) {
-        try {
-          set.set(null);
-        } catch (SQLException e) {
-          // Should never happen, log and throw RuntimeException
-          logger.error(UNEXPECTED_SQL_ERROR, e);
-          throw new RuntimeException(UNEXPECTED_SQL_ERROR, e);
-        }
       }
     }
   }

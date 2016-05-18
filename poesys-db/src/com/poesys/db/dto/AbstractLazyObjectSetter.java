@@ -24,6 +24,7 @@ import java.sql.SQLException;
 import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
+import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoFactory;
 import com.poesys.db.dao.IDaoManager;
@@ -50,11 +51,12 @@ abstract public class AbstractLazyObjectSetter<T extends IDbDto> extends
    * Create a AbstractLazyObjectSetter object.
    * 
    * @param subsystem the subsystem for the setter
+   * @param dbms the type of DBMS to which to connect
    * @param expiration the time in milliseconds after which the object expires
    *          in a cache that supports expiration
    */
-  public AbstractLazyObjectSetter(String subsystem, Integer expiration) {
-    super(subsystem, expiration);
+  public AbstractLazyObjectSetter(String subsystem, DBMS dbms, Integer expiration) {
+    super(subsystem, dbms, expiration);
   }
 
   /*
@@ -70,9 +72,9 @@ abstract public class AbstractLazyObjectSetter<T extends IDbDto> extends
       IDaoManager manager = DaoManagerFactory.getManager(subsystem);
       IDaoFactory<T> factory =
         manager.getFactory(getClassName(), subsystem, expiration);
-      IQueryByKey<T> dao = factory.getQueryByKey(getSql());
+      IQueryByKey<T> dao = factory.getQueryByKey(getSql(), subsystem);
       // Query using the outer object as parameters (that is, the parent key).
-      T dto = dao.queryByKey(connection, getKey());
+      T dto = dao.queryByKey(getKey());
       set(dto);
     } catch (ConstraintViolationException e) {
       throw new DbErrorException(e.getMessage(), e);

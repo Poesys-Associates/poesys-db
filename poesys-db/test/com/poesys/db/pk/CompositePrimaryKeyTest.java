@@ -31,7 +31,6 @@ import com.poesys.db.DuplicateKeyNameException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.col.AbstractColumnValue;
 import com.poesys.db.col.BigIntegerColumnValue;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 
 
@@ -326,8 +325,7 @@ public class CompositePrimaryKeyTest extends ConnectionTest {
    */
   public void testSetParams() throws SQLException, IOException,
       InvalidParametersException, DuplicateKeyNameException {
-    Connection connection =
-      getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+    Connection connection = getConnection();
     NaturalPrimaryKey subKey = createSubkey(col1Name, new BigInteger("1"));
     CompositePrimaryKey key = new CompositePrimaryKey(key2, subKey, CLASS_NAME);
     assertTrue(key != null);

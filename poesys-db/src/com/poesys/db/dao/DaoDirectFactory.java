@@ -74,29 +74,32 @@ import com.poesys.db.dto.IDbDto;
  * @param <T> the type of database DTO to process
  */
 public class DaoDirectFactory<T extends IDbDto> implements IDaoFactory<T> {
-  public IQueryByKey<T> getQueryByKey(IKeyQuerySql<T> sql) {
-    return new QueryByKey<T>(sql);
+  public IQueryByKey<T> getQueryByKey(IKeyQuerySql<T> sql, String subsystem) {
+    return new QueryByKey<T>(sql, subsystem);
   }
 
   @Override
-  public IQueryByKey<T> getDatabaseQueryByKey(IKeyQuerySql<T> sql) {
-    return new QueryByKey<T>(sql);
+  public IQueryByKey<T> getDatabaseQueryByKey(IKeyQuerySql<T> sql,
+                                              String subsystem) {
+    return new QueryByKey<T>(sql, subsystem);
   }
 
   @Override
-  public IQueryList<T> getQueryList(IQuerySql<T> sql, int rows) {
-    return new QueryList<T>(sql, rows);
+  public IQueryList<T> getQueryList(IQuerySql<T> sql, String subsystem, int rows) {
+    return new QueryList<T>(sql, subsystem, rows);
   }
 
   @Override
-  public IQueryList<T> getQueryListWithKeyList(IKeyListQuerySql<T> sql, int rows) {
-    return new QueryListWithKeyList<T>(sql, rows);
+  public IQueryList<T> getQueryListWithKeyList(IKeyListQuerySql<T> sql,
+                                               String subsystem, int rows) {
+    return new QueryListWithKeyList<T>(sql, subsystem, rows);
   }
 
   @Override
   public <S extends IDbDto, C extends Collection<T>> IQueryListWithParameters<T, S, C> getQueryListWithParameters(IParameterizedQuerySql<T, S> sql,
+                                                                                                                  String subsystem,
                                                                                                                   int rows) {
-    return new QueryListWithParameters<T, S, C>(sql, rows);
+    return new QueryListWithParameters<T, S, C>(sql, subsystem, rows);
   }
 
   @Override

@@ -18,7 +18,6 @@
 package com.poesys.db.dao.query;
 
 
-import java.sql.Connection;
 import java.sql.SQLException;
 
 import com.poesys.db.BatchException;
@@ -43,7 +42,6 @@ public interface IQueryByKey<T extends IDbDto> {
    * Query a DTO by the key of the object expressed through the same type of
    * DTO.
    * 
-   * @param connection the database connection with which to query
    * @param key the primary key with which to query an object; generic parameter
    *          must be a concrete implementation of IPrimaryKey
    * @return a new DTO with the queried object
@@ -53,8 +51,8 @@ public interface IQueryByKey<T extends IDbDto> {
    * @throws BatchException when a nested set of objects has a problem with a
    *           batched query
    */
-  public T queryByKey(Connection connection, IPrimaryKey key)
-      throws SQLException, NoPrimaryKeyException, BatchException;
+  public T queryByKey(IPrimaryKey key) throws SQLException,
+      NoPrimaryKeyException, BatchException;
 
   /**
    * Set the expiration of objects queried by the queryByKey method. This setter

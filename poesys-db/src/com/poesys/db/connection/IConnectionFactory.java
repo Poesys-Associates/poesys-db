@@ -51,7 +51,7 @@ public interface IConnectionFactory {
     SYBASE("SYBASE"),
     /** JNDI Sybase DBMS */
     JNDI_SYBASE("JNDI_SYBASE"),
-    /** JNDI DataSource (default Oracle */
+    /** JNDI DataSource, assumes Oracle */
     JNDI("JNDI");
 
     /** The internal string representation */

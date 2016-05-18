@@ -27,10 +27,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
+import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoFactory;
 import com.poesys.db.dao.IDaoManager;
-import com.poesys.db.dao.MemcachedDaoManager;
 import com.poesys.db.dao.query.IKeyQuerySql;
 import com.poesys.db.dao.query.IQueryByKey;
 import com.poesys.db.pk.IPrimaryKey;
@@ -62,11 +62,12 @@ abstract public class AbstractListReadSetter<T extends IDbDto> extends
    * Create a AbstractListSetter object.
    * 
    * @param subsystem the subsystem for the setter
+   * @param dbms the type of DBMS to which to connect
    * @param expiration the time in milliseconds after which the object expires
    *          in a cache that supports expiration
    */
-  public AbstractListReadSetter(String subsystem, Integer expiration) {
-    super(subsystem, expiration);
+  public AbstractListReadSetter(String subsystem, DBMS dbms, Integer expiration) {
+    super(subsystem, dbms, expiration);
   }
 
   @Override
@@ -74,7 +75,7 @@ abstract public class AbstractListReadSetter<T extends IDbDto> extends
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     IDaoFactory<T> factory =
       manager.getFactory(getClassName(), subsystem, expiration);
-    IQueryByKey<T> dao = factory.getQueryByKey(getSql());
+    IQueryByKey<T> dao = factory.getQueryByKey(getSql(), subsystem);
     List<T> list = null;
 
     // Query using the primary keys.
@@ -82,14 +83,8 @@ abstract public class AbstractListReadSetter<T extends IDbDto> extends
       list = getEmptyList();
       try {
         for (IPrimaryKey key : getPrimaryKeys()) {
-          try {
-            MemcachedDaoManager.putConnection(key, connection);
-            T dto = dao.queryByKey(connection, key);
-            list.add(dto);
-          } finally {
-            // Clean up the connection cache for this key.
-            MemcachedDaoManager.removeConnection(key);
-          }
+          T dto = dao.queryByKey(key);
+          list.add(dto);
         }
       } catch (ConstraintViolationException e) {
         throw new DbErrorException(e.getMessage(), e);
@@ -99,7 +94,7 @@ abstract public class AbstractListReadSetter<T extends IDbDto> extends
         throw new DbErrorException(e.getMessage(), e);
       }
     }
-    
+
     // Convert the array list to a thread-safe list.
     list = getThreadSafeList(list);
 

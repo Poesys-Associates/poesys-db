@@ -29,7 +29,6 @@ import org.junit.Test;
 import com.poesys.db.BatchException;
 import com.poesys.db.Message;
 import com.poesys.db.NoPrimaryKeyException;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.insert.Insert;
 import com.poesys.db.dao.insert.InsertSqlTestSequence;
@@ -58,53 +57,68 @@ public class QueryListWithParametersMemcachedTest extends ConnectionTest {
   public void testQuery() throws IOException, SQLException, BatchException {
     Connection conn = null;
     Statement stmt = null;
-    try {
-      conn = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
-    } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
-    }
-
-    // Delete all the rows from TestSequence
-    try {
-      stmt = conn.createStatement();
-      stmt.execute("DELETE FROM TestSequence");
-    } catch (RuntimeException e1) {
-      fail("Couldn't delete rows from TestSequence");
-    } finally {
-      if (stmt != null) {
-        stmt.close();
-      }
-    }
-
-    // Create the sequence key and the objects to insert.
-    Insert<TestSequence> inserter;
     TestSequence dto1 = null;
-    TestSequence dto2 = null;
-    TestSequence dto3 = null;
-    inserter = new Insert<TestSequence>(new InsertSqlTestSequence());
-    try {
-      AbstractSingleValuedPrimaryKey key1 =
-        PrimaryKeyFactory.createMySqlSequenceKey(conn, "test", "pkey", CLASS_NAME);
-      String col1 = "test";
-      dto1 = new TestSequence(key1, col1);
-      AbstractSingleValuedPrimaryKey key2 =
-        PrimaryKeyFactory.createMySqlSequenceKey(conn, "test", "pkey", CLASS_NAME);
-      dto2 = new TestSequence(key2, col1);
-      AbstractSingleValuedPrimaryKey key3 =
-        PrimaryKeyFactory.createMySqlSequenceKey(conn, "test", "pkey", CLASS_NAME);
-      dto3 = new TestSequence(key3, "no test");
-    } catch (NoPrimaryKeyException e1) {
-      fail(Message.getMessage(e1.getMessage(), e1.getParameters().toArray()));
-    }
 
-    // Insert the objects.
     try {
+      try {
+        conn = getConnection();
+      } catch (SQLException e) {
+        throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      }
+
+      // Delete all the rows from TestSequence
+      try {
+        stmt = conn.createStatement();
+        stmt.execute("DELETE FROM TestSequence");
+      } catch (RuntimeException e1) {
+        fail("Couldn't delete rows from TestSequence");
+      } finally {
+        if (stmt != null) {
+          stmt.close();
+        }
+      }
+
+      // Create the sequence key and the objects to insert.
+      Insert<TestSequence> inserter;
+      TestSequence dto2 = null;
+      TestSequence dto3 = null;
+      inserter = new Insert<TestSequence>(new InsertSqlTestSequence());
+      try {
+        AbstractSingleValuedPrimaryKey key1 =
+          PrimaryKeyFactory.createMySqlSequenceKey(conn,
+                                                   "test",
+                                                   "pkey",
+                                                   CLASS_NAME);
+        String col1 = "test";
+        dto1 = new TestSequence(key1, col1);
+        AbstractSingleValuedPrimaryKey key2 =
+          PrimaryKeyFactory.createMySqlSequenceKey(conn,
+                                                   "test",
+                                                   "pkey",
+                                                   CLASS_NAME);
+        dto2 = new TestSequence(key2, col1);
+        AbstractSingleValuedPrimaryKey key3 =
+          PrimaryKeyFactory.createMySqlSequenceKey(conn,
+                                                   "test",
+                                                   "pkey",
+                                                   CLASS_NAME);
+        dto3 = new TestSequence(key3, "no test");
+      } catch (NoPrimaryKeyException e1) {
+        fail(Message.getMessage(e1.getMessage(), e1.getParameters().toArray()));
+      }
+
+      // Insert the objects.
       inserter.insert(conn, dto1);
       inserter.insert(conn, dto2);
       inserter.insert(conn, dto3);
       assertTrue(true);
     } catch (SQLException e) {
       fail("Insert test objects failed: " + e.getMessage());
+    } finally {
+      if (conn != null) {
+        conn.commit();
+        conn.close();
+      }
     }
 
     // Query the list of objects and test against the original.
@@ -113,8 +127,9 @@ public class QueryListWithParametersMemcachedTest extends ConnectionTest {
         new TestSequenceQueryWithParametersSql();
       QueryListWithParameters<TestSequence, TestSequence, List<TestSequence>> dao =
         new QueryListWithParameters<TestSequence, TestSequence, List<TestSequence>>(sql,
+                                                                                    getSubsystem(),
                                                                                     2);
-      List<TestSequence> queriedDtos = dao.query(conn, dto1);
+      List<TestSequence> queriedDtos = dao.query(dto1);
       assertTrue("null list queried", queriedDtos != null);
       // Should get back 2 of the 3 DTOs
       assertTrue("wrong number of DTOs: " + queriedDtos.size(),
@@ -129,10 +144,6 @@ public class QueryListWithParametersMemcachedTest extends ConnectionTest {
       }
     } catch (SQLException e) {
       fail("Query list with parameters exception: " + e.getMessage());
-    } finally {
-      if (conn != null) {
-        conn.close();
-      }
     }
   }
 

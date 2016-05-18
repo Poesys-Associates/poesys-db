@@ -112,7 +112,7 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
 
           // Only proceed if the dto is CHANGED and unprocessed.
           if (dto.getStatus() == IDbDto.Status.CHANGED && !dto.isProcessed()) {
-            dto.validateForUpdate(connection);
+            dto.validateForUpdate();
 
             // Everything is valid, so proceed to the main update.
             count++;

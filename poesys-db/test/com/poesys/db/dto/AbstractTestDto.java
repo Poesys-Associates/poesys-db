@@ -1,5 +1,7 @@
 package com.poesys.db.dto;
 
+import com.poesys.db.connection.IConnectionFactory.DBMS;
+
 /**
  * An abstract superclass that contains methods implemented for all the test
  * objects. These are methods that don't require any custom code for testing.
@@ -20,7 +22,7 @@ public abstract class AbstractTestDto extends AbstractDto {
   
   @Override
   public String getSubsystem() {
-    return "com.poesys.db.dto";
+    return "com.poesys.db.poesystest.mysql";
   }
 
   @Override
@@ -57,4 +59,9 @@ public abstract class AbstractTestDto extends AbstractDto {
     return connection;
   }
 
+  @Override
+  public DBMS getDbms() {
+    // Always test with a MySQL database.
+    return DBMS.MYSQL;
+  }
 }

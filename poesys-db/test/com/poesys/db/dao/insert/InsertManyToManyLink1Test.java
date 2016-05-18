@@ -31,7 +31,6 @@ import com.poesys.db.BatchException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.Message;
 import com.poesys.db.NoPrimaryKeyException;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.dto.Link1;
@@ -71,7 +70,7 @@ public class InsertManyToManyLink1Test extends ConnectionTest {
   public void testInsert() throws IOException, SQLException, BatchException {
     Connection conn;
     try {
-      conn = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+      conn = getConnection();
     } catch (SQLException e) {
       throw new RuntimeException("Connect failed: " + e.getMessage(), e);
     }
@@ -86,22 +85,26 @@ public class InsertManyToManyLink1Test extends ConnectionTest {
     AbstractSingleValuedPrimaryKey key22 = null;
     AbstractSingleValuedPrimaryKey key23 = null;
     try {
-      key1 = PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                               "link1",
-                                               KEY1_NAME,
-                                               CLASS_NAME);
-      key21 = PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                               "link2",
-                                               KEY2_NAME,
-                                               CLASS_NAME);
-      key22 = PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                               "link2",
-                                               KEY2_NAME,
-                                               CLASS_NAME);
-      key23 = PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                               "link2",
-                                               KEY2_NAME,
-                                               CLASS_NAME);
+      key1 =
+        PrimaryKeyFactory.createMySqlSequenceKey(conn,
+                                                 "link1",
+                                                 KEY1_NAME,
+                                                 CLASS_NAME);
+      key21 =
+        PrimaryKeyFactory.createMySqlSequenceKey(conn,
+                                                 "link2",
+                                                 KEY2_NAME,
+                                                 CLASS_NAME);
+      key22 =
+        PrimaryKeyFactory.createMySqlSequenceKey(conn,
+                                                 "link2",
+                                                 KEY2_NAME,
+                                                 CLASS_NAME);
+      key23 =
+        PrimaryKeyFactory.createMySqlSequenceKey(conn,
+                                                 "link2",
+                                                 KEY2_NAME,
+                                                 CLASS_NAME);
     } catch (InvalidParametersException e1) {
       fail(e1.getMessage());
     } catch (NoPrimaryKeyException e1) {

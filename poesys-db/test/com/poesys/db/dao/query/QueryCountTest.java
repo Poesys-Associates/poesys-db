@@ -27,7 +27,6 @@ import java.sql.Statement;
 import org.junit.Test;
 
 import com.poesys.db.BatchException;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.insert.Insert;
 import com.poesys.db.dao.insert.InsertSqlTestSequence;
@@ -58,7 +57,7 @@ public class QueryCountTest extends ConnectionTest {
     Connection conn = null;
     Statement stmt = null;
     try {
-      conn = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+      conn = getConnection();
     } catch (SQLException e) {
       throw new RuntimeException("Connect failed: " + e.getMessage(), e);
     }

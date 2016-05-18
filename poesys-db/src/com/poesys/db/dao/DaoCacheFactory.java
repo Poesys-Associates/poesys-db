@@ -87,6 +87,8 @@ import com.poesys.db.dto.IDtoCache;
 public class DaoCacheFactory<T extends IDbDto> implements IDaoFactory<T> {
   /** The cache of DTOS * */
   private IDtoCache<T> cache;
+  /** the client subsystem owning the queried object */
+  protected final String subsystem;
 
   /**
    * Create a QueryCacheFactory object for a particular DTO class.
@@ -94,9 +96,10 @@ public class DaoCacheFactory<T extends IDbDto> implements IDaoFactory<T> {
    * @param name the cache name (usually the fully qualified class name of the
    *          cached objects)
    * @param manager the DAO manager that created this factory
+   * @param subsystem the subsystem containing the DTO classes
    */
   @SuppressWarnings("unchecked")
-  public DaoCacheFactory(String name, CacheDaoManager manager) {
+  public DaoCacheFactory(String name, CacheDaoManager manager, String subsystem) {
     if (!CacheDaoManager.getInstance().isCached(name)) {
       // Not cached, tell the manager to create a cache for the class.
       cache = (IDtoCache<T>)manager.createCache(name);
@@ -104,32 +107,39 @@ public class DaoCacheFactory<T extends IDbDto> implements IDaoFactory<T> {
       // Already cached, get the cache for the factory.
       cache = (IDtoCache<T>)manager.getCache(name);
     }
+    this.subsystem = subsystem;
   }
 
   @Override
-  public IQueryByKey<T> getQueryByKey(IKeyQuerySql<T> sql) {
-    return new QueryCacheByKey<T>(sql, cache);
+  public IQueryByKey<T> getQueryByKey(IKeyQuerySql<T> sql, String subsystem) {
+    return new QueryCacheByKey<T>(sql, cache, subsystem);
   }
 
   @Override
-  public IQueryByKey<T> getDatabaseQueryByKey(IKeyQuerySql<T> sql) {
-    return new QueryDatabaseCacheByKey<T>(sql, cache);
+  public IQueryByKey<T> getDatabaseQueryByKey(IKeyQuerySql<T> sql,
+                                              String subsystem) {
+    return new QueryDatabaseCacheByKey<T>(sql, cache, subsystem);
   }
 
   @Override
-  public IQueryList<T> getQueryList(IQuerySql<T> sql, int rows) {
-    return new QueryCacheList<T>(sql, cache, rows);
+  public IQueryList<T> getQueryList(IQuerySql<T> sql, String subsystem, int rows) {
+    return new QueryCacheList<T>(sql, subsystem, cache, rows);
   }
 
   @Override
-  public IQueryList<T> getQueryListWithKeyList(IKeyListQuerySql<T> sql, int rows) {
-    return new QueryCacheListWithKeyList<T>(sql, cache, rows);
+  public IQueryList<T> getQueryListWithKeyList(IKeyListQuerySql<T> sql,
+                                               String subsystem, int rows) {
+    return new QueryCacheListWithKeyList<T>(sql, cache, subsystem, rows);
   }
 
   @Override
   public <S extends IDbDto, C extends Collection<T>> IQueryListWithParameters<T, S, C> getQueryListWithParameters(IParameterizedQuerySql<T, S> sql,
+                                                                                                                  String subsystem,
                                                                                                                   int rows) {
-    return new QueryCacheListWithParameters<T, S, C>(sql, cache, rows);
+    return new QueryCacheListWithParameters<T, S, C>(sql,
+                                                     cache,
+                                                     subsystem,
+                                                     rows);
   }
 
   @Override

@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.pk;
 
@@ -31,7 +30,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import com.poesys.db.DuplicateKeyNameException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.col.AbstractColumnValue;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 
 
@@ -50,7 +48,7 @@ public class AssociationPrimaryKeyTest extends ConnectionTest {
   private AbstractSingleValuedPrimaryKey key4 = null;
   private AbstractSingleValuedPrimaryKey key5 = null;
   private AbstractSingleValuedPrimaryKey key6 = null;
-  
+
   private static final String CLASS_NAME = "com.poesys.db.dto.TestSequence";
 
   @Override
@@ -59,12 +57,17 @@ public class AssociationPrimaryKeyTest extends ConnectionTest {
     try {
       // Define two primary keys with different column names and values.
       key1 = new SequencePrimaryKey(col1Name, new BigInteger("1"), CLASS_NAME);
-      key2 = new SequencePrimaryKey(col2Name, new BigInteger("200"), CLASS_NAME);
+      key2 =
+        new SequencePrimaryKey(col2Name, new BigInteger("200"), CLASS_NAME);
       // Define primary key with key1 name and key2 value
-      key3 = new SequencePrimaryKey(col1Name, new BigInteger("200"), CLASS_NAME);
-      key4 = new SequencePrimaryKey(col2Name, new BigInteger("300"), CLASS_NAME);
-      key5 = new SequencePrimaryKey(col3Name, new BigInteger("200"), CLASS_NAME);
-      key6 = new SequencePrimaryKey(col3Name, new BigInteger("300"), CLASS_NAME);
+      key3 =
+        new SequencePrimaryKey(col1Name, new BigInteger("200"), CLASS_NAME);
+      key4 =
+        new SequencePrimaryKey(col2Name, new BigInteger("300"), CLASS_NAME);
+      key5 =
+        new SequencePrimaryKey(col3Name, new BigInteger("200"), CLASS_NAME);
+      key6 =
+        new SequencePrimaryKey(col3Name, new BigInteger("300"), CLASS_NAME);
     } catch (InvalidParametersException e) {
       throw new Exception("Invalid parameter to sequence primary key creation",
                           e);
@@ -73,10 +76,12 @@ public class AssociationPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for
-   * {@link com.poesys.db.pk.AssociationPrimaryKey#AssociationPrimaryKey(java.util.List,String)}.
+   * {@link com.poesys.db.pk.AssociationPrimaryKey#AssociationPrimaryKey(java.util.List,String)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
-   * @throws DuplicateKeyNameException when more than one column in the key has the same name
+   * @throws DuplicateKeyNameException when more than one column in the key has
+   *           the same name
    */
   public void testAssociationPrimaryKey() throws InvalidParametersException,
       DuplicateKeyNameException {
@@ -104,10 +109,12 @@ public class AssociationPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for single-column key
-   * {@link com.poesys.db.pk.AssociationPrimaryKey#AssociationPrimaryKey(java.util.List,String)}.
+   * {@link com.poesys.db.pk.AssociationPrimaryKey#AssociationPrimaryKey(java.util.List,String)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
-   * @throws DuplicateKeyNameException when more than one column in the key has the same name
+   * @throws DuplicateKeyNameException when more than one column in the key has
+   *           the same name
    */
   public void testAssociationPrimaryKey2() throws InvalidParametersException,
       DuplicateKeyNameException {
@@ -124,7 +131,8 @@ public class AssociationPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for multiple-column key with duplicate column names
-   * {@link com.poesys.db.pk.AssociationPrimaryKey#AssociationPrimaryKey(java.util.List,String)}.
+   * {@link com.poesys.db.pk.AssociationPrimaryKey#AssociationPrimaryKey(java.util.List,String)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
    */
@@ -142,10 +150,12 @@ public class AssociationPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for multiple-column key with duplicate column names
-   * {@link com.poesys.db.pk.AssociationPrimaryKey#AssociationPrimaryKey(java.util.List,String)}.
+   * {@link com.poesys.db.pk.AssociationPrimaryKey#AssociationPrimaryKey(java.util.List,String)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
-   * @throws DuplicateKeyNameException when more than one column in the key has the same name
+   * @throws DuplicateKeyNameException when more than one column in the key has
+   *           the same name
    */
   public void testDuplicateNameException() throws DuplicateKeyNameException,
       InvalidParametersException {
@@ -153,7 +163,8 @@ public class AssociationPrimaryKeyTest extends ConnectionTest {
     list2.add(key1);
     list2.add(key3);
     try {
-      AssociationPrimaryKey akey2 = new AssociationPrimaryKey(list2, CLASS_NAME);
+      AssociationPrimaryKey akey2 =
+        new AssociationPrimaryKey(list2, CLASS_NAME);
       assertTrue(akey2 != null);
       fail("Should have gotten DuplicateKeyNameException");
     } catch (DuplicateKeyNameException e) {
@@ -163,10 +174,12 @@ public class AssociationPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for association keys with two primary keys (binary association)
-   * {@link com.poesys.db.pk.AssociationPrimaryKey#equals(com.poesys.db.pk.IPrimaryKey)}.
+   * {@link com.poesys.db.pk.AssociationPrimaryKey#equals(com.poesys.db.pk.IPrimaryKey)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
-   * @throws DuplicateKeyNameException when more than one column in the key has the same name
+   * @throws DuplicateKeyNameException when more than one column in the key has
+   *           the same name
    */
   public void testEqualsIPrimaryKey() throws InvalidParametersException,
       DuplicateKeyNameException {
@@ -204,10 +217,12 @@ public class AssociationPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for
-   * {@link com.poesys.db.pk.AssociationPrimaryKey#getSqlColumnList(java.lang.String)}.
+   * {@link com.poesys.db.pk.AssociationPrimaryKey#getSqlColumnList(java.lang.String)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
-   * @throws DuplicateKeyNameException when more than one column in the key has the same name
+   * @throws DuplicateKeyNameException when more than one column in the key has
+   *           the same name
    */
   public void testGetSqlColumnList() throws DuplicateKeyNameException,
       InvalidParametersException {
@@ -221,10 +236,12 @@ public class AssociationPrimaryKeyTest extends ConnectionTest {
 
   /**
    * Test method for
-   * {@link com.poesys.db.pk.AssociationPrimaryKey#getSqlWhereExpression(java.lang.String)}.
+   * {@link com.poesys.db.pk.AssociationPrimaryKey#getSqlWhereExpression(java.lang.String)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
-   * @throws DuplicateKeyNameException when more than one column in the key has the same name
+   * @throws DuplicateKeyNameException when more than one column in the key has
+   *           the same name
    */
   public void testGetSqlWhereExpression() throws DuplicateKeyNameException,
       InvalidParametersException {
@@ -241,7 +258,8 @@ public class AssociationPrimaryKeyTest extends ConnectionTest {
    * {@link com.poesys.db.pk.AssociationPrimaryKey#iterator()}.
    * 
    * @throws InvalidParametersException when there is a null parameter
-   * @throws DuplicateKeyNameException when more than one column in the key has the same name
+   * @throws DuplicateKeyNameException when more than one column in the key has
+   *           the same name
    */
   public void testIterator() throws DuplicateKeyNameException,
       InvalidParametersException {
@@ -263,12 +281,12 @@ public class AssociationPrimaryKeyTest extends ConnectionTest {
    * @throws IOException when can't get a property
    * @throws SQLException when can't get a connection
    * @throws InvalidParametersException when there is a null parameter
-   * @throws DuplicateKeyNameException when more than one column in the key has the same name
+   * @throws DuplicateKeyNameException when more than one column in the key has
+   *           the same name
    */
   public void testSetParams() throws SQLException, IOException,
       DuplicateKeyNameException, InvalidParametersException {
-    Connection connection =
-      getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+    Connection connection = getConnection();
     List<IPrimaryKey> list = new CopyOnWriteArrayList<IPrimaryKey>();
     list.add(key1);
     list.add(key2);
@@ -284,7 +302,8 @@ public class AssociationPrimaryKeyTest extends ConnectionTest {
    * {@link com.poesys.db.pk.AssociationPrimaryKey#getKeyListCopy()}.
    * 
    * @throws InvalidParametersException when there is a null parameter
-   * @throws DuplicateKeyNameException when more than one column in the key has the same name
+   * @throws DuplicateKeyNameException when more than one column in the key has
+   *           the same name
    */
   public void testGetKeyList() throws DuplicateKeyNameException,
       InvalidParametersException {
@@ -311,7 +330,8 @@ public class AssociationPrimaryKeyTest extends ConnectionTest {
    * {@link com.poesys.db.pk.AssociationPrimaryKey#getColumnNames()}.
    * 
    * @throws InvalidParametersException when there is a null parameter
-   * @throws DuplicateKeyNameException when more than one column in the key has the same name
+   * @throws DuplicateKeyNameException when more than one column in the key has
+   *           the same name
    */
   public void testGetColumnNames() throws DuplicateKeyNameException,
       InvalidParametersException {
@@ -332,7 +352,8 @@ public class AssociationPrimaryKeyTest extends ConnectionTest {
    * Test getValueList() for two single-column keys.
    * 
    * @throws InvalidParametersException when there is a null parameter
-   * @throws DuplicateKeyNameException when more than one column in the key has the same name
+   * @throws DuplicateKeyNameException when more than one column in the key has
+   *           the same name
    */
   public void testGetValueList2() throws InvalidParametersException,
       DuplicateKeyNameException {
@@ -350,7 +371,8 @@ public class AssociationPrimaryKeyTest extends ConnectionTest {
    * Test getValueList() for three single-column keys.
    * 
    * @throws InvalidParametersException when there is a null parameter
-   * @throws DuplicateKeyNameException when more than one column in the key has the same name
+   * @throws DuplicateKeyNameException when more than one column in the key has
+   *           the same name
    */
   public void testGetValueList3() throws InvalidParametersException,
       DuplicateKeyNameException {

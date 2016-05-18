@@ -59,18 +59,20 @@ public interface IDaoFactory<T extends IDbDto> {
    * key-query specification.
    * 
    * @param sql the SQL key-query specification
+   * @param subsystem the subsystem that owns the object to query
    * @return the query DAO
    */
-  IQueryByKey<T> getQueryByKey(IKeyQuerySql<T> sql);
+  IQueryByKey<T> getQueryByKey(IKeyQuerySql<T> sql, String subsystem);
 
   /**
    * Generate a QueryByKey DAO that queries a single object using a SQL
    * key-query specification without looking in any cache.
    * 
    * @param sql the SQL key-query specification
+   * @param subsystem the subsystem that owns the object to query
    * @return the query DAO
    */
-  IQueryByKey<T> getDatabaseQueryByKey(IKeyQuerySql<T> sql);
+  IQueryByKey<T> getDatabaseQueryByKey(IKeyQuerySql<T> sql, String subsystem);
 
   /**
    * Generate a QueryList DAO that queries a list of objects using a
@@ -79,10 +81,11 @@ public interface IDaoFactory<T extends IDbDto> {
    * memory use and network access.
    * 
    * @param sql the SQL query specification
+   * @param subsystem the subsystem that owns the objects to query
    * @param rows the number of rows to fetch at once, optimizes the query
    * @return the query DAO
    */
-  IQueryList<T> getQueryList(IQuerySql<T> sql, int rows);
+  IQueryList<T> getQueryList(IQuerySql<T> sql, String subsystem, int rows);
 
   /**
    * Generate a QueryList DAO that queries a list of objects using a
@@ -91,10 +94,12 @@ public interface IDaoFactory<T extends IDbDto> {
    * memory use and network access.
    * 
    * @param sql the SQL query specification
+   * @param subsystem the subsystem that owns the objects to query
    * @param rows the number of rows to fetch at once, optimizes the query
    * @return the query DAO
    */
-  IQueryList<T> getQueryListWithKeyList(IKeyListQuerySql<T> sql, int rows);
+  IQueryList<T> getQueryListWithKeyList(IKeyListQuerySql<T> sql,
+                                        String subsystem, int rows);
 
   /**
    * Generate a QueryListWithParameters DAO that queries a list of objects based
@@ -105,11 +110,13 @@ public interface IDaoFactory<T extends IDbDto> {
    * @param <C> the collection type of the set of queried DTOs
    * 
    * @param sql the SQL query specification
+   * @param subsystem the subsystem that owns the objects to query
    * @param rows the number of rows to fetch at once, optimizes the results
    *          fetching
    * @return the query DAO
    */
   <S extends IDbDto, C extends Collection<T>> IQueryListWithParameters<T, S, C> getQueryListWithParameters(IParameterizedQuerySql<T, S> sql,
+                                                                                                           String subsystem,
                                                                                                            int rows);
 
   /**

@@ -26,6 +26,7 @@ import java.util.List;
 
 import com.poesys.db.BatchException;
 import com.poesys.db.InvalidParametersException;
+import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.insert.IInsert;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -221,14 +222,12 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
    * added a setter (ISet) for the nested object or collection, calling this
    * method executes the setter to instantiate the nested object(s).
    * 
-   * @param connection the database connection for the transaction
-   * 
    * @see ISet
    * @throws SQLException when there is a problem with one of the queries
    * @throws BatchException when there is a problem with one or more updates in
    *           a batch of updates
    */
-  void queryNestedObjects(Connection connection) throws SQLException,
+  void queryNestedObjects() throws SQLException,
       BatchException;
 
   /**
@@ -240,12 +239,10 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
    * to check whether an object is already present before setting the DTO data
    * member.
    * 
-   * @param connection the database connection for the transaction
-   * 
    * @throws SQLException when there is a problem with one of the queries
    * @throws BatchException when there is a problem with one or more batches
    */
-  void queryNestedObjectsForValidation(Connection connection)
+  void queryNestedObjectsForValidation()
       throws SQLException, BatchException;
 
   /**
@@ -313,36 +310,32 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
   /**
    * Validate the DTO for inserting.
    * 
-   * @param connection an optional transaction connection
    * @throws SQLException when there is a problem accessing the database
    * @throws InvalidParametersException when the DTO has no primary key or has
    *           invalid parameters for insert
    */
-  void validateForInsert(Connection connection) throws SQLException;
+  void validateForInsert() throws SQLException;
 
   /**
    * Validate the DTO for updating.
    * 
-   * @param connection an optional transaction connection
    * @throws SQLException when there is a problem accessing the database
    */
-  void validateForUpdate(Connection connection) throws SQLException;
+  void validateForUpdate() throws SQLException;
 
   /**
    * Validate the DTO for deleting.
    * 
-   * @param connection an optional transaction connection
    * @throws SQLException when there is a problem accessing the database
    */
-  void validateForDelete(Connection connection) throws SQLException;
+  void validateForDelete() throws SQLException;
 
   /**
    * Validate the DTO for querying.
    * 
-   * @param connection an optional transaction connection
    * @throws SQLException when there is a problem accessing the database
    */
-  void validateForQuery(Connection connection) throws SQLException;
+  void validateForQuery() throws SQLException;
 
   /**
    * Get the primary key of the object. The primary key uniquely identifies the
@@ -397,6 +390,13 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
    * @return a fully qualified subsystem name
    */
   String getSubsystem();
+  
+  /**
+   * Get the type of DBMS to which to connect to get data for the DTO.
+   *
+   * @return the DBMS
+   */
+  DBMS getDbms();
 
   /**
    * Is suppression of nested inserts turned on? This would be true when the

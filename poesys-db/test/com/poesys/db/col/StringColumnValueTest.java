@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.col;
 
@@ -26,8 +25,6 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 import com.poesys.db.InvalidParametersException;
-import com.poesys.db.col.StringColumnValue;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 
 
@@ -60,7 +57,8 @@ public class StringColumnValueTest extends ConnectionTest {
 
   /**
    * Test method for
-   * {@link com.poesys.db.col.StringColumnValue#equals(com.poesys.db.col.AbstractColumnValue)}.
+   * {@link com.poesys.db.col.StringColumnValue#equals(com.poesys.db.col.AbstractColumnValue)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
    */
@@ -80,7 +78,8 @@ public class StringColumnValueTest extends ConnectionTest {
 
   /**
    * Test method for
-   * {@link com.poesys.db.col.StringColumnValue#setParam(java.sql.PreparedStatement, int)}.
+   * {@link com.poesys.db.col.StringColumnValue#setParam(java.sql.PreparedStatement, int)}
+   * .
    * 
    * @throws InvalidParametersException when there is a constructor failure
    * @throws IOException when there is a DBMS connection issue
@@ -88,17 +87,18 @@ public class StringColumnValueTest extends ConnectionTest {
    */
   public void testSetParam() throws InvalidParametersException, SQLException,
       IOException {
-    Connection connection = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+    Connection connection = getConnection();
     StringColumnValue colValue1 = new StringColumnValue(name1, value1);
     PreparedStatement stmt =
-        connection.prepareStatement("SELECT * FROM TEST WHERE testString = ?");
+      connection.prepareStatement("SELECT * FROM TEST WHERE testString = ?");
     colValue1.setParam(stmt, 1);
     assertTrue(true);
   }
 
   /**
    * Test method for
-   * {@link com.poesys.db.col.StringColumnValue#StringColumnValue(java.lang.String, java.lang.String)}.
+   * {@link com.poesys.db.col.StringColumnValue#StringColumnValue(java.lang.String, java.lang.String)}
+   * .
    * 
    * @throws InvalidParametersException when the constructor fails
    */
@@ -151,7 +151,8 @@ public class StringColumnValueTest extends ConnectionTest {
 
   /**
    * Test method for valid comparisons for
-   * {@link com.poesys.db.col.AbstractColumnValue#compareTo(com.poesys.db.col.AbstractColumnValue)}.
+   * {@link com.poesys.db.col.AbstractColumnValue#compareTo(com.poesys.db.col.AbstractColumnValue)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
    */
@@ -172,7 +173,8 @@ public class StringColumnValueTest extends ConnectionTest {
 
   /**
    * Test method for invalid comparisons (different column names) for
-   * {@link com.poesys.db.col.AbstractColumnValue#compareTo(com.poesys.db.col.AbstractColumnValue)}.
+   * {@link com.poesys.db.col.AbstractColumnValue#compareTo(com.poesys.db.col.AbstractColumnValue)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
    */
@@ -191,7 +193,8 @@ public class StringColumnValueTest extends ConnectionTest {
 
   /**
    * Test method for invalid comparisons (different value types) for
-   * {@link com.poesys.db.col.AbstractColumnValue#compareTo(com.poesys.db.col.AbstractColumnValue)}.
+   * {@link com.poesys.db.col.AbstractColumnValue#compareTo(com.poesys.db.col.AbstractColumnValue)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
    */

@@ -69,7 +69,7 @@ public class DeleteByKey<T extends IDbDto> implements IDelete<T> {
     if (dto == null) {
       throw new InvalidParametersException(NO_DTO_MSG);
     } else if (dto.getStatus() == IDbDto.Status.DELETED && sql != null) {
-      dto.validateForDelete(connection);
+      dto.validateForDelete();
       dto.preprocessNestedObjects(connection);
       
       String sqlText = null;

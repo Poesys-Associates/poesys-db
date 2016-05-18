@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dto;
 
@@ -26,6 +25,7 @@ import java.util.List;
 import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
+import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoFactory;
 import com.poesys.db.dao.IDaoManager;
@@ -43,8 +43,8 @@ import com.poesys.db.dao.delete.IDeleteSql;
  * @author Robert J. Muller
  * @param <T> the type of IDbDto to delete from the owning object
  */
-abstract public class AbstractBatchDeleteSetter<T extends IDbDto> extends AbstractSetter<T> implements
-    ISet {
+abstract public class AbstractBatchDeleteSetter<T extends IDbDto> extends
+    AbstractSetter<T> implements ISet {
 
   /** Serial version UID for Serializable object */
   private static final long serialVersionUID = 1L;
@@ -53,20 +53,24 @@ abstract public class AbstractBatchDeleteSetter<T extends IDbDto> extends Abstra
    * Create a AbstractBatchDeleteSetter object.
    * 
    * @param subsystem the subsystem for the setter
+   * @param dbms the type of DBMS to which to connect
    * @param expiration the cache expiration time in milliseconds for T objects
    */
-  public AbstractBatchDeleteSetter(String subsystem, Integer expiration) {
-    super(subsystem, expiration);
+  public AbstractBatchDeleteSetter(String subsystem,
+                                   DBMS dbms,
+                                   Integer expiration) {
+    super(subsystem, dbms, expiration);
   }
 
   @Override
   public void set(Connection connection) throws SQLException {
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     // Expiration is not used in deletes, just set to 0
-    IDaoFactory<T> factory = manager.getFactory(getClassName(), subsystem, 0);
+    IDaoFactory<T> factory =
+      manager.getFactory(getClassName(), subsystem, 0);
     IDeleteBatch<T> dao = factory.getDeleteBatch(getSql());
     List<T> links = getDtos();
-    
+
     try {
       dao.delete(connection, links, getBatchSize());
     } catch (ConstraintViolationException e) {

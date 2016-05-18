@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.col;
 
@@ -26,8 +25,6 @@ import java.sql.SQLException;
 import java.util.UUID;
 
 import com.poesys.db.InvalidParametersException;
-import com.poesys.db.col.UuidColumnValue;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 
 
@@ -54,7 +51,8 @@ public class UuidColumnValueTest extends ConnectionTest {
 
   /**
    * Test method for
-   * {@link com.poesys.db.col.UuidColumnValue#equals(com.poesys.db.col.AbstractColumnValue)}.
+   * {@link com.poesys.db.col.UuidColumnValue#equals(com.poesys.db.col.AbstractColumnValue)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
    */
@@ -71,7 +69,8 @@ public class UuidColumnValueTest extends ConnectionTest {
 
   /**
    * Test method for
-   * {@link com.poesys.db.col.UuidColumnValue#setParam(java.sql.PreparedStatement, int)}.
+   * {@link com.poesys.db.col.UuidColumnValue#setParam(java.sql.PreparedStatement, int)}
+   * .
    * 
    * @throws IOException when can't get property
    * @throws SQLException when can't get connection
@@ -79,10 +78,10 @@ public class UuidColumnValueTest extends ConnectionTest {
    */
   public void testSetParam() throws SQLException, IOException,
       InvalidParametersException {
-    Connection connection = getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+    Connection connection = getConnection();
     UuidColumnValue colValue1 = new UuidColumnValue(name1, uuid1);
     PreparedStatement stmt =
-        connection.prepareStatement("SELECT * FROM TEST WHERE testUuid = ?");
+      connection.prepareStatement("SELECT * FROM TEST WHERE testUuid = ?");
     colValue1.setParam(stmt, 1);
     assertTrue(true);
   }

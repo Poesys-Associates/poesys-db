@@ -27,6 +27,7 @@ import com.poesys.db.pk.IPrimaryKey;
 
 
 /**
+ * <p>
  * An interface that defines the set of operations required by an IUpdate,
  * IUpdateBatch, or IUpdateCollection object to build a SQL UPDATE statement for
  * a data transfer object (DTO).

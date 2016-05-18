@@ -26,6 +26,7 @@ import java.util.List;
 import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
+import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoFactory;
 import com.poesys.db.dao.IDaoManager;
@@ -54,11 +55,12 @@ abstract public class AbstractBatchInsertSetter<T extends IDbDto, C extends Coll
    * Create a AbstractBatchInsertSetter object.
    * 
    * @param subsystem the subsystem for the setter
+   * @param dbms the type of DBMS to which to connect
    * @param expiration the time in milliseconds after which the object expires
    *          in a cache that supports expiration
    */
-  public AbstractBatchInsertSetter(String subsystem, Integer expiration) {
-    super(subsystem, expiration);
+  public AbstractBatchInsertSetter(String subsystem, DBMS dbms, Integer expiration) {
+    super(subsystem, dbms, expiration);
   }
 
   @Override
@@ -99,7 +101,7 @@ abstract public class AbstractBatchInsertSetter<T extends IDbDto, C extends Coll
    * order of the statements in the list. The list must include ALL the 
    * classes from the root down to the concrete class, even though the type T
    * may be an abstract class somewhere in the middle of the hierarchy. So, for
-   * example, D->C->B->A, and you're inserting a nested object of type C because
+   * example, D-&gt;C-&gt;B-&gt;A, and you're inserting a nested object of type C because
    * the parent object links to C, not the subclasses of C. You need to have 4
    * SQL statements, one for each class in the hierarchy, and you're actually
    * inserting a D object (or some sibling of D that is also a subclass of C).

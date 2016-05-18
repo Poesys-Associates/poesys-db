@@ -68,7 +68,7 @@ public class QueryCount<P extends IDbDto> implements IQueryCount<P> {
     BigInteger count = null;
 
     // Validate the parameters.
-    parameters.validateForQuery(connection);
+    parameters.validateForQuery();
 
     // Query the count based on the parameters.
     try {

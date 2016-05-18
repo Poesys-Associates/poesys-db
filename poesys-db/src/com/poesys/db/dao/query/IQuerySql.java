@@ -80,7 +80,7 @@ import com.poesys.db.pk.IPrimaryKey;
  *     return SQL;
  *   }
  * }
- * </code>
+ * </pre>
  * 
  * &#064;author author Robert J. Muller
  * @param <T> the type of object to query

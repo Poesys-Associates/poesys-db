@@ -24,6 +24,7 @@ import java.sql.SQLException;
 import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
+import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoFactory;
 import com.poesys.db.dao.IDaoManager;
@@ -52,11 +53,12 @@ abstract public class AbstractObjectSetter<T extends IDbDto> extends
    * Create a AbstractObjectSetter object.
    * 
    * @param subsystem the subsystem for the setter
+   * @param dbms the type of DBMS to which to connect
    * @param expiration the time in milliseconds after which the object expires
    *          in a cache that supports expiration
    */
-  public AbstractObjectSetter(String subsystem, Integer expiration) {
-    super(subsystem, expiration);
+  public AbstractObjectSetter(String subsystem, DBMS dbms, Integer expiration) {
+    super(subsystem, dbms, expiration);
   }
 
   @Override
@@ -64,12 +66,12 @@ abstract public class AbstractObjectSetter<T extends IDbDto> extends
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     IDaoFactory<T> factory =
       manager.getFactory(getClassName(), subsystem, expiration);
-    IQueryByKey<T> dao = factory.getQueryByKey(getSql());
+    IQueryByKey<T> dao = factory.getQueryByKey(getSql(), subsystem);
     T dto = null;
 
     if (getKey() != null) {
       try {
-        dto = dao.queryByKey(connection, getKey());
+        dto = dao.queryByKey(getKey());
         set(dto);
       } catch (ConstraintViolationException e) {
         throw new DbErrorException(e.getMessage(), e);

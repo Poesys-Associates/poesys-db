@@ -26,6 +26,7 @@ import java.util.Collection;
 import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
+import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoFactory;
 import com.poesys.db.dao.IDaoManager;
@@ -54,18 +55,14 @@ abstract public class AbstractLazyListSetter<T extends IDbDto, P extends IDbDto,
    * Create a AbstractLazyListSetter object.
    * 
    * @param subsystem the subsystem for the setter
+   * @param dbms the type of DBMS to which to connect
    * @param expiration the time in milliseconds after which the object expires
    *          in a cache that supports expiration
    */
-  public AbstractLazyListSetter(String subsystem, Integer expiration) {
-    super(subsystem, expiration);
+  public AbstractLazyListSetter(String subsystem, DBMS dbms, Integer expiration) {
+    super(subsystem, dbms, expiration);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.ISet#set(java.sql.Connection)
-   */
   @SuppressWarnings("unchecked")
   @Override
   public void set(Connection connection) throws SQLException {
@@ -76,9 +73,9 @@ abstract public class AbstractLazyListSetter<T extends IDbDto, P extends IDbDto,
       IDaoFactory<T> factory =
         manager.getFactory(getClassName(), subsystem, expiration);
       IQueryListWithParameters<T, P, C> dao =
-        factory.getQueryListWithParameters(getSql(), getFetchSize());
+        factory.getQueryListWithParameters(getSql(), subsystem, getFetchSize());
       // Query using the outer object as parameters (that is, the parent key).
-      C list = dao.query(connection, getParametersDto());
+      C list = dao.query(getParametersDto());
       if (list == null) {
         list = (C)new ArrayList<T>();
       }
@@ -89,8 +86,6 @@ abstract public class AbstractLazyListSetter<T extends IDbDto, P extends IDbDto,
       throw new DbErrorException(e.getMessage(), e);
     } catch (DtoStatusException e) {
       throw new DbErrorException(e.getMessage(), e);
-    } finally {
-      connection.close();
     }
   }
 }

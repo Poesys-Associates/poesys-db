@@ -2,7 +2,6 @@
 package com.poesys.db.dao;
 
 
-import java.sql.Connection;
 import java.util.Collection;
 
 import com.poesys.db.dto.IDbDto;
@@ -37,8 +36,7 @@ public interface IDaoManager {
    * @see IDaoFactory
    * @see IDbDto
    */
-  <T extends IDbDto, C extends Collection<T>> IDaoFactory<T> getFactory(
-                                                                        String name,
+  <T extends IDbDto, C extends Collection<T>> IDaoFactory<T> getFactory(String name,
                                                                         String subsystem,
                                                                         Integer expiration);
 
@@ -58,7 +56,8 @@ public interface IDaoManager {
    * <p>
    * <strong>Note:</strong> a distributed caching scheme may cache the objects
    * of the class but not the class, in which case this method returns false, as
-   * there is no need for the information. >/p>
+   * there is no need for the information. 
+   * </p>
    * 
    * @param name the fully qualified class name
    * @return true if the system caches objects of the class, false if not
@@ -105,27 +104,25 @@ public interface IDaoManager {
    * expire time for the object in the cache.
    * 
    * @param <T> the type of object to look up
-   * @param connection the SQL connection for object queries
    * @param key the unique identifier of the object you want to retrieve; also
    *          contains the cache name for in-memory cache lookup
    * @return the object
    */
-  <T extends IDbDto> T getCachedObject(Connection connection, IPrimaryKey key);
+  <T extends IDbDto> T getCachedObject(IPrimaryKey key);
 
   /**
    * Get an object identified by a primary key out of a named cache. The object
    * may be of any type. The cache name is optional for caching systems that do
-   * not have separate caches for each class. This method sets the expire
-   * time to the amount specified, so that accessed objects stay in the cache.
+   * not have separate caches for each class. This method sets the expire time
+   * to the amount specified, so that accessed objects stay in the cache.
    * 
    * @param <T> the type of object to look up
-   * @param connection the SQL connection for object queries
    * @param key the unique identifier of the object you want to retrieve; also
    *          contains the cache name for in-memory cache lookup
    * @param expireTime the milliseconds until the object expires from the cache
    * @return the object
    */
-  <T extends IDbDto> T getCachedObject(Connection connection, IPrimaryKey key, int expireTime);
+  <T extends IDbDto> T getCachedObject(IPrimaryKey key, int expireTime);
 
   /**
    * Put an object into a named cache. The object may be of any type. The cache

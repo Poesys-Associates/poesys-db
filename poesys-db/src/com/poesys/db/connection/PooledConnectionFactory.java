@@ -88,9 +88,6 @@ public class PooledConnectionFactory implements IConnectionFactory {
   /** Constant maximum wait for an available connection in milliseconds */
   private static final int MAX_WAIT = 10000;
 
-  /** Constant time allowed for a connection to return a result before warning */
-  private static final int TIMEOUT = 5 * 60;
-
   /**
    * Create a PooledOracleConnectionFactory object. The arguments are those
    * specific to the connection pool
@@ -207,20 +204,21 @@ public class PooledConnectionFactory implements IConnectionFactory {
       // The following settings support long-running queries. The setup is
       // suitable for batch processing and systems with long queries but would
       // not be helpful in a high-throughput, short-transaction system.
-      //p.setSuspectTimeout(TIMEOUT); // warn about possibly abandoned connections
+      // p.setSuspectTimeout(TIMEOUT); // warn about possibly abandoned
+      // connections
       p.setRemoveAbandoned(true);
       p.setRemoveAbandonedTimeout(1000);
       p.setAbandonWhenPercentageFull(100);
       // Reset abandoned timer for long-running queries
-      p.setJdbcInterceptors("ResetAbandonedTimer"); 
-      
+      p.setJdbcInterceptors("ResetAbandonedTimer");
+
       readWriteDataSource.setPoolProperties(p);
       logger.debug("Set JDBC connection pool properties");
     }
 
     Connection connection = readWriteDataSource.getConnection();
     logger.debug("Acquired JDBC pooled connection " + connection);
-    
+
     int retries = 10;
     if (connection.isClosed() && retries > 0) {
       // closed connection, try another
@@ -235,7 +233,7 @@ public class PooledConnectionFactory implements IConnectionFactory {
     // Set the autocommit feature off to handle transaction logic in the
     // business delegates or remote interfaces.
     connection.setAutoCommit(false);
-    
+
     return connection;
   }
 
@@ -249,13 +247,15 @@ public class PooledConnectionFactory implements IConnectionFactory {
     readWriteDataSource.close(true);
     readWriteDataSource = new DataSource();
   }
-  
+
   @Override
   public void close() throws ConnectionException {
     readWriteDataSource.close(true);
   }
 
+  @Override
   public DBMS getDbms() {
+    // Get the actual DBMS from the JDBC driver class.
     return driver.getDbms();
   }
 

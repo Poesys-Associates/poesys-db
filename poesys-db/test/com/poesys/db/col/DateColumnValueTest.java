@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.col;
 
@@ -26,8 +25,6 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 import com.poesys.db.InvalidParametersException;
-import com.poesys.db.col.DateColumnValue;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 
 
@@ -48,7 +45,8 @@ public class DateColumnValueTest extends ConnectionTest {
 
   /**
    * Test method for {@link com.poesys.db.col.DateColumnValue#hashCode()}.
-   * @throws InvalidParametersException  when there is a null parameter
+   * 
+   * @throws InvalidParametersException when there is a null parameter
    */
   public void testHashCode() throws InvalidParametersException {
     DateColumnValue colValue = new DateColumnValue(name1, value1);
@@ -57,8 +55,10 @@ public class DateColumnValueTest extends ConnectionTest {
 
   /**
    * Test method for
-   * {@link com.poesys.db.col.DateColumnValue#equals(com.poesys.db.col.AbstractColumnValue)}.
-   * @throws InvalidParametersException  when there is a null parameter
+   * {@link com.poesys.db.col.DateColumnValue#equals(com.poesys.db.col.AbstractColumnValue)}
+   * .
+   * 
+   * @throws InvalidParametersException when there is a null parameter
    */
   public void testEqualsColumnValue() throws InvalidParametersException {
     DateColumnValue colValue1 = new DateColumnValue(name1, value1);
@@ -73,7 +73,8 @@ public class DateColumnValueTest extends ConnectionTest {
 
   /**
    * Test method for
-   * {@link com.poesys.db.col.DateColumnValue#setParam(java.sql.PreparedStatement, int)}.
+   * {@link com.poesys.db.col.DateColumnValue#setParam(java.sql.PreparedStatement, int)}
+   * .
    * 
    * @throws IOException when can't get property
    * @throws SQLException when can't get connection
@@ -81,8 +82,7 @@ public class DateColumnValueTest extends ConnectionTest {
    */
   public void testSetParam() throws SQLException, IOException,
       InvalidParametersException {
-    Connection connection =
-      getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+    Connection connection = getConnection();
     DateColumnValue colValue1 = new DateColumnValue(name1, value1);
     PreparedStatement stmt =
       connection.prepareStatement("SELECT * FROM TEST WHERE testDate = ?");
@@ -92,7 +92,8 @@ public class DateColumnValueTest extends ConnectionTest {
 
   /**
    * Test method for
-   * {@link com.poesys.db.col.DateColumnValue#DateColumnValue(java.lang.String, java.sql.Date)}.
+   * {@link com.poesys.db.col.DateColumnValue#DateColumnValue(java.lang.String, java.sql.Date)}
+   * .
    * 
    * @throws InvalidParametersException when there is a null parameter
    */

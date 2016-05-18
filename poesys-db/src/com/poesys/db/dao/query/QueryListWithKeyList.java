@@ -18,6 +18,7 @@
 package com.poesys.db.dao.query;
 
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -28,6 +29,8 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.connection.ConnectionFactoryFactory;
+import com.poesys.db.connection.IConnectionFactory;
 import com.poesys.db.dto.IDbDto;
 
 
@@ -52,26 +55,40 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
   protected final IKeyListQuerySql<T> sql;
   /** Number of rows to fetch at once, optimizes query fetching */
   protected final int rows;
+  /** the client subsystem owning the queried object */
+  protected final String subsystem;
+
+  /** Error getting resource bundle, can't resolve to bundle text so a constant */
+  private static final String RESOURCE_BUNDLE_ERROR =
+    "Problem getting Poesys/DB resource bundle";
 
   /**
    * Create a QueryListWithParameters object.
    * 
    * @param sql the SQL statement specification
+   * @param subsystem the subsystem that owns the object to query
    * @param rows the number of rows to fetch at once; optimizes results fetching
    */
-  public QueryListWithKeyList(IKeyListQuerySql<T> sql, int rows) {
+  public QueryListWithKeyList(IKeyListQuerySql<T> sql,
+                              String subsystem,
+                              int rows) {
     this.sql = sql;
+    this.subsystem = subsystem;
     this.rows = rows;
   }
 
-  public List<T> query(Connection connection) throws SQLException,
-      BatchException {
+  public List<T> query() throws SQLException, BatchException {
     List<T> list = new ArrayList<T>();
     PreparedStatement stmt = null;
     ResultSet rs = null;
 
+    Connection connection = null;
+
     // Query the list of objects based on the parameters.
     try {
+      IConnectionFactory factory =
+        ConnectionFactoryFactory.getInstance(subsystem);
+      connection = factory.getConnection();
       stmt = connection.prepareStatement(sql.getSql());
       stmt.setFetchSize(rows);
       sql.bindKeys(stmt);
@@ -82,7 +99,7 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
       // Loop through and fetch all the results, adding each to the result list.
       int count = 0;
       while (rs.next()) {
-        T object = getObject(connection, rs);
+        T object = getObject(rs);
         if (object != null) {
           list.add(object);
           count++;
@@ -95,6 +112,9 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
       logger.error("Query list with key list sql: " + sql.getSql() + "\n");
       logger.debug("SQL statement in class: " + sql.getClass().getName());
       throw e;
+    } catch (IOException e) {
+      // Problem with resource bundle, rethrow as SQLException
+      throw new SQLException(RESOURCE_BUNDLE_ERROR);
     } finally {
       // Close the statement and result set as required.
       if (stmt != null) {
@@ -105,7 +125,7 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
       }
     }
 
-    queryNestedObjectsForList(connection, list);
+    queryNestedObjectsForList(list);
 
     return list;
   }
@@ -115,17 +135,16 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
    * C. You can override this method in a subclass to provide a session id for a
    * caching session.
    * 
-   * @param connection the JDBC connection
    * @param list the list of objects of type C
    * @throws SQLException when there is a database problem
    * @throws BatchException when there is a batch processing problem
    */
-  protected void queryNestedObjectsForList(Connection connection, List<T> list)
-      throws SQLException, BatchException {
+  protected void queryNestedObjectsForList(List<T> list) throws SQLException,
+      BatchException {
     // Query any nested objects. This is outside the fetch above to make sure
     // that the statement and result set are closed before recursing.
     for (T object : list) {
-      object.queryNestedObjects(connection);
+      object.queryNestedObjects();
     }
   }
 
@@ -133,13 +152,12 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
    * Get a DTO from a SQL result set. Subclasses can override this method to
    * provide caching or other services for the object.
    * 
-   * @param connection the database connection (for nested object queries)
    * @param rs the result set from an executed SQL statement
    * @return the object
    * @throws SQLException when there is a database access problem
    * @throws BatchException when batch processing fails for a nested object
    */
-  protected T getObject(Connection connection, ResultSet rs)
+  protected T getObject(ResultSet rs)
       throws SQLException, BatchException {
     T object = sql.getData(rs);
     // Set the new and changed flags to show this object exists and is

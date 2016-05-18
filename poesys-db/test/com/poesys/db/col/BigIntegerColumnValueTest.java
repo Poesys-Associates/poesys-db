@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.col;
 
@@ -27,9 +26,6 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 import com.poesys.db.InvalidParametersException;
-import com.poesys.db.col.BigDecimalColumnValue;
-import com.poesys.db.col.BigIntegerColumnValue;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.ConnectionTest;
 
 
@@ -47,7 +43,7 @@ public class BigIntegerColumnValueTest extends ConnectionTest {
    * Test method for {@link com.poesys.db.col.BigIntegerColumnValue#hashCode()}.
    * 
    * @throws InvalidParametersException when the BigInteger can't be created
-   *             properly
+   *           properly
    */
   public void testHashCode() throws InvalidParametersException {
     BigIntegerColumnValue value =
@@ -61,10 +57,11 @@ public class BigIntegerColumnValueTest extends ConnectionTest {
 
   /**
    * Test method for
-   * {@link com.poesys.db.col.BigIntegerColumnValue#equals(com.poesys.db.col.AbstractColumnValue)}.
+   * {@link com.poesys.db.col.BigIntegerColumnValue#equals(com.poesys.db.col.AbstractColumnValue)}
+   * .
    * 
    * @throws InvalidParametersException when the BigInteger can't be created
-   *             properly
+   *           properly
    */
   public void testEqualsColumnValue() throws InvalidParametersException {
     BigIntegerColumnValue value =
@@ -79,19 +76,19 @@ public class BigIntegerColumnValueTest extends ConnectionTest {
 
   /**
    * Test method for
-   * {@link com.poesys.db.col.BigIntegerColumnValue#setParam(java.sql.PreparedStatement, int)}.
+   * {@link com.poesys.db.col.BigIntegerColumnValue#setParam(java.sql.PreparedStatement, int)}
+   * .
    * 
    * @throws IOException when the connection factory can't read the connection
-   *             settings
+   *           settings
    * @throws SQLException then the connection fails or the SQL statement
-   *             parameter setting fails
+   *           parameter setting fails
    * @throws InvalidParametersException when the BigInteger can't be created
-   *             properly
+   *           properly
    */
   public void testSetParam() throws SQLException, IOException,
       InvalidParametersException {
-    Connection connection =
-      getConnection(DBMS.MYSQL, "com.poesys.db.poesystest.mysql");
+    Connection connection = getConnection();
     BigIntegerColumnValue colValue1 =
       new BigIntegerColumnValue(NAME, new BigInteger(NUMBER));
     PreparedStatement stmt =
@@ -102,10 +99,11 @@ public class BigIntegerColumnValueTest extends ConnectionTest {
 
   /**
    * Test method for
-   * {@link com.poesys.db.col.BigIntegerColumnValue#BigIntegerColumnValue(java.lang.String, java.math.BigInteger)}.
+   * {@link com.poesys.db.col.BigIntegerColumnValue#BigIntegerColumnValue(java.lang.String, java.math.BigInteger)}
+   * .
    * 
    * @throws InvalidParametersException when the BigInteger can't be created
-   *             properly
+   *           properly
    */
   public void testBigIntegerColumnValue() throws InvalidParametersException {
     @SuppressWarnings("unused")
