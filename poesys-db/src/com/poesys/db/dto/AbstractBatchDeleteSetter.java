@@ -25,7 +25,6 @@ import java.util.List;
 import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoFactory;
 import com.poesys.db.dao.IDaoManager;
@@ -53,21 +52,17 @@ abstract public class AbstractBatchDeleteSetter<T extends IDbDto> extends
    * Create a AbstractBatchDeleteSetter object.
    * 
    * @param subsystem the subsystem for the setter
-   * @param dbms the type of DBMS to which to connect
    * @param expiration the cache expiration time in milliseconds for T objects
    */
-  public AbstractBatchDeleteSetter(String subsystem,
-                                   DBMS dbms,
-                                   Integer expiration) {
-    super(subsystem, dbms, expiration);
+  public AbstractBatchDeleteSetter(String subsystem, Integer expiration) {
+    super(subsystem, expiration);
   }
 
   @Override
   public void set(Connection connection) throws SQLException {
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     // Expiration is not used in deletes, just set to 0
-    IDaoFactory<T> factory =
-      manager.getFactory(getClassName(), subsystem, 0);
+    IDaoFactory<T> factory = manager.getFactory(getClassName(), subsystem, 0);
     IDeleteBatch<T> dao = factory.getDeleteBatch(getSql());
     List<T> links = getDtos();
 

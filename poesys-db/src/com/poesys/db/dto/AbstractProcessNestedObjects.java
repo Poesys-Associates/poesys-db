@@ -26,7 +26,6 @@ import java.util.Collection;
 import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 
 
 /**
@@ -93,12 +92,11 @@ public abstract class AbstractProcessNestedObjects<T extends IDbDto, C extends C
    * Create a AbstractProcessNestedObjects object.
    * 
    * @param subsystem the subsystem for the DTO
-   * @param dbms the type of DBMS to which to connect
    * @param expiration the time in milliseconds after which the object expires
    *          in a cache that supports expiration
    */
-  public AbstractProcessNestedObjects(String subsystem, DBMS dbms, Integer expiration) {
-    super(subsystem, dbms, expiration);
+  public AbstractProcessNestedObjects(String subsystem, Integer expiration) {
+    super(subsystem, expiration);
   }
 
   @Override

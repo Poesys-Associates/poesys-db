@@ -10,7 +10,6 @@ import java.sql.SQLException;
 import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoFactory;
 import com.poesys.db.dao.IDaoManager;
@@ -37,12 +36,11 @@ abstract public class AbstractDeleteSetter<T extends IDbDto> extends
    * Create a AbstractDeleteSetter object.
    * 
    * @param subsystem the subsystem for the setter
-   * @param dbms the type of DBMS to which to connect
    * @param expiration the time in milliseconds after which the object expires
    *          in a cache that supports expiration
    */
-  public AbstractDeleteSetter(String subsystem, DBMS dbms, Integer expiration) {
-    super(subsystem, dbms, expiration);
+  public AbstractDeleteSetter(String subsystem, Integer expiration) {
+    super(subsystem, expiration);
   }
 
   @Override

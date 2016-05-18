@@ -26,7 +26,6 @@ import java.util.Collection;
 import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoFactory;
 import com.poesys.db.dao.IDaoManager;
@@ -55,19 +54,18 @@ abstract public class AbstractLazyListSetter<T extends IDbDto, P extends IDbDto,
    * Create a AbstractLazyListSetter object.
    * 
    * @param subsystem the subsystem for the setter
-   * @param dbms the type of DBMS to which to connect
    * @param expiration the time in milliseconds after which the object expires
    *          in a cache that supports expiration
    */
-  public AbstractLazyListSetter(String subsystem, DBMS dbms, Integer expiration) {
-    super(subsystem, dbms, expiration);
+  public AbstractLazyListSetter(String subsystem, Integer expiration) {
+    super(subsystem, expiration);
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public void set(Connection connection) throws SQLException {
     IDaoManager manager = null;
-    
+
     try {
       manager = DaoManagerFactory.getManager(subsystem);
       IDaoFactory<T> factory =

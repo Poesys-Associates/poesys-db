@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.insert.IInsertSql;
 import com.poesys.db.dao.insert.InsertSqlM2MLink;
 import com.poesys.db.dao.insert.InsertSqlTernaryLink;
@@ -59,7 +58,7 @@ public class Link2 extends AbstractTestDto {
     private static final long serialVersionUID = 1L;
 
     public InsertManyToManyLinks() {
-      super(getSubsystem(), DBMS.MYSQL, Integer.MAX_VALUE);
+      super(getSubsystem(), Integer.MAX_VALUE);
     }
 
     @Override
@@ -97,7 +96,7 @@ public class Link2 extends AbstractTestDto {
     private static final long serialVersionUID = 1L;
 
     public InsertTernaryLinks() {
-      super(getSubsystem(), DBMS.MYSQL, Integer.MAX_VALUE);
+      super(getSubsystem(), Integer.MAX_VALUE);
     }
 
     @Override

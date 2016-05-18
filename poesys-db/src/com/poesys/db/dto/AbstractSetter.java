@@ -18,8 +18,6 @@
 
 package com.poesys.db.dto;
 
-import com.poesys.db.connection.IConnectionFactory.DBMS;
-
 /**
  * An abstract class that centralizes things for all setters.
  * 
@@ -32,8 +30,6 @@ public abstract class AbstractSetter<T extends IDbDto> implements ISet {
 
   /** The subsystem in which the setter accomplishes its tasks */
   protected String subsystem;
-  /** The type of DBMS to which to connect */
-  protected DBMS dbms;
   /** the cache expiration time in milliseconds for T objects */
   protected final Integer expiration;
 
@@ -41,12 +37,10 @@ public abstract class AbstractSetter<T extends IDbDto> implements ISet {
    * Create an AbstractSetter object.
    * 
    * @param subsystem the subsystem for the setter
-   * @param dbms the type of DBMS to which to connect
    * @param expiration the cache expiration time in milliseconds for T objects
    */
-  public AbstractSetter(String subsystem, DBMS dbms, Integer expiration) {
+  public AbstractSetter(String subsystem, Integer expiration) {
     this.subsystem = subsystem;
-    this.dbms = dbms;
     this.expiration = expiration == null ? Integer.MAX_VALUE : expiration;
   }
 

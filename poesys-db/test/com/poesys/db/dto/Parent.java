@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.BatchException;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.DataEvent;
 import com.poesys.db.dao.IDaoFactory;
@@ -70,7 +69,7 @@ public class Parent extends AbstractTestDto {
     private static final long serialVersionUID = 1L;
 
     public QueryChildren() {
-      super(getSubsystem(), DBMS.MYSQL, Integer.MAX_VALUE);
+      super(getSubsystem(), Integer.MAX_VALUE);
     }
 
     @Override
@@ -120,7 +119,7 @@ public class Parent extends AbstractTestDto {
     private static final long serialVersionUID = 1L;
 
     public InsertChildren() {
-      super(getSubsystem(), DBMS.MYSQL, Integer.MAX_VALUE);
+      super(getSubsystem(), Integer.MAX_VALUE);
     }
 
     @Override
@@ -158,7 +157,7 @@ public class Parent extends AbstractTestDto {
     private static final long serialVersionUID = 1L;
 
     public PreprocessChildren() {
-      super(getSubsystem(), DBMS.MYSQL, Integer.MAX_VALUE);
+      super(getSubsystem(), Integer.MAX_VALUE);
     }
 
     @Override
@@ -206,7 +205,7 @@ public class Parent extends AbstractTestDto {
     private static final long serialVersionUID = 1L;
 
     public PostprocessChildren() {
-      super(getSubsystem(), DBMS.MYSQL, Integer.MAX_VALUE);
+      super(getSubsystem(), Integer.MAX_VALUE);
     }
 
     /*

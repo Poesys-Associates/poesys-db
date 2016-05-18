@@ -23,7 +23,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.insert.IInsertSql;
 import com.poesys.db.dao.insert.InsertSqlTernaryLink;
 import com.poesys.db.pk.AbstractSingleValuedPrimaryKey;
@@ -58,8 +57,9 @@ public class Link3 extends AbstractTestDto {
     private static final long serialVersionUID = 1L;
 
     public InsertTernaryLinks() {
-      super(getSubsystem(), DBMS.MYSQL, Integer.MAX_VALUE);
+      super(getSubsystem(), Integer.MAX_VALUE);
     }
+
     @Override
     protected int getBatchSize() {
       return 2;
@@ -78,9 +78,9 @@ public class Link3 extends AbstractTestDto {
     @Override
     protected List<IInsertSql<TernaryLink>> getSql() {
       List<IInsertSql<TernaryLink>> list =
-          new ArrayList<IInsertSql<TernaryLink>>();
-        list.add(new InsertSqlTernaryLink());
-        return list;
+        new ArrayList<IInsertSql<TernaryLink>>();
+      list.add(new InsertSqlTernaryLink());
+      return list;
     }
   }
 

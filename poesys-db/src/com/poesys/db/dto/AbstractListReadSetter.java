@@ -27,7 +27,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoFactory;
 import com.poesys.db.dao.IDaoManager;
@@ -62,12 +61,11 @@ abstract public class AbstractListReadSetter<T extends IDbDto> extends
    * Create a AbstractListSetter object.
    * 
    * @param subsystem the subsystem for the setter
-   * @param dbms the type of DBMS to which to connect
    * @param expiration the time in milliseconds after which the object expires
    *          in a cache that supports expiration
    */
-  public AbstractListReadSetter(String subsystem, DBMS dbms, Integer expiration) {
-    super(subsystem, dbms, expiration);
+  public AbstractListReadSetter(String subsystem, Integer expiration) {
+    super(subsystem, expiration);
   }
 
   @Override
