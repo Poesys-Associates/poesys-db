@@ -39,8 +39,10 @@
 			<fileset dir="${build}" includes="**/*.properties" excludes="**/*database*, **/*memcached*" />
 			<manifest />
 		</jar>
-		<javadoc access="private" author="true" classpath="lib/log4j-1.2.16.jar:lib/poesys-ms.jar:lib/poesys-jdbc-pool-1.0.jar:lib/mysql-connector-java-5.1.20-bin.jar:lib/ojdbc6.jar:lib/jtds-1.2.jar:lib/AmazonElastiCacheClusterClient-1.1.0.jar:lib/javaee-api-7.0.jar" destdir="doc" doctitle="Phoenix Bioinformatics Java API Client" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" source="1.8" sourcepath="src" splitindex="true" use="true" version="true" />
-	</target>
+		<javadoc access="private" author="true" destdir="doc" doctitle="Phoenix Bioinformatics Java API Client" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" source="1.8" sourcepath="src" splitindex="true" use="true" version="true">
+			<classpath refid="project.classpath" />
+        </javadoc>
+		</target>
 
 	<!-- ================================= 
           target: clean Remove compiled classes and jar file
