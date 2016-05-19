@@ -26,7 +26,6 @@ import java.util.List;
 
 import com.poesys.db.BatchException;
 import com.poesys.db.InvalidParametersException;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.insert.IInsert;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -227,8 +226,7 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
    * @throws BatchException when there is a problem with one or more updates in
    *           a batch of updates
    */
-  void queryNestedObjects() throws SQLException,
-      BatchException;
+  void queryNestedObjects() throws SQLException, BatchException;
 
   /**
    * Query nested objects before inserting the parent object. Setting objects
@@ -242,8 +240,7 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
    * @throws SQLException when there is a problem with one of the queries
    * @throws BatchException when there is a problem with one or more batches
    */
-  void queryNestedObjectsForValidation()
-      throws SQLException, BatchException;
+  void queryNestedObjectsForValidation() throws SQLException, BatchException;
 
   /**
    * Insert all the nested objects registered with the DTO. If the factory has
@@ -390,13 +387,6 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
    * @return a fully qualified subsystem name
    */
   String getSubsystem();
-  
-  /**
-   * Get the type of DBMS to which to connect to get data for the DTO.
-   *
-   * @return the DBMS
-   */
-  DBMS getDbms();
 
   /**
    * Is suppression of nested inserts turned on? This would be true when the

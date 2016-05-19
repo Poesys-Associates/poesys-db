@@ -25,13 +25,12 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
 import com.poesys.db.BatchException;
-import com.poesys.db.connection.IConnectionFactory.DBMS;
 import com.poesys.db.dao.DataEvent;
 import com.poesys.db.dao.insert.IInsert;
 import com.poesys.db.pk.IPrimaryKey;
-
-import org.apache.log4j.Logger;
 
 
 /**
@@ -98,11 +97,6 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
   @Override
   public String getSubsystem() {
     return dto.getSubsystem();
-  }
-
-  @Override
-  public DBMS getDbms() {
-    return dto.getDbms();
   }
 
   /**
