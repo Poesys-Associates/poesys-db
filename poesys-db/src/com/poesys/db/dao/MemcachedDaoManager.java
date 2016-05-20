@@ -52,7 +52,7 @@ import com.poesys.db.pool.ObjectPool;
  * memcached client, implementing the Bridge design pattern to wrap the
  * spymemcached API. It also contains the DTO registry that contains the
  * de-serialized Java objects currently being retrieved. This registry prevents
- * infinite loops and object duplication during serialization of nested object
+ * infinite loops and object duplication during deserialization of nested object
  * hierarchies by checking the registry for objects before getting them from the
  * external cache, so that once an object is retrieved, that tree branch will
  * not be duplicated by a later cache query.
@@ -224,6 +224,9 @@ public final class MemcachedDaoManager implements IDaoManager {
     }
     if (cacheManager == null) {
       // Get the singleton cache manager for in-memory storage management.
+      // TODO implement separate registry cache for deserialized objects 
+      // that contains only the actual deserialized object; also clear
+      // this cache at the end of deserialization
       cacheManager = CacheDaoManager.getInstance();
     }
     return manager;

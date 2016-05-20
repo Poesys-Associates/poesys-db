@@ -465,7 +465,7 @@ public abstract class AbstractDto implements IDbDto {
   private void readObject(ObjectInputStream in) throws IOException,
       ClassNotFoundException {
     logger.debug("Deserializing object of class " + this.getClass().getName()
-                 + " with readObject in AbstractLazyLoadingDtoProxy");
+                 + " with readObject in AbstractDto");
     // Do the read-object deserialization.
     deserializer.doReadObject(in, this, readObjectSetters);
   }

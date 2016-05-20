@@ -96,8 +96,10 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
       throw new NoPrimaryKeyException(NO_PRIMARY_KEY_MSG);
     }
 
-    // Get the Memcached and in-memory cache managers.
+    // Get the external cache manager.
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
+    // Get the in-memory cache manager that keeps track of the already-deserialized objects,
+    // to avoid infinite-loop cache checks.
     IDaoManager cacheManager = CacheDaoManager.getInstance();
 
     // Check in memory for the object.
