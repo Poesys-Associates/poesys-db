@@ -76,6 +76,13 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
   protected List<ISet> connectionCacheUnsetters = null;
 
   /**
+   * Message string when attempting to de-serialize a cached object and there is
+   * some kind of exception
+   */
+  private static final String READ_OBJECT_MSG =
+    "com.poesys.db.dto.msg.read_object";
+
+  /**
    * Create a AbstractLazyLoadingDtoProxy object.
    * 
    * @param dto the proxied database data transfer object
@@ -114,8 +121,21 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
     logger.debug("Deserializing object of class " + this.getClass().getName()
                  + " with readObject in AbstractLazyLoadingDtoProxy");
     // Do the read-object deserialization.
-    deserializer.doReadObject(in, this, readObjectSetters);
-    // Don't remove connection here, the proxied DTO will remove it.
+    deserializer.doReadObject(in, this);
+  }
+
+
+  @Override
+  public void deserializeNestedObjects() {
+    try {
+      for (ISet set : readObjectSetters) {
+        set.set(null);
+      }
+    } catch (SQLException e) {
+      // Should never happen, log and throw RuntimeException
+      logger.error(READ_OBJECT_MSG, e);
+      throw new RuntimeException(READ_OBJECT_MSG, e);
+    }
   }
 
   @Override

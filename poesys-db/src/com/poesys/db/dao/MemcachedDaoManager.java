@@ -56,6 +56,11 @@ import com.poesys.db.pool.ObjectPool;
  * hierarchies by checking the registry for objects before getting them from the
  * external cache, so that once an object is retrieved, that tree branch will
  * not be duplicated by a later cache query.
+ * <p>
+ * <strong>Note: memcached does take a little time to store a cached object. All
+ * store operations are asynchronous with respect to this storing operation, so
+ * you need to avoid making a request to the cache for the object immediately
+ * after putting the object in the cache.</strong>
  * </p>
  * <p>
  * There is a singleton static cache map of SQL connections indexed on primary
@@ -224,9 +229,6 @@ public final class MemcachedDaoManager implements IDaoManager {
     }
     if (cacheManager == null) {
       // Get the singleton cache manager for in-memory storage management.
-      // TODO implement separate registry cache for deserialized objects 
-      // that contains only the actual deserialized object; also clear
-      // this cache at the end of deserialization
       cacheManager = CacheDaoManager.getInstance();
     }
     return manager;
@@ -242,8 +244,9 @@ public final class MemcachedDaoManager implements IDaoManager {
   /**
    * Get the hostname/port combinations for the sockets to which the client will
    * connect. The sockets are in a single property string in the format
-   * &lt;hostname&gt;:&lt;port&gt;,... where &lt;hostname&gt; is a valid authority (domain or IP
-   * address) and &lt;port&gt; is an integer between 0 and 65,535.
+   * &lt;hostname&gt;:&lt;port&gt;,... where &lt;hostname&gt; is a valid
+   * authority (domain or IP address) and &lt;port&gt; is an integer between 0
+   * and 65,535.
    *
    * @return a list of Internet Socket Address objects
    */
@@ -366,6 +369,17 @@ public final class MemcachedDaoManager implements IDaoManager {
         if (object != null) {
           logger.debug("Retrieved object " + key.getStringKey()
                        + " from the cache");
+          // Cache the object in memory before getting nested objects so that
+          // objects nested under themselves don't create an infinite
+          // deserialization
+          // loop.
+          IDaoManager manager = CacheDaoManager.getInstance();
+          manager.putObjectInCache(object.getPrimaryKey().getCacheName(),
+                                   0,
+                                   object);
+
+          // Finally, iterate through the setters to process nested objects.
+          object.deserializeNestedObjects();
         } else {
           logger.debug("No object " + key.getStringKey() + " in the cache");
         }

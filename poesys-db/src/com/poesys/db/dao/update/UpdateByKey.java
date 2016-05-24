@@ -112,6 +112,8 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
         }
       }
     }
+    
+    dto.setProcessed(true);
 
     // After processing the object, post-process nested objects.
     // This gets done regardless of main object status.

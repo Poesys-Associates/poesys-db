@@ -113,6 +113,12 @@ public class MemcachedTest {
     ConcreteSubClass c1 = new ConcreteSubClass(TEST_VALUE);
     // put object into cache
     putObjectInCache(TESTKEY, c1);
+    // Wait a bit to allow memcached to store.
+    try {
+      Thread.sleep(1000);
+    } catch (InterruptedException e) {
+      // Do nothing
+    }
     // get object from cache
     ConcreteSubClass c2 = getCachedObject(TESTKEY);
     assertTrue("No concrete class object in cache", c2 != null);

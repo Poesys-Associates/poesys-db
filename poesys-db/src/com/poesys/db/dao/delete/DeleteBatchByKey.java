@@ -175,7 +175,7 @@ public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
           stmt.close();
         }
       }
-
+      
       /*
        * Post-process any nested objects for successfully processed DTOs. In
        * batch processing, you must first process ALL the deleted parent DTOs so
@@ -186,7 +186,8 @@ public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
        * observers of the delete for both DELETED and CASCADE_DELETED DTOs.
        */
       for (IDbDto dto : dtos) {
-        if (dto.getStatus() == IDbDto.Status.DELETED) {
+        if (!dto.isProcessed() && dto.getStatus() == IDbDto.Status.DELETED) {
+          dto.setProcessed(true);
           postprocess(connection, dto);
           dto.notify(DataEvent.DELETE);
         } else if (dto.getStatus() == IDbDto.Status.CASCADE_DELETED) {

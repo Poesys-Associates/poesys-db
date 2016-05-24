@@ -84,6 +84,8 @@ public class DeleteByKey<T extends IDbDto> implements IDelete<T> {
 
         stmt.executeUpdate();
 
+        dto.setProcessed(true);
+
         postprocess(connection, dto);
         // Notify DTO to update its observer parents of the delete.
         dto.notify(DataEvent.DELETE);

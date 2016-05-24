@@ -186,6 +186,7 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
       for (T dto : dtos) {
         if (!dto.isProcessed()
             && (dto.getStatus() == IDbDto.Status.CHANGED || dto.getStatus() == IDbDto.Status.EXISTING)) {
+          dto.setProcessed(true);
           postprocess(connection, dto);
         }
       }

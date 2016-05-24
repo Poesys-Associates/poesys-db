@@ -287,6 +287,11 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
       BatchException;
 
   /**
+   * Process the read-object setters to deserialize all nested objects.
+   */
+  void deserializeNestedObjects();
+  
+  /**
    * Post-process all the nested objects registered with the DTO. If the factory
    * has added a setter (ISet) for the nested object or collection, calling this
    * method executes the setter to handle the nested object(s) with processing

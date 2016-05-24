@@ -178,6 +178,13 @@ public abstract class AbstractDto implements IDbDto {
     "com.poesys.db.dto.msg.cannot_delete";
 
   /**
+   * Message string when attempting to de-serialize a cached object and there is
+   * some kind of exception
+   */
+  private static final String READ_OBJECT_MSG =
+    "com.poesys.db.dto.msg.read_object";
+
+  /**
    * Create an AbstractDto object. This constructor takes no arguments (the
    * default constructor) and sets the setter, validator, and observer lists to
    * null, so you must set these in the subclass if you need to set or validate.
@@ -320,8 +327,7 @@ public abstract class AbstractDto implements IDbDto {
   }
 
   @Override
-  public void queryNestedObjects() throws SQLException,
-      BatchException {
+  public void queryNestedObjects() throws SQLException, BatchException {
     if (querySetters != null) {
       for (ISet set : querySetters) {
         // Only set if not already set
@@ -333,8 +339,8 @@ public abstract class AbstractDto implements IDbDto {
   }
 
   @Override
-  public void queryNestedObjectsForValidation()
-      throws SQLException, BatchException {
+  public void queryNestedObjectsForValidation() throws SQLException,
+      BatchException {
     if (insertQuerySetters != null) {
       for (ISet set : insertQuerySetters) {
         // Only set the object if not already set
@@ -453,10 +459,8 @@ public abstract class AbstractDto implements IDbDto {
   /**
    * Read an object from an input stream, de-serializing it. This custom
    * de-serialization method calls the default read-object method to read in all
-   * non-transient fields then runs a series of setters in the readObjectSetters
-   * list to de-serialize any transient elements. This method has the public
-   * access class because subclasses AND proxies need to call it from their own
-   * readObject() methods.
+   * non-transient fields. This method has the public access class because
+   * subclasses AND proxies need to call it from their own readObject() methods.
    * 
    * @param in the object input stream
    * @throws ClassNotFoundException when a nested object class can't be found
@@ -467,7 +471,20 @@ public abstract class AbstractDto implements IDbDto {
     logger.debug("Deserializing object of class " + this.getClass().getName()
                  + " with readObject in AbstractDto");
     // Do the read-object deserialization.
-    deserializer.doReadObject(in, this, readObjectSetters);
+    deserializer.doReadObject(in, this);
+  }
+
+  @Override
+  public void deserializeNestedObjects() {
+    try {
+      for (ISet set : readObjectSetters) {
+        set.set(null);
+      }
+    } catch (SQLException e) {
+      // Should never happen, log and throw RuntimeException
+      logger.error(READ_OBJECT_MSG, e);
+      throw new RuntimeException(READ_OBJECT_MSG, e);
+    }
   }
 
   /**
