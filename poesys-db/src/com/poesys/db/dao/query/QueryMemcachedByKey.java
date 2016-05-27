@@ -98,7 +98,8 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
 
     // Get the external cache manager.
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
-    // Get the in-memory cache manager that keeps track of the already-deserialized objects,
+    // Get the in-memory cache manager that keeps track of the
+    // already-deserialized objects,
     // to avoid infinite-loop cache checks.
     IDaoManager cacheManager = CacheDaoManager.getInstance();
 
@@ -175,27 +176,28 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
         }
       } else {
         object.setQueried(false);
-        logger.debug("Found object in in-memory cache " + key.getCacheName()
-                     + ": " + key.getStringKey());
+        logger.debug("Found object " + key.getCacheName() + " with key " +key.getStringKey() + " in memcached ");
         // Cache the object in memory before getting nested objects.
         cacheManager.putObjectInCache(object.getPrimaryKey().getCacheName(),
                                       expiration,
                                       object);
-        logger.debug("Retrieved " + key.getStringKey() + " from cache "
-                     + object.getPrimaryKey().getCacheName());
       }
+    } else {
+      object.setQueried(false);
+      logger.debug("Found object in in-memory cache " + key.getCacheName()
+                   + ": " + key.getStringKey());
+    }
 
-      // Query any nested objects. This is outside the fetch above to make sure
-      // that the statement and result set are closed before recursing.
-      if (object != null) {
-        object.queryNestedObjects();
-        // If the object was queried, cache it.
-        if (object.isQueried()) {
-          // Now cache the object as all the details have been filled in.
-          manager.putObjectInCache(object.getPrimaryKey().getCacheName(),
-                                   expiration,
-                                   object);
-        }
+    // Query any nested objects. This is outside the fetch above to make sure
+    // that the statement and result set are closed before recursing.
+    if (object != null) {
+      object.queryNestedObjects();
+      // If the object was queried, cache it.
+      if (object.isQueried()) {
+        // Now cache the object as all the details have been filled in.
+        manager.putObjectInCache(object.getPrimaryKey().getCacheName(),
+                                 expiration,
+                                 object);
       }
     }
 

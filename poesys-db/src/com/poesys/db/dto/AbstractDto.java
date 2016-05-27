@@ -477,8 +477,10 @@ public abstract class AbstractDto implements IDbDto {
   @Override
   public void deserializeNestedObjects() {
     try {
-      for (ISet set : readObjectSetters) {
-        set.set(null);
+      if (readObjectSetters != null) {
+        for (ISet set : readObjectSetters) {
+          set.set(null);
+        }
       }
     } catch (SQLException e) {
       // Should never happen, log and throw RuntimeException

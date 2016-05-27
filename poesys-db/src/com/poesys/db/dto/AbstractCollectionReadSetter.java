@@ -86,6 +86,7 @@ abstract public class AbstractCollectionReadSetter<T extends IDbDto> extends
             // Put the connection into the connection cache for this key.
             T dto = dao.queryByKey(key);
             collection.add(dto);
+            dto.deserializeNestedObjects();
           }
         } catch (ConstraintViolationException e) {
           throw new DbErrorException(e.getMessage(), e);

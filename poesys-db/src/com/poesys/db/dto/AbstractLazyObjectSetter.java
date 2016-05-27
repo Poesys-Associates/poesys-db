@@ -57,31 +57,26 @@ abstract public class AbstractLazyObjectSetter<T extends IDbDto> extends
     super(subsystem, expiration);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.ISet#set(java.sql.Connection)
-   */
   @Override
   public void set(Connection connection) throws SQLException {
-    // The setter is an independent transaction, so close the connection
-    // after completing the query operation.
     try {
       IDaoManager manager = DaoManagerFactory.getManager(subsystem);
       IDaoFactory<T> factory =
         manager.getFactory(getClassName(), subsystem, expiration);
       IQueryByKey<T> dao = factory.getQueryByKey(getSql(), subsystem);
-      // Query using the outer object as parameters (that is, the parent key).
-      T dto = dao.queryByKey(getKey());
-      set(dto);
+      // If there is a key, query using it; otherwise, just return as there is
+      // nothing to query and set.
+      if (getKey() != null) {
+        // Query using the outer object as parameters (that is, the parent key).
+        T dto = dao.queryByKey(getKey());
+        set(dto);
+      }
     } catch (ConstraintViolationException e) {
       throw new DbErrorException(e.getMessage(), e);
     } catch (BatchException e) {
       throw new DbErrorException(e.getMessage(), e);
     } catch (DtoStatusException e) {
       throw new DbErrorException(e.getMessage(), e);
-    } finally {
-      connection.close();
     }
   }
 }

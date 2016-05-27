@@ -124,12 +124,13 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
     deserializer.doReadObject(in, this);
   }
 
-
   @Override
   public void deserializeNestedObjects() {
     try {
-      for (ISet set : readObjectSetters) {
-        set.set(null);
+      if (readObjectSetters != null) {
+        for (ISet set : readObjectSetters) {
+          set.set(null);
+        }
       }
     } catch (SQLException e) {
       // Should never happen, log and throw RuntimeException

@@ -83,6 +83,8 @@ abstract public class AbstractListReadSetter<T extends IDbDto> extends
         for (IPrimaryKey key : getPrimaryKeys()) {
           T dto = dao.queryByKey(key);
           list.add(dto);
+          // Process the deserialized nested objects.
+          dto.deserializeNestedObjects();
         }
       } catch (ConstraintViolationException e) {
         throw new DbErrorException(e.getMessage(), e);

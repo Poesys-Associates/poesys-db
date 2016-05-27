@@ -112,10 +112,10 @@ public abstract class AbstractBatch<T extends IDbDto> {
    * 
    * @param list a list of unprocessed DTOs
    */
-  protected void setProcessed(List<T> list) {
+  protected void setProcessed(List<T> list, Boolean processed) {
     for (T dto : list) {
       if (leaf) {
-        dto.setProcessed(true);
+        dto.setProcessed(processed);
       }
     }
   }

@@ -32,6 +32,7 @@ import com.poesys.db.BatchException;
 import com.poesys.db.NoPrimaryKeyException;
 import com.poesys.db.dao.AbstractBatch;
 import com.poesys.db.dto.IDbDto;
+import com.poesys.db.dto.IDbDto.Status;
 import com.poesys.db.pk.IPrimaryKey;
 
 
@@ -160,6 +161,12 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
         if (count > 0 && stmt != null) {
           try {
             codes = stmt.executeBatch();
+            // Set status of all processed DTOs from CHANGED to EXISTING
+            for (T dto : dtos) {
+              if (dto.getStatus() == Status.CHANGED) {
+                dto.setExisting();
+              }
+            }
           } catch (BatchUpdateException e) {
             codes = e.getUpdateCounts();
             builder.append(e.getMessage() + ": ");
@@ -188,6 +195,8 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
             && (dto.getStatus() == IDbDto.Status.CHANGED || dto.getStatus() == IDbDto.Status.EXISTING)) {
           dto.setProcessed(true);
           postprocess(connection, dto);
+          // After post-processing, set processed flag off.
+          dto.setProcessed(false);
         }
       }
 
@@ -195,8 +204,9 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
        * For leaf classes in the inheritance hierarchy, set the processed flag on here
        * to prevent any further processing of the DTO.
        */
+      // TODO perhaps add a separate leafProcessed flag?
       if (isLeaf()) {
-        setProcessed(list);
+        setProcessed(list, true);
       }
 
       // If there are errors, throw a batch exception.

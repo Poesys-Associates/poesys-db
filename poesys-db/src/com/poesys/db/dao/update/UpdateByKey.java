@@ -27,6 +27,7 @@ import org.apache.log4j.Logger;
 import com.poesys.db.BatchException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.dto.IDbDto;
+import com.poesys.db.dto.IDbDto.Status;
 import com.poesys.db.pk.IPrimaryKey;
 
 
@@ -34,8 +35,8 @@ import com.poesys.db.pk.IPrimaryKey;
  * An implementation of the IUpdate interface that updates a data transfer
  * object (DTO) using a SQL statement defined in an IUpdateSql object,
  * identifying the object in the database using the primary key of the DTO. The
- * implementation should update in the database only if isChanged() is true.
- * The caller should set the DTO status to existing once <strong>all</strong>
+ * implementation should update in the database only if isChanged() is true. The
+ * caller should set the DTO status to existing once <strong>all</strong>
  * processing is complete (over the entire inheritance hierarchy).
  * 
  * @see com.poesys.db.dto.AbstractDto
@@ -51,7 +52,7 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
   /** Error message when no DTO supplied */
   private static final String NO_DTO_MSG =
     "com.poesys.db.dao.update.msg.no_dto";
-  
+
   /** Indicates whether this is a leaf update */
   private boolean leaf = false;
 
@@ -107,17 +108,29 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
         dto.setFailed();
         throw e;
       } finally {
+        // Set status to EXISTING after processing the changes.
+        if (dto.getStatus() == Status.CHANGED) {
+          dto.setExisting();
+        }
         if (stmt != null) {
           stmt.close();
         }
       }
     }
-    
-    dto.setProcessed(true);
+
+    boolean originalProcessed = dto.isProcessed();
+    if (!dto.isProcessed()) {
+      dto.setProcessed(true);
+    }
 
     // After processing the object, post-process nested objects.
     // This gets done regardless of main object status.
     postprocess(connection, dto);
+
+    // Set processed flag off after postprocessing if changed above.
+    if (dto.isProcessed() != originalProcessed) {
+      dto.setProcessed(false);
+    }
   }
 
   /**

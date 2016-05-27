@@ -84,10 +84,18 @@ public class DeleteByKey<T extends IDbDto> implements IDelete<T> {
 
         stmt.executeUpdate();
 
-        dto.setProcessed(true);
+        boolean originalProcessed = dto.isProcessed();
+        if (!dto.isProcessed()) {
+          dto.setProcessed(true);
+        }
 
         postprocess(connection, dto);
         // Notify DTO to update its observer parents of the delete.
+
+        // Set processed flag off after postprocessing if changed above.
+        if (dto.isProcessed() != originalProcessed) {
+          dto.setProcessed(false);
+        }
         dto.notify(DataEvent.DELETE);
       } catch (SQLException e) {
         dto.setFailed();
