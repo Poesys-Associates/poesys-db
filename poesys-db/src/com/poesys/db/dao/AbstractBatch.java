@@ -111,6 +111,7 @@ public abstract class AbstractBatch<T extends IDbDto> {
    * Set all the DTOs in a list as processed.
    * 
    * @param list a list of unprocessed DTOs
+   * @param processed the value to which to set the flag (true, false)
    */
   protected void setProcessed(List<T> list, Boolean processed) {
     for (T dto : list) {
