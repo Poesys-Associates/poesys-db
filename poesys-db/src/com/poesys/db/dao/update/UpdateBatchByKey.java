@@ -195,19 +195,11 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
             && (dto.getStatus() == IDbDto.Status.CHANGED || dto.getStatus() == IDbDto.Status.EXISTING)) {
           dto.setProcessed(true);
           postprocess(connection, dto);
-          // After post-processing, set processed flag off.
-          dto.setProcessed(false);
         }
       }
 
-      /*
-       * For leaf classes in the inheritance hierarchy, set the processed flag on here
-       * to prevent any further processing of the DTO.
-       */
-      // TODO perhaps add a separate leafProcessed flag?
-      if (isLeaf()) {
-        setProcessed(list, true);
-      }
+      // Set processed flag to prevent further processing of this object.
+      setProcessed(list, true);
 
       // If there are errors, throw a batch exception.
       if (hasErrors) {
@@ -228,16 +220,6 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
   protected void postprocess(Connection connection, T dto) throws SQLException,
       BatchException {
     dto.postprocessNestedObjects(connection);
-  }
-
-  @Override
-  public boolean isLeaf() {
-    return leaf;
-  }
-
-  @Override
-  public void setLeaf(boolean isLeaf) {
-    leaf = isLeaf;
   }
 
   @Override

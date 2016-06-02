@@ -175,17 +175,11 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
         if (count > 0 && stmt != null) {
           try {
             codes = stmt.executeBatch();
-            // TODO inheritance isLeafProcessed flag?
-            if (isLeaf()) {
-              setProcessed(list, true);
-            }
+            setProcessed(list, true);
           } catch (BatchUpdateException e) {
             codes = e.getUpdateCounts();
             builder.append(e.getMessage() + ": ");
-            // TODO inheritance isLeafProcessed flag?
-            if (isLeaf()) {
-              setProcessed(list, true);
-            }
+            setProcessed(list, true);
             hasErrors = processErrors(codes, list, builder);
           }
         }
@@ -220,16 +214,6 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
         throw new BatchException(builder.toString());
       }
     }
-  }
-
-  @Override
-  public boolean isLeaf() {
-    return leaf;
-  }
-
-  @Override
-  public void setLeaf(boolean isLeaf) {
-    leaf = isLeaf;
   }
 
   @Override

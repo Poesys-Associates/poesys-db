@@ -25,6 +25,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.apache.log4j.Logger;
+
 import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
@@ -57,6 +59,8 @@ abstract public class AbstractCollectionReadSetter<T extends IDbDto> extends
 
   /** Serial version UID for this Serializable class */
   private static final long serialVersionUID = 1L;
+  
+  private static final Logger logger = Logger.getLogger(AbstractCollectionReadSetter.class);
 
   /**
    * Create a AbstractListSetter object.
@@ -81,10 +85,13 @@ abstract public class AbstractCollectionReadSetter<T extends IDbDto> extends
       if (getPrimaryKeys() != null) {
         // Never reuse old array, avoid ConcurrentModificationException
         collection = new ArrayList<T>(getPrimaryKeys().size());
+        T dto = null; // for exception handling
         try {
-          for (IPrimaryKey key : getPrimaryKeys()) {
+          // Copy primary key array to avoid ConcurrentModificationException
+          List<IPrimaryKey> keyList = new ArrayList<IPrimaryKey>(getPrimaryKeys());
+          for (IPrimaryKey key : keyList) {
             // Put the connection into the connection cache for this key.
-            T dto = dao.queryByKey(key);
+            dto = dao.queryByKey(key);
             collection.add(dto);
             dto.deserializeNestedObjects();
           }
@@ -94,6 +101,9 @@ abstract public class AbstractCollectionReadSetter<T extends IDbDto> extends
           throw new DbErrorException(e.getMessage(), e);
         } catch (DtoStatusException e) {
           throw new DbErrorException(e.getMessage(), e);
+        } catch (java.util.ConcurrentModificationException e) {
+          logger.error("Concurrent modification for DTO " + dto.getPrimaryKey(), e);
+          throw new DbErrorException("Concurrent modification for DTO " + dto.getPrimaryKey(), e);
         }
       }
 

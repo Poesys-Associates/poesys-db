@@ -38,9 +38,6 @@ import com.poesys.db.dto.IDbDto;
  */
 public abstract class AbstractBatch<T extends IDbDto> {
 
-  /** Indicates whether the batch DAO is manipulating a leaf class */
-  protected boolean leaf = false;
-
   /**
    * Process the error codes from a JDBC batch. Extract the DTO corresponding to
    * any error from the list of DTOs in the batch and construct an error message
@@ -115,9 +112,7 @@ public abstract class AbstractBatch<T extends IDbDto> {
    */
   protected void setProcessed(List<T> list, Boolean processed) {
     for (T dto : list) {
-      if (leaf) {
-        dto.setProcessed(processed);
-      }
+      dto.setProcessed(processed);
     }
   }
 }

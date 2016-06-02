@@ -58,20 +58,6 @@ public interface IUpdateBatch<T extends IDbDto> {
       throws SQLException, BatchException;
 
   /**
-   * Is this inserter inserting into a leaf class?
-   * 
-   * @return true if leaf, false if superclass of a leaf
-   */
-  public boolean isLeaf();
-
-  /**
-   * Set the inserter to be a leaf inserter.
-   * 
-   * @param isLeaf true for a leaf inserter, false for a superclass inserter
-   */
-  public void setLeaf(boolean isLeaf);
-
-  /**
    * Close any resources allocated by the Command.
    */
   public void close();

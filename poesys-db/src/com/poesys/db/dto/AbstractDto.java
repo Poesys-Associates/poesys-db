@@ -217,9 +217,6 @@ public abstract class AbstractDto implements IDbDto {
       // Allow undo to NEW or CHANGED for subclass inserts
       previousStatus = status;
       status = Status.EXISTING;
-      // Note that undo NEW or CHANGED should always set processed to FALSE
-      // because undo is always done before processing.
-      processed = false;
     } else if (status == Status.EXISTING) {
       // do nothing; it's already EXISTING
     } else {
@@ -237,7 +234,8 @@ public abstract class AbstractDto implements IDbDto {
       // Allow undo to EXISTING, FAILED, or CHANGED
       previousStatus = status;
       status = Status.CHANGED;
-      processed = false; // reset when Changed
+      // Reset processed flag
+      processed = false;
     } else if (status == Status.NEW) {
       // do nothing, just ignore the attempt to set to CHANGED
     } else {
@@ -263,6 +261,8 @@ public abstract class AbstractDto implements IDbDto {
       markChildrenDeleted();
       // Notify the parent of the marking.
       notify(DataEvent.MARKED_DELETED);
+      // Reset the processed flag.
+      processed = false;
     } else if (status == Status.DELETED || status == Status.CASCADE_DELETED) {
       // do nothing, it's already DELETED
     } else if (status == Status.NEW) {

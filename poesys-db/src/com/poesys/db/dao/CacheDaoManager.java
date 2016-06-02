@@ -93,7 +93,7 @@ public class CacheDaoManager implements IDaoManager {
     if (map != null) {
       cache = new DtoCache<IDbDto>(name);
       map.put(name, cache);
-      logger.debug("Created regular cache " + name + " in cache map.");
+      logger.debug("Created Java map cache " + name);
     }
 
     return cache;
@@ -152,6 +152,8 @@ public class CacheDaoManager implements IDaoManager {
         cache = createCache(cacheName);
       }
       cache.cache(object);
+      logger.debug("Cached " + object.getPrimaryKey().getStringKey()
+                   + " in Java cache " + cacheName);
     }
   }
 

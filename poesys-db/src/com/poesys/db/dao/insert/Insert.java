@@ -110,6 +110,9 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
         // Finalize the insert by setting any auto-generated attributes.
         dto.finalizeInsert(stmt);
 
+        // Set processed flag to avoid further processing of the inserted object.
+        dto.setProcessed(true);
+        
         /*
          * For a concrete class, insert any nested objects (composite children
          * or associations) Only need to insert here, not update or delete, as

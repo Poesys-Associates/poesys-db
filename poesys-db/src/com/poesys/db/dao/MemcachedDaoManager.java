@@ -95,10 +95,10 @@ public final class MemcachedDaoManager implements IDaoManager {
   private static final Logger logger =
     Logger.getLogger(MemcachedDaoManager.class);
 
-  /** Singleton manager instance */
-  private static IDaoManager manager = null;
+  /** Singleton memcached manager instance */
+  private static IDaoManager memcachedManager = null;
 
-  /** Singleton in-memory cache manager instance */
+  /** Singleton local, in-memory cache manager instance */
   private static IDaoManager cacheManager = null;
 
   /** Memcached client pool */
@@ -181,8 +181,8 @@ public final class MemcachedDaoManager implements IDaoManager {
    * @return the DAO manager
    */
   public static IDaoManager getInstance() {
-    if (manager == null) {
-      manager = new MemcachedDaoManager();
+    if (memcachedManager == null) {
+      memcachedManager = new MemcachedDaoManager();
       clients = new ObjectPool<MemcachedClient>(MIN, MAX, INTERVAL) {
 
         @Override
@@ -231,7 +231,7 @@ public final class MemcachedDaoManager implements IDaoManager {
       // Get the singleton cache manager for in-memory storage management.
       cacheManager = CacheDaoManager.getInstance();
     }
-    return manager;
+    return memcachedManager;
   }
 
   @Override
@@ -371,8 +371,7 @@ public final class MemcachedDaoManager implements IDaoManager {
                        + " from the cache");
           // Cache the object in memory before getting nested objects so that
           // objects nested under themselves don't create an infinite
-          // deserialization
-          // loop.
+          // deserialization loop.
           IDaoManager manager = CacheDaoManager.getInstance();
           manager.putObjectInCache(object.getPrimaryKey().getCacheName(),
                                    0,
@@ -401,8 +400,16 @@ public final class MemcachedDaoManager implements IDaoManager {
       String key = object.getPrimaryKey().getStringKey();
       client.set(key, expireTime, object, new SerializingTranscoder());
       logger.debug("Cached object \"" + key + "\" of type "
-                   + object.getClass().getName() + " with expiration time "
+                   + object.getClass().getName() + " in memcached with expiration time "
                    + expireTime + "ms");
+      // Get the in-memory cache manager. Adding the new object to this
+      // cache means that setters getting nested objects will get this
+      // object rather than getting a different one by deserializing from
+      // memcached.
+      IDaoManager localCacheManager = CacheDaoManager.getInstance();
+      localCacheManager.putObjectInCache(object.getPrimaryKey().getCacheName(),
+                                         expireTime,
+                                         object);
     } catch (IllegalStateException e) {
       List<String> errors = new ArrayList<String>(1);
       errors.add(object.getPrimaryKey().getStringKey());

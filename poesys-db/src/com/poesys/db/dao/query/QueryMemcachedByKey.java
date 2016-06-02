@@ -97,23 +97,22 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
     }
 
     // Get the external cache manager.
-    IDaoManager manager = DaoManagerFactory.getManager(subsystem);
+    IDaoManager memcachedManager = DaoManagerFactory.getManager(subsystem);
     // Get the in-memory cache manager that keeps track of the
-    // already-deserialized objects,
-    // to avoid infinite-loop cache checks.
-    IDaoManager cacheManager = CacheDaoManager.getInstance();
+    // already-deserialized objects, to avoid infinite-loop cache checks.
+    IDaoManager localCacheManager = CacheDaoManager.getInstance();
 
     // Check in memory for the object.
     logger.debug("Checking in-memory cache " + key.getCacheName()
                  + " for object " + key.getStringKey());
-    T object = cacheManager.getCachedObject(key);
+    T object = localCacheManager.getCachedObject(key);
 
     if (object == null) {
       logger.debug("Object not found in in-memory cache " + key.getCacheName()
                    + ", checking memcached with key \"" + key.getStringKey()
                    + "\"");
       // Check the cache for the object.
-      object = manager.getCachedObject(key);
+      object = memcachedManager.getCachedObject(key);
 
       // Only proceed if memcached did not return an object from its cache.
       if (object == null) {
@@ -141,7 +140,7 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
               object.setQueried(true);
               logger.debug("Queried " + key.getStringKey() + " from database");
               // Cache the object in memory before getting nested objects.
-              cacheManager.putObjectInCache(object.getPrimaryKey().getCacheName(),
+              localCacheManager.putObjectInCache(object.getPrimaryKey().getCacheName(),
                                             expiration,
                                             object);
             }
@@ -178,7 +177,7 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
         object.setQueried(false);
         logger.debug("Found object " + key.getCacheName() + " with key " +key.getStringKey() + " in memcached ");
         // Cache the object in memory before getting nested objects.
-        cacheManager.putObjectInCache(object.getPrimaryKey().getCacheName(),
+        localCacheManager.putObjectInCache(object.getPrimaryKey().getCacheName(),
                                       expiration,
                                       object);
       }
@@ -191,11 +190,12 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
     // Query any nested objects. This is outside the fetch above to make sure
     // that the statement and result set are closed before recursing.
     if (object != null) {
-      object.queryNestedObjects();
-      // If the object was queried, cache it.
+      // If the object was queried, complete processing nested objects and cache it.
       if (object.isQueried()) {
+        // Get all the nested objects.
+        object.queryNestedObjects();
         // Now cache the object as all the details have been filled in.
-        manager.putObjectInCache(object.getPrimaryKey().getCacheName(),
+        memcachedManager.putObjectInCache(object.getPrimaryKey().getCacheName(),
                                  expiration,
                                  object);
       }

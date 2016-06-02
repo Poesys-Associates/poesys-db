@@ -191,8 +191,6 @@ public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
           
           postprocess(connection, dto);
 
-          // Set processed flag off after postprocessing.
-            dto.setProcessed(false);
           dto.notify(DataEvent.DELETE);
         } else if (dto.getStatus() == IDbDto.Status.CASCADE_DELETED) {
           // Just notify DTO to update its observer parents of the delete.

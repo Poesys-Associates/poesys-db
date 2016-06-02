@@ -116,21 +116,12 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
           stmt.close();
         }
       }
-    }
-
-    boolean originalProcessed = dto.isProcessed();
-    if (!dto.isProcessed()) {
       dto.setProcessed(true);
     }
 
     // After processing the object, post-process nested objects.
     // This gets done regardless of main object status.
     postprocess(connection, dto);
-
-    // Set processed flag off after postprocessing if changed above.
-    if (dto.isProcessed() != originalProcessed) {
-      dto.setProcessed(false);
-    }
   }
 
   /**
