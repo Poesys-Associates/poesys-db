@@ -72,11 +72,7 @@ public class DtoCache<T extends IDbDto> implements IDtoCache<T> {
     cacheName = name;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.IDtoCache#cache(T)
-   */
+  @Override
   public void cache(T object) {
     IPrimaryKey key = object.getPrimaryKey();
     if (key != null && object != null) {
@@ -107,11 +103,7 @@ public class DtoCache<T extends IDbDto> implements IDtoCache<T> {
     }
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.IDtoCache#get(com.poesys.db.pk.IPrimaryKey)
-   */
+  @Override
   public T get(IPrimaryKey key) {
     T dto = null;
     if (key != null) {
@@ -120,22 +112,13 @@ public class DtoCache<T extends IDbDto> implements IDtoCache<T> {
     return dto;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.IDtoCache#remove(com.poesys.db.pk.IPrimaryKey)
-   */
+  @Override
   public void remove(IPrimaryKey key) {
     // Remove locally, no messaging with this class
     removeLocally(key);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see
-   * com.poesys.db.dto.IDtoCache#removeLocally(com.poesys.db.pk.IPrimaryKey)
-   */
+  @Override
   public void removeLocally(IPrimaryKey key) {
     if (key != null) {
       cache.remove(key);
@@ -144,14 +127,17 @@ public class DtoCache<T extends IDbDto> implements IDtoCache<T> {
     }
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.IDtoCache#clear()
-   */
+  @Override
   public void clear() {
     cache.clear();
     logger.debug("Cleared cache " + cacheName);
+  }
+  
+  @Override
+  public void clearProcessedFlags() {
+    for (IDbDto dto : cache.values()) {
+      dto.setProcessed(false);
+    }
   }
 
   /**

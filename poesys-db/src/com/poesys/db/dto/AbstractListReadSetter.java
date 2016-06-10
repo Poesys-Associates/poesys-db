@@ -70,35 +70,40 @@ abstract public class AbstractListReadSetter<T extends IDbDto> extends
 
   @Override
   public void set(Connection connection) throws SQLException {
-    IDaoManager manager = DaoManagerFactory.getManager(subsystem);
-    IDaoFactory<T> factory =
-      manager.getFactory(getClassName(), subsystem, expiration);
-    IQueryByKey<T> dao = factory.getQueryByKey(getSql(), subsystem);
-    List<T> list = null;
+    // Only set if the object is already set; it is being deserialized, so if
+    // the object is not already set, it wasn't before. This works with the
+    // lazy loading proxies to set the object up properly for lazy loading.
+    if (isSet()) {
+      IDaoManager manager = DaoManagerFactory.getManager(subsystem);
+      IDaoFactory<T> factory =
+        manager.getFactory(getClassName(), subsystem, expiration);
+      IQueryByKey<T> dao = factory.getQueryByKey(getSql(), subsystem);
+      List<T> list = null;
 
-    // Query using the primary keys.
-    if (getPrimaryKeys() != null) {
-      list = getEmptyList();
-      try {
-        for (IPrimaryKey key : getPrimaryKeys()) {
-          T dto = dao.queryByKey(key);
-          list.add(dto);
-          // Process the deserialized nested objects.
-          dto.deserializeNestedObjects();
+      // Query using the primary keys.
+      if (getPrimaryKeys() != null) {
+        list = getEmptyList();
+        try {
+          for (IPrimaryKey key : getPrimaryKeys()) {
+            T dto = dao.queryByKey(key);
+            list.add(dto);
+            // Process the deserialized nested objects.
+            dto.deserializeNestedObjects();
+          }
+        } catch (ConstraintViolationException e) {
+          throw new DbErrorException(e.getMessage(), e);
+        } catch (BatchException e) {
+          throw new DbErrorException(e.getMessage(), e);
+        } catch (DtoStatusException e) {
+          throw new DbErrorException(e.getMessage(), e);
         }
-      } catch (ConstraintViolationException e) {
-        throw new DbErrorException(e.getMessage(), e);
-      } catch (BatchException e) {
-        throw new DbErrorException(e.getMessage(), e);
-      } catch (DtoStatusException e) {
-        throw new DbErrorException(e.getMessage(), e);
       }
+
+      // Convert the array list to a thread-safe list.
+      list = getThreadSafeList(list);
+
+      set(list);
     }
-
-    // Convert the array list to a thread-safe list.
-    list = getThreadSafeList(list);
-
-    set(list);
   }
 
   /**
@@ -159,13 +164,6 @@ abstract public class AbstractListReadSetter<T extends IDbDto> extends
    * @return the current object list
    */
   abstract protected List<T> getObjectList();
-
-  /**
-   * Get the class name to use to look up a cached DTO.
-   * 
-   * @return the class name
-   */
-  abstract protected String getClassName();
 
   /**
    * Get the SQL object that contains the key query.

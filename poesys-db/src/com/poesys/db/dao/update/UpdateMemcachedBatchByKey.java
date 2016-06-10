@@ -55,7 +55,8 @@ public class UpdateMemcachedBatchByKey<T extends IDbDto> extends
         // Only remove if processed during update step (original processed flag
         // set to false).
         if (!processedList.get(dto)) {
-          manager.removeObjectFromCache(null, dto.getPrimaryKey());
+          manager.removeObjectFromCache(dto.getPrimaryKey().getCacheName(),
+                                        dto.getPrimaryKey());
         }
       }
     }

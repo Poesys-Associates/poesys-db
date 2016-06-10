@@ -151,12 +151,17 @@ public interface IDaoManager {
   void removeObjectFromCache(String cacheName, IPrimaryKey key);
 
   /**
-   * Clear any temporary caches created inside the Dao Manager.
+   * Clear any temporary caches created inside the DAO Manager.
    */
   void clearTemporaryCaches();
 
   /**
-   * Clear all caches associated with the Dao Manager.
+   * Clear all caches associated with the DAO Manager.
    */
   void clearAllCaches();
+  
+  /**
+   * Clear the processed flags in any IDbDto objects in all the caches associated with the DAO Manager.
+   */
+  void clearAllProcessedFlags();
 }

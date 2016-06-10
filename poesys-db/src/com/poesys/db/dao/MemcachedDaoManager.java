@@ -99,7 +99,7 @@ public final class MemcachedDaoManager implements IDaoManager {
   private static IDaoManager memcachedManager = null;
 
   /** Singleton local, in-memory cache manager instance */
-  private static IDaoManager cacheManager = null;
+  private static IDaoManager inMemoryCacheManager = null;
 
   /** Memcached client pool */
   private static ObjectPool<MemcachedClient> clients = null;
@@ -227,9 +227,9 @@ public final class MemcachedDaoManager implements IDaoManager {
         }
       };
     }
-    if (cacheManager == null) {
+    if (inMemoryCacheManager == null) {
       // Get the singleton cache manager for in-memory storage management.
-      cacheManager = CacheDaoManager.getInstance();
+      inMemoryCacheManager = CacheDaoManager.getInstance();
     }
     return memcachedManager;
   }
@@ -319,7 +319,7 @@ public final class MemcachedDaoManager implements IDaoManager {
 
     try {
       // Check the in-memory cache for the object first.
-      object = cacheManager.getCachedObject(key);
+      object = inMemoryCacheManager.getCachedObject(key);
       if (object == null) {
         // Not previously de-serialized, get it from the cache.
         logger.debug("Getting object " + key.getStringKey() + " from the cache");
@@ -377,8 +377,10 @@ public final class MemcachedDaoManager implements IDaoManager {
                                    0,
                                    object);
 
-          // Finally, iterate through the setters to process nested objects.
+          // Iterate through the setters to process nested objects.
           object.deserializeNestedObjects();
+          // Now set the processed flag off so further updates will happen.
+          object.setProcessed(false);
         } else {
           logger.debug("No object " + key.getStringKey() + " in the cache");
         }
@@ -436,9 +438,9 @@ public final class MemcachedDaoManager implements IDaoManager {
     MemcachedClient client = clients.getObject();
 
     // Check the cache for the object first, remove it if it's there.
-    IDbDto object = cacheManager.getCachedObject(key);
+    IDbDto object = inMemoryCacheManager.getCachedObject(key);
     if (object != null) {
-      cacheManager.removeObjectFromCache(cacheName, key);
+      inMemoryCacheManager.removeObjectFromCache(cacheName, key);
     }
 
     try {
@@ -458,7 +460,7 @@ public final class MemcachedDaoManager implements IDaoManager {
   @Override
   public void clearTemporaryCaches() {
     // Clear all the in-memory caches
-    cacheManager.clearAllCaches();
+    inMemoryCacheManager.clearAllCaches();
   }
 
   @Override
@@ -490,5 +492,10 @@ public final class MemcachedDaoManager implements IDaoManager {
     } finally {
       clients.returnObject(client);
     }
+  }
+
+  @Override
+  public void clearAllProcessedFlags() {
+    // Nothing to do; deserialization clears the processed flags.    
   }
 }

@@ -74,4 +74,11 @@ public interface IDtoCache<T extends IDbDto> {
    * distributed cache that has no iteration or query API, such as memcached.
    */
   void clear();
+  
+  /**
+   * Clear the processed flags in the DTOs of type T in the cache. A client
+   * calls this method after processing all the objects to reset them for
+   * the next processing.
+   */
+  void clearProcessedFlags();
 }

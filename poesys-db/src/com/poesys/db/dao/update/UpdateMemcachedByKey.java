@@ -42,7 +42,8 @@ public class UpdateMemcachedByKey<T extends IDbDto> extends UpdateByKey<T>
     // Only remove from cache if DTO exists and hasn't been processed.
     if (dto != null && !dto.isProcessed()) {
       IDaoManager manager = DaoManagerFactory.getManager(subsystem);
-      manager.removeObjectFromCache(null, dto.getPrimaryKey());
+      manager.removeObjectFromCache(dto.getPrimaryKey().getCacheName(),
+                                    dto.getPrimaryKey());
     }
     super.update(connection, dto);
   }

@@ -164,6 +164,7 @@ public class CacheDaoManager implements IDaoManager {
     if (cacheName != null && key != null) {
       IDtoCache<IDbDto> cache = getCache(cacheName);
       cache.remove(key);
+      logger.debug("Removed object from " + cacheName + " cache: " + key.getStringKey());
     }
   }
 
@@ -176,5 +177,11 @@ public class CacheDaoManager implements IDaoManager {
   public void clearAllCaches() {
     // Clear all the in-memory caches.
     map.clear();
+  }
+  
+  public void clearAllProcessedFlags() {
+    for (IDtoCache<IDbDto> cache : map.values()) {
+      cache.clearProcessedFlags();
+    }
   }
 }

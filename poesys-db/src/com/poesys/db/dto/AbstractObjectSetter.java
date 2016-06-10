@@ -61,6 +61,7 @@ abstract public class AbstractObjectSetter<T extends IDbDto> extends
 
   @Override
   public void set(Connection connection) throws SQLException {
+    // No isSet() check here, always query the object.
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     IDaoFactory<T> factory =
       manager.getFactory(getClassName(), subsystem, expiration);
@@ -108,6 +109,4 @@ abstract public class AbstractObjectSetter<T extends IDbDto> extends
    * @param dto the DTO to set into the data member
    */
   abstract protected void set(T dto);
-
-  abstract public boolean isSet();
 }

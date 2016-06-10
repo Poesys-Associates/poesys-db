@@ -46,7 +46,8 @@ public class DeleteMemcachedByKey<T extends IDbDto> extends DeleteByKey<T>
     if (dto.getStatus() == IDbDto.Status.DELETED
         || dto.getStatus() == IDbDto.Status.CASCADE_DELETED) {
       IDaoManager manager = DaoManagerFactory.getManager(subsystem);
-      manager.removeObjectFromCache(null, dto.getPrimaryKey());
+      manager.removeObjectFromCache(dto.getPrimaryKey().getCacheName(),
+                                    dto.getPrimaryKey());
     }
   }
 

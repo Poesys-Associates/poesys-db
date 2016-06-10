@@ -75,7 +75,10 @@ abstract public class AbstractCollectionReadSetter<T extends IDbDto> extends
 
   @Override
   public void set(Connection connection) throws SQLException {
-    if (!isSet()) {
+    // Only set if the object is already set; it is being deserialized, so if
+    // the object is not already set, it wasn't before. This works with the
+    // lazy loading proxies to set the object up properly for lazy loading.
+   if (isSet()) {
       IDaoManager manager = DaoManagerFactory.getManager(subsystem);
       IDaoFactory<T> factory =
         manager.getFactory(getClassName(), subsystem, expiration);
@@ -90,7 +93,6 @@ abstract public class AbstractCollectionReadSetter<T extends IDbDto> extends
           // Copy primary key array to avoid ConcurrentModificationException
           List<IPrimaryKey> keyList = new ArrayList<IPrimaryKey>(getPrimaryKeys());
           for (IPrimaryKey key : keyList) {
-            // Put the connection into the connection cache for this key.
             dto = dao.queryByKey(key);
             collection.add(dto);
             dto.deserializeNestedObjects();
@@ -145,13 +147,6 @@ abstract public class AbstractCollectionReadSetter<T extends IDbDto> extends
    * @return the current object list
    */
   abstract protected Collection<T> getObjectCollection();
-
-  /**
-   * Get the class name to use to look up a cached DTO.
-   * 
-   * @return the class name
-   */
-  abstract protected String getClassName();
 
   /**
    * Get the SQL object that contains the key query.

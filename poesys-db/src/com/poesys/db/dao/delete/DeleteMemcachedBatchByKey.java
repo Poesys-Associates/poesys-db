@@ -49,7 +49,8 @@ public class DeleteMemcachedBatchByKey<T extends IDbDto> extends
         // Only proceed if the dto is DELETED or CASCADE_DELETED.
         if (dto.getStatus() == IDbDto.Status.DELETED
             || dto.getStatus() == IDbDto.Status.CASCADE_DELETED) {
-          manager.removeObjectFromCache(null, dto.getPrimaryKey());
+          manager.removeObjectFromCache(dto.getPrimaryKey().getCacheName(),
+                                        dto.getPrimaryKey());
         }
       }
     }

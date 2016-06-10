@@ -78,27 +78,27 @@ public class QueryMemcachedListWithParameters<T extends IDbDto, S extends IDbDto
   protected T getObject(Connection connection, ResultSet rs)
       throws SQLException, BatchException {
     IPrimaryKey key = sql.getPrimaryKey(rs);
-    // Look the object up in the cache, create if not there and cache it.
-    IDaoManager manager = DaoManagerFactory.getManager(subsystem);
-    T object = manager.getCachedObject(key);
+    // Look the object up in the local Java cache first.
+    T object = DaoManagerFactory.getManager(subsystem).getCachedObject(key);
     if (object == null) {
+      // Not locally cached, extract from list query result set.
       object = sql.getData(rs);
       logger.debug("Queried " + key.getStringKey()
                    + " from database for list (parameterized)");
       // Only cache if successfully retrieved
       if (object != null) {
-        // Cache object here to avoid infinite loops when querying nested
-        // objects.
-        manager.putObjectInCache(object.getPrimaryKey().getCacheName(),
-                                 expiration,
-                                 object);
         // Set the new and changed flags to show this object exists and is
         // unchanged from the version in the database.
         object.setExisting();
         object.setQueried(true);
         // Cache the object in memory before getting nested objects.
-        IDaoManager cacheManager = CacheDaoManager.getInstance();
-        cacheManager.putObjectInCache(object.getClass().getName(), 0, object);
+        CacheDaoManager.getInstance().putObjectInCache(object.getClass().getName(),
+                                                       0,
+                                                       object);
+        // Cache object in memcached.
+        DaoManagerFactory.getManager(subsystem).putObjectInCache(object.getPrimaryKey().getCacheName(),
+                                                                 expiration,
+                                                                 object);
       }
     } else {
       object.setQueried(false);

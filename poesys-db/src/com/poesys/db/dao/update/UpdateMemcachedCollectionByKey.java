@@ -45,7 +45,8 @@ public class UpdateMemcachedCollectionByKey<T extends IDbDto> extends
     if (dtos != null && dtos.size() > 0) {
       IDaoManager manager = DaoManagerFactory.getManager(subsystem);
       for (IDbDto dto : dtos) {
-        manager.removeObjectFromCache(null, dto.getPrimaryKey());
+        manager.removeObjectFromCache(dto.getPrimaryKey().getCacheName(),
+                                      dto.getPrimaryKey());
       }
     }
   }

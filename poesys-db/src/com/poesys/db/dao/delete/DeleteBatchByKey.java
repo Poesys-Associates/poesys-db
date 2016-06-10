@@ -85,12 +85,7 @@ public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
     this.sql = sql;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.IUpdateBatch#update(java.sql.Connection,
-   * java.util.Collection, int)
-   */
+  @Override
   public void delete(Connection connection, Collection<T> dtos, int size)
       throws SQLException, BatchException {
     PreparedStatement stmt = null;
@@ -153,8 +148,8 @@ public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
               count = 0;
               list.clear();
             }
-          } else {
-            logger.debug("Object marked as cascaded delete, clearing cache but no database delete: "
+          } else if (dto.getStatus() == IDbDto.Status.CASCADE_DELETED) {
+            logger.debug("Object marked as cascade-deleted, clearing cache but no database delete: "
                          + dto.getPrimaryKey().getValueList());
           }
 
