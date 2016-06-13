@@ -88,13 +88,20 @@ public class BigDecimalColumnValueTest extends ConnectionTest {
    */
   public void testSetParam() throws InvalidParametersException, SQLException,
       IOException {
-    Connection connection = getConnection();
-    BigDecimalColumnValue colValue1 =
-      new BigDecimalColumnValue(NAME, new BigDecimal(NUMBER));
-    PreparedStatement stmt =
-      connection.prepareStatement("SELECT * FROM TEST WHERE testBigDecimal = ?");
-    colValue1.setParam(stmt, 1);
-    assertTrue(true);
+    Connection connection = null;
+    try {
+       connection = getConnection();
+      BigDecimalColumnValue colValue1 =
+        new BigDecimalColumnValue(NAME, new BigDecimal(NUMBER));
+      PreparedStatement stmt =
+        connection.prepareStatement("SELECT * FROM TEST WHERE testBigDecimal = ?");
+      colValue1.setParam(stmt, 1);
+      assertTrue(true);
+    } finally {
+      if (connection != null) {
+        connection.close();
+      }
+    }
   }
 
   /**

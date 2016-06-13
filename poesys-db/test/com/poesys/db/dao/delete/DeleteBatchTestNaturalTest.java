@@ -129,7 +129,7 @@ public class DeleteBatchTestNaturalTest extends ConnectionTest {
    * @throws BatchException when a problem occurs during processing
    */
   public void testInsertNull() throws IOException, SQLException, BatchException {
-    Connection conn;
+    Connection conn = null;
     try {
       conn = getConnection();
     } catch (SQLException e) {

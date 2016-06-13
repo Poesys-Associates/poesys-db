@@ -88,13 +88,20 @@ public class BigIntegerColumnValueTest extends ConnectionTest {
    */
   public void testSetParam() throws SQLException, IOException,
       InvalidParametersException {
-    Connection connection = getConnection();
-    BigIntegerColumnValue colValue1 =
-      new BigIntegerColumnValue(NAME, new BigInteger(NUMBER));
-    PreparedStatement stmt =
-      connection.prepareStatement("SELECT * FROM TEST WHERE testLong = ?");
-    colValue1.setParam(stmt, 1);
-    assertTrue(true);
+    Connection connection = null;
+    try {
+      connection = getConnection();
+      BigIntegerColumnValue colValue1 =
+        new BigIntegerColumnValue(NAME, new BigInteger(NUMBER));
+      PreparedStatement stmt =
+        connection.prepareStatement("SELECT * FROM TEST WHERE testLong = ?");
+      colValue1.setParam(stmt, 1);
+      assertTrue(true);
+    } finally {
+      if (connection != null) {
+        connection.close();
+      }
+    }
   }
 
   /**

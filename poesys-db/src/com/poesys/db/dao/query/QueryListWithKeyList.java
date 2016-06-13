@@ -123,6 +123,9 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
       if (rs != null) {
         rs.close();
       }
+      if (connection != null) {
+        connection.close();
+      }
     }
 
     queryNestedObjectsForList(list);

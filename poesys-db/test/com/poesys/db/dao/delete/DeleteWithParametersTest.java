@@ -64,53 +64,57 @@ public class DeleteWithParametersTest extends ConnectionTest {
    * @throws SQLException when can't get a connection
    */
   public void testDelete() throws IOException, SQLException {
-    Connection conn;
+    Connection conn = null;
     try {
       conn = getConnection();
+
+      // Clear the test table. Bug: seems to encounter weird metadata locking.
+      // Delete the "b" test rows.
+      DeleteWithParameters<TestMultipleParams, TestMultipleParams> clearer =
+        new DeleteWithParameters<TestMultipleParams, TestMultipleParams>(new DeleteSqlTestMultiple());
+      clearer.delete(conn, new TestMultipleParams(NEW, "b"));
+
+      // Insert test rows that create a set of multiple rows identified by a
+      // single value of the colType column, 'b'.
+      PreparedStatement stmt = conn.prepareStatement(INSERT);
+      for (long i = 1; i < 10; i++) {
+        // insert key, col1, colType a
+        stmt.setLong(1, i);
+        stmt.setString(2, "Col Value " + i);
+        stmt.setString(3, "a");
+        stmt.execute();
+      }
+
+      for (long i = 10; i < 15; i++) {
+        // insert key, col1, colType b
+        stmt.setLong(1, i);
+        stmt.setString(2, "Col Value " + i);
+        stmt.setString(3, "b");
+        stmt.execute();
+      }
+
+      stmt.close();
+
+      // Delete the "b" test rows.
+      DeleteWithParameters<TestMultipleParams, TestMultipleParams> deleter =
+        new DeleteWithParameters<TestMultipleParams, TestMultipleParams>(new DeleteSqlTestMultiple());
+      TestMultipleParams parameters = new TestMultipleParams(NEW, "b");
+      deleter.delete(conn, parameters);
+
+      // Query the five "b" rows to make sure they're gone.
+      Statement query = conn.createStatement();
+      ResultSet rs =
+        query.executeQuery("SELECT col1 FROM TestMultiple WHERE colType = 'b'");
+      while (rs.next()) {
+        fail("Found a 'b' row when they're supposed to have been deleted");
+      }
+      query.close();
     } catch (SQLException e) {
       throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+    } finally {
+      if (conn != null) {
+        conn.close();
+      }
     }
-
-    // Clear the test table. Bug: seems to encounter weird metadata locking.
-    // Delete the "b" test rows.
-    DeleteWithParameters<TestMultipleParams, TestMultipleParams> clearer =
-      new DeleteWithParameters<TestMultipleParams, TestMultipleParams>(new DeleteSqlTestMultiple());
-    clearer.delete(conn, new TestMultipleParams(NEW, "b"));
-
-    // Insert test rows that create a set of multiple rows identified by a
-    // single value of the colType column, 'b'.
-    PreparedStatement stmt = conn.prepareStatement(INSERT);
-    for (long i = 1; i < 10; i++) {
-      // insert key, col1, colType a
-      stmt.setLong(1, i);
-      stmt.setString(2, "Col Value " + i);
-      stmt.setString(3, "a");
-      stmt.execute();
-    }
-
-    for (long i = 10; i < 15; i++) {
-      // insert key, col1, colType b
-      stmt.setLong(1, i);
-      stmt.setString(2, "Col Value " + i);
-      stmt.setString(3, "b");
-      stmt.execute();
-    }
-
-    stmt.close();
-
-    // Delete the "b" test rows.
-    DeleteWithParameters<TestMultipleParams, TestMultipleParams> deleter =
-      new DeleteWithParameters<TestMultipleParams, TestMultipleParams>(new DeleteSqlTestMultiple());
-    TestMultipleParams parameters = new TestMultipleParams(NEW, "b");
-    deleter.delete(conn, parameters);
-
-    // Query the five "b" rows to make sure they're gone.
-    Statement query = conn.createStatement();
-    ResultSet rs =
-      query.executeQuery("SELECT col1 FROM TestMultiple WHERE colType = 'b'");
-    while (rs.next()) {
-      fail("Found a 'b' row when they're supposed to have been deleted");
-    }
-    query.close();
   }
 }

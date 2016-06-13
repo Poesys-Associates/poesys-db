@@ -82,12 +82,19 @@ public class DateColumnValueTest extends ConnectionTest {
    */
   public void testSetParam() throws SQLException, IOException,
       InvalidParametersException {
-    Connection connection = getConnection();
+    Connection connection = null;
+    try {
+    connection = getConnection();
     DateColumnValue colValue1 = new DateColumnValue(name1, value1);
     PreparedStatement stmt =
       connection.prepareStatement("SELECT * FROM TEST WHERE testDate = ?");
     colValue1.setParam(stmt, 1);
     assertTrue(true);
+    } finally {
+      if (connection != null) {
+        connection.close();
+      }
+    }
   }
 
   /**

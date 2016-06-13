@@ -133,6 +133,9 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
       if (rs != null) {
         rs.close();
       }
+      if (connection != null) {
+        connection.close();
+      }
     }
 
     queryNestedObjectsForList(connection, list);

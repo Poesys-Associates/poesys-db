@@ -44,10 +44,14 @@ public class TruncateTableTest extends ConnectionTest {
     IExecuteSql executive = new ExecuteSql(sql);
     try {
       connection = getConnection();
+    executive.execute(connection);
     } catch (SQLException e) {
       throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+    } finally {
+      if (connection != null) {
+        connection.close();
+      }
     }
-    executive.execute(connection);
   }
 
 }

@@ -81,12 +81,19 @@ public class TimestampColumnValueTest extends ConnectionTest {
    */
   public void testSetParam() throws InvalidParametersException, SQLException,
       IOException {
-    Connection connection = getConnection();
-    TimestampColumnValue colValue1 = new TimestampColumnValue(name1, value1);
-    PreparedStatement stmt =
-      connection.prepareStatement("SELECT * FROM TEST WHERE testTimestamp = ?");
-    colValue1.setParam(stmt, 1);
-    assertTrue(true);
+    Connection connection = null;
+    try {
+      connection = getConnection();
+      TimestampColumnValue colValue1 = new TimestampColumnValue(name1, value1);
+      PreparedStatement stmt =
+        connection.prepareStatement("SELECT * FROM TEST WHERE testTimestamp = ?");
+      colValue1.setParam(stmt, 1);
+      assertTrue(true);
+    } finally {
+      if (connection != null) {
+        connection.close();
+      }
+    }
   }
 
   /**

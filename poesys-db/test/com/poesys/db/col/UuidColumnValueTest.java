@@ -78,12 +78,19 @@ public class UuidColumnValueTest extends ConnectionTest {
    */
   public void testSetParam() throws SQLException, IOException,
       InvalidParametersException {
-    Connection connection = getConnection();
-    UuidColumnValue colValue1 = new UuidColumnValue(name1, uuid1);
-    PreparedStatement stmt =
-      connection.prepareStatement("SELECT * FROM TEST WHERE testUuid = ?");
-    colValue1.setParam(stmt, 1);
-    assertTrue(true);
+    Connection connection = null;
+    try {
+      connection = getConnection();
+      UuidColumnValue colValue1 = new UuidColumnValue(name1, uuid1);
+      PreparedStatement stmt =
+        connection.prepareStatement("SELECT * FROM TEST WHERE testUuid = ?");
+      colValue1.setParam(stmt, 1);
+      assertTrue(true);
+    } finally {
+      if (connection != null) {
+        connection.close();
+      }
+    }
   }
 
   /**
