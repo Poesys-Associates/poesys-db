@@ -113,7 +113,9 @@ public class CacheMessageListener implements Runnable, MessageListener {
     } finally {
       if (connection != null) {
         try {
+          String connectionString = connection.toString();
           connection.close();
+          logger.debug("Closed connection " + connectionString);
         } catch (JMSException e) {
           String message = com.poesys.db.Message.getMessage(LISTENER_MSG, null);
           logger.error(message, e);

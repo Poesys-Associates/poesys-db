@@ -144,7 +144,9 @@ public class QueryCacheByKey<T extends IDbDto> extends QueryByKey<T> implements
         }
         // Close the connection.
         if (connection != null) {
+          String connectionString = connection.toString();
           connection.close();
+          logger.debug("Closed connection " + connectionString);
         }
       }
     }

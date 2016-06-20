@@ -155,7 +155,9 @@ public class QueryDatabaseMemcachedByKey<T extends IDbDto> extends
       }
       // Close the connection.
       if (connection != null) {
+        String connectionString = connection.toString();
         connection.close();
+        logger.debug("Closed connection " + connectionString);
       }
     }
 

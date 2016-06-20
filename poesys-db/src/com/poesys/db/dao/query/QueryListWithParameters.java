@@ -134,7 +134,9 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
         rs.close();
       }
       if (connection != null) {
+        String connectionString = connection.toString();
         connection.close();
+        logger.debug("Closed connection " + connectionString);
       }
     }
 

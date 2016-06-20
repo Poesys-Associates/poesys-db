@@ -136,7 +136,9 @@ public class QueryList<T extends IDbDto> implements IQueryList<T> {
       }
       // Close the connection.
       if (connection != null) {
+        String connectionString = connection.toString();
         connection.close();
+        logger.debug("Closed connection " + connectionString);
       }
     }
 

@@ -170,7 +170,9 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
             rs.close();
           }
           if (connection != null) {
+            String connectionString = connection.toString();
             connection.close();
+            logger.debug("Closed connection " + connectionString);
           }
         }
       } else {

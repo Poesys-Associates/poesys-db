@@ -140,7 +140,9 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
         rs.close();
       }
       if (connection != null) {
+        String connectionString = connection.toString();
         connection.close();
+        logger.debug("Closed connection " + connectionString);
       }
     }
 
