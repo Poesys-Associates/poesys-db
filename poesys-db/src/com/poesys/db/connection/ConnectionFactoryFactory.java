@@ -423,15 +423,7 @@ public class ConnectionFactoryFactory {
         // Use "database" for the JNDI resource name
         factory.setDatabase(properties.getString(subsystem + NAME));
       } else {
-        String service = getService(subsystem);
-        String database = getDatabase(subsystem);
-        
         factory.setUser(properties.getString(subsystem + USER));
-        if (service != null) {
-          ((OracleConnectionFactory)factory).setService(service);
-        } else {
-          factory.setDatabase(database);
-        }
         factory.setHost(properties.getString(subsystem + HOST));
         factory.setPassword(properties.getString(subsystem + PASSWORD));
         try {
