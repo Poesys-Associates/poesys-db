@@ -81,6 +81,9 @@ public class ConnectionFactoryFactory {
 
   /** The property for the port */
   private static final String PORT = ".port";
+  
+  /** The property for the Oracle service */
+  private static final String SERVICE = ".service";
 
   /** The property for the JNDI name */
   private static final String NAME = ".name";
@@ -158,8 +161,9 @@ public class ConnectionFactoryFactory {
     if (!cache.containsKey(key)) {
       switch (dbms) {
       case ORACLE:
+        String service = properties.getString(subsystem + SERVICE);
         if (pooled) {
-          IJdbcDriver driver = new OracleDriver(null, null);
+          IJdbcDriver driver = new OracleDriver(null, null, service);
           factory =
             new PooledConnectionFactory(5,
                                         5,
@@ -170,7 +174,9 @@ public class ConnectionFactoryFactory {
                                         "SELECT 1 FROM DUAL");
 
         } else {
-          factory = new OracleConnectionFactory();
+          OracleConnectionFactory oracleFactory = new OracleConnectionFactory();
+          oracleFactory.setService(service);
+          factory = oracleFactory;
         }
         break;
       case MYSQL:

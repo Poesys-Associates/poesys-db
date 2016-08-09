@@ -49,6 +49,9 @@ public class OracleConnectionFactory implements IConnectionFactory {
   /** Write-only Oracle SID name for the database instance */
   private String database = null;
 
+  /** Write-only Oracle service name for the database instance */
+  private String service = null;
+
   /** Write-only JDBC user password for the Oracle JDBC driver. */
   private String password = null;
 
@@ -75,6 +78,16 @@ public class OracleConnectionFactory implements IConnectionFactory {
     this.port = port;
   }
 
+  /**
+   * Set the Oracle-specific service name, which replaces the database name if
+   * present.
+   * 
+   * @param service the Oracle service name
+   */
+  public void setService(String service) {
+    this.service = service;
+  }
+
   @Override
   public void setPassword(String password) {
     this.password = password;
@@ -94,12 +107,19 @@ public class OracleConnectionFactory implements IConnectionFactory {
       ods.setNetworkProtocol("tcp");
       ods.setServerName(host);
       ods.setPortNumber(port);
-      ods.setDatabaseName(database);
+      if (service == null) {
+        // SID, not service name
+        ods.setDatabaseName(database);
+        logger.debug("Connecting to Oracle host " + host + ":" + port + " SID "
+                     + database + " as user " + user);
+      } else {
+        // Service, not SID
+        ods.setServiceName(service);
+        logger.debug("Connecting to Oracle host " + host + ":" + port + " service "
+            + service + " as user " + user);
+      }
       ods.setUser(user);
     }
-    
-    logger.debug("Connecting to Oracle host " + host + ":" + port + " SID "
-                 + database + " as user " + user);
 
     // Set the password in case it has changed.
     ods.setPassword(password);
@@ -135,4 +155,5 @@ public class OracleConnectionFactory implements IConnectionFactory {
   public DBMS getDbms() {
     return DBMS.ORACLE;
   }
+
 }

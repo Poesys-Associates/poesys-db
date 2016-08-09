@@ -18,17 +18,20 @@ public class OracleDriver implements IJdbcDriver {
   private String host;
   private String port = "1521";
   private String database;
+  private String service;
   private StringBuilder url = new StringBuilder();
 
   /**
    * Create a OracleDriver object with the minimal connection information.
    * 
    * @param host the database server name or IP address
-   * @param database the ORACLE SID or service name
+   * @param database the ORACLE SID name
+   * @param service the ORACLE service name
    */
-  OracleDriver(String host, String database) {
+  OracleDriver(String host, String database, String service) {
     this.host = host;
     this.database = database;
+    this.service = service;
   }
 
   @Override
@@ -45,6 +48,10 @@ public class OracleDriver implements IJdbcDriver {
   public void setDatabase(String database) {
     this.database = database;
   }
+  
+  public void setService(String service) {
+    this.service = service;
+  }
 
   @Override
   public void setParameters(String parameters) {
@@ -58,14 +65,29 @@ public class OracleDriver implements IJdbcDriver {
 
   @Override
   public String getUrl() {
-    // jdbc:oracle:thin:@//<host>:<port>/<service_name>
     if (url.length() == 0) {
-      url.append("jdbc:oracle:thin:@//");
-      url.append(host);
-      url.append(":");
-      url.append(port);
-      url.append("/");
-      url.append(database);
+      if (service == null && database != null) {
+        // Use the SID form of the URI.
+        // jdbc:oracle:thin:@//<host>:<port>/<sid>
+        url.append("jdbc:oracle:thin:@//");
+        url.append(host);
+        url.append(":");
+        url.append(port);
+        url.append("/");
+        url.append(database);
+      } else if (service != null) {
+        // Use the service form of the URI.
+        // jdbc:oracle:thin:@(DESCRIPTION = (ADDRESS = (PROTOCOL = TCP)(HOST =
+        // <host>)(PORT = <port>))(CONNECT_DATA =(SERVER =
+        // DEDICATED)(SERVICE_NAME = <service>)))
+        url.append("jdbc:oracle:thin:@(DESCRIPTION = (ADDRESS = (PROTOCOL = TCP)(HOST = ");
+        url.append(host);
+        url.append(")(PORT = ");
+        url.append(port);
+        url.append("))(CONNECT_DATA =(SERVER = DEDICATED)(SERVICE_NAME = ");
+        url.append(service);
+        url.append(")))");
+      }
     }
     return url.toString();
   }
