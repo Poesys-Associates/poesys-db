@@ -159,10 +159,10 @@ public class ConnectionFactoryFactory {
     }
 
     if (!cache.containsKey(key)) {
+      String database = getDatabase(subsystem);
       switch (dbms) {
       case ORACLE:
         String service = getService(subsystem);
-        String database = getDatabase(subsystem);
         
         if (pooled) {
           IJdbcDriver driver = new OracleDriver(null, database, service);
@@ -177,7 +177,6 @@ public class ConnectionFactoryFactory {
         } else {
           OracleConnectionFactory oracleFactory = new OracleConnectionFactory();
           oracleFactory.setService(service);
-          oracleFactory.setDatabase(database);
           factory = oracleFactory;
         }
         break;
