@@ -161,9 +161,11 @@ public class ConnectionFactoryFactory {
     if (!cache.containsKey(key)) {
       switch (dbms) {
       case ORACLE:
-        String service = properties.getString(subsystem + SERVICE);
+        String service = getService(subsystem);
+        String database = getDatabase(subsystem);
+        
         if (pooled) {
-          IJdbcDriver driver = new OracleDriver(null, null, service);
+          IJdbcDriver driver = new OracleDriver(null, database, service);
           factory =
             new PooledConnectionFactory(5,
                                         5,
@@ -172,10 +174,10 @@ public class ConnectionFactoryFactory {
                                         null,
                                         null,
                                         "SELECT 1 FROM DUAL");
-
         } else {
           OracleConnectionFactory oracleFactory = new OracleConnectionFactory();
           oracleFactory.setService(service);
+          oracleFactory.setDatabase(database);
           factory = oracleFactory;
         }
         break;
@@ -421,8 +423,15 @@ public class ConnectionFactoryFactory {
         // Use "database" for the JNDI resource name
         factory.setDatabase(properties.getString(subsystem + NAME));
       } else {
+        String service = getService(subsystem);
+        String database = getDatabase(subsystem);
+        
         factory.setUser(properties.getString(subsystem + USER));
-        factory.setDatabase(properties.getString(subsystem + DATABASE));
+        if (service != null) {
+          ((OracleConnectionFactory)factory).setService(service);
+        } else {
+          factory.setDatabase(database);
+        }
         factory.setHost(properties.getString(subsystem + HOST));
         factory.setPassword(properties.getString(subsystem + PASSWORD));
         try {
@@ -437,6 +446,38 @@ public class ConnectionFactoryFactory {
         }
       }
     }
+  }
+
+  /**
+   * Get the Oracle service name from the properties file.
+   * 
+   * @param subsystem the subsystem for which to get the property
+   * @return the service name, if any
+   */
+  private static String getService(String subsystem) {
+    String service = null;
+    try {
+      service = properties.getString(subsystem + SERVICE);
+    } catch (Exception e1) {
+      // No service property, ignore
+    }
+    return service;
+  }
+
+  /**
+   * Get the Oracle database name from the properties file.
+   * 
+   * @param subsystem the subsystem for which to get the property
+   * @return the database name, if any
+   */
+  private static String getDatabase(String subsystem) {
+    String database = null;
+    try {
+      database = properties.getString(subsystem + DATABASE);
+    } catch (Exception e1) {
+      // No service property, ignore
+    }
+    return database;
   }
 
   /**
