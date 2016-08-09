@@ -231,6 +231,9 @@ public class ConnectionFactoryFactory {
         list.add(getDbmsString(dbms));
         throw e;
       }
+      
+      // Set the database.
+      factory.setDatabase(database);
 
       // Cache the subsystem factory and initialize the subsystem.
       cache.put(key, factory);
