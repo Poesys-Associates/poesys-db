@@ -96,6 +96,7 @@ public class QueryDatabaseMemcachedByKey<T extends IDbDto> extends
     }
 
     // Get the Memcached and in-memory cache managers.
+    DaoManagerFactory.initMemcachedManager(subsystem);
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     IDaoManager cacheManager = CacheDaoManager.getInstance();
 

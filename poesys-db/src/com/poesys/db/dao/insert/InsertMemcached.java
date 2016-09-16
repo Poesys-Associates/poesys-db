@@ -64,6 +64,10 @@ public class InsertMemcached<T extends IDbDto> extends Insert<T> implements
   public void insert(Connection connection, IDbDto dto) throws SQLException,
       BatchException {
     super.insert(connection, dto);
+    // Initialize with a memcached manager.
+    DaoManagerFactory.initMemcachedManager(subsystem);
+    // Get the memcached DAO manager.
+    DaoManagerFactory.initMemcachedManager(subsystem);
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     manager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
                              expiration,

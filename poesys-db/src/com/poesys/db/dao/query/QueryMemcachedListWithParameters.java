@@ -79,6 +79,7 @@ public class QueryMemcachedListWithParameters<T extends IDbDto, S extends IDbDto
       throws SQLException, BatchException {
     IPrimaryKey key = sql.getPrimaryKey(rs);
     // Look the object up in the local Java cache first.
+    DaoManagerFactory.initMemcachedManager(subsystem);
     T object = DaoManagerFactory.getManager(subsystem).getCachedObject(key);
     if (object == null) {
       // Not locally cached, extract from list query result set.
@@ -117,6 +118,7 @@ public class QueryMemcachedListWithParameters<T extends IDbDto, S extends IDbDto
   @Override
   protected void queryNestedObjectsForList(Connection connection, C list)
       throws SQLException, BatchException {
+    DaoManagerFactory.initMemcachedManager(subsystem);
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     // Query any nested objects. This is outside the fetch above to make sure
     // that the statement and result set are closed before recursing.

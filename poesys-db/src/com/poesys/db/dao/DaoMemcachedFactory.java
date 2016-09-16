@@ -238,6 +238,7 @@ public class DaoMemcachedFactory<T extends IDbDto> implements IDaoFactory<T> {
 
   @Override
   public void clear() {
+    DaoManagerFactory.initMemcachedManager(subsystem);
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     manager.clearCache(null);
   }

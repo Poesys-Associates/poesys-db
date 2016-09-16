@@ -64,6 +64,7 @@ public class InsertMemcachedBatch<T extends IDbDto> extends InsertBatch<T>
     super.insert(connection, dtos, size);
     // Only cache if list exists and has objects.
     if (dtos != null && dtos.size() > 0) {
+      DaoManagerFactory.initMemcachedManager(subsystem);
       IDaoManager manager = DaoManagerFactory.getManager(subsystem);
       for (T dto : dtos) {
         if (dto.getStatus() == IDbDto.Status.NEW

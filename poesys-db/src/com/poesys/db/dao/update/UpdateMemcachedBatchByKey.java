@@ -50,6 +50,7 @@ public class UpdateMemcachedBatchByKey<T extends IDbDto> extends
     super.update(connection, dtos, size);
     // Only remove from cache if DTOs exists and isn't empty.
     if (dtos != null && dtos.size() > 0) {
+      DaoManagerFactory.initMemcachedManager(subsystem);
       IDaoManager manager = DaoManagerFactory.getManager(subsystem);
       for (T dto : dtos) {
         // Only remove if processed during update step (original processed flag

@@ -43,6 +43,7 @@ public class UpdateMemcachedCollectionByKey<T extends IDbDto> extends
     super.update(connection, dtos);
     // Only remove from cache if there are dtos.
     if (dtos != null && dtos.size() > 0) {
+      DaoManagerFactory.initMemcachedManager(subsystem);
       IDaoManager manager = DaoManagerFactory.getManager(subsystem);
       for (IDbDto dto : dtos) {
         manager.removeObjectFromCache(dto.getPrimaryKey().getCacheName(),

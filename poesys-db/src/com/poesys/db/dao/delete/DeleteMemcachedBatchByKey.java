@@ -44,6 +44,7 @@ public class DeleteMemcachedBatchByKey<T extends IDbDto> extends
     super.delete(connection, dtos, size);
     // Only remove from cache if collection exists and has objects.
     if (dtos != null && dtos.size() > 0) {
+      DaoManagerFactory.initMemcachedManager(subsystem);
       IDaoManager manager = DaoManagerFactory.getManager(subsystem);
       for (IDbDto dto : dtos) {
         // Only proceed if the dto is DELETED or CASCADE_DELETED.

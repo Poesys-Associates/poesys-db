@@ -62,6 +62,7 @@ public class InsertMemcachedNoKey<T extends IDbDto> extends InsertNoKey<T>
   public void insert(Connection connection, IDbDto dto) throws SQLException,
       BatchException {
     super.insert(connection, (T)dto);
+    DaoManagerFactory.initMemcachedManager(subsystem);
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     manager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
                              expiration,

@@ -42,6 +42,7 @@ public class DeleteMemcachedCollectionByKey<T extends IDbDto> extends
       throws SQLException, BatchException {
     // Delete only happens for DELETED objects, not CASCADE_DELETED.
     super.delete(connection, dtos);
+    DaoManagerFactory.initMemcachedManager(subsystem);
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     for (IDbDto dto : dtos) {
       // Only proceed if the dto is DELETED or CASCADE_DELETED.

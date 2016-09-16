@@ -76,6 +76,7 @@ public class QueryMemcachedList<T extends IDbDto> extends QueryList<T> {
       throws SQLException, BatchException {
     IPrimaryKey key = sql.getPrimaryKey(rs);
     // Look the object up in the cache, create if not there and cache it.
+    DaoManagerFactory.initMemcachedManager(subsystem);
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     T object = manager.getCachedObject(key);
     if (object == null) {
@@ -103,6 +104,7 @@ public class QueryMemcachedList<T extends IDbDto> extends QueryList<T> {
   @Override
   protected void queryNestedObjectsForList(List<T> list) throws SQLException,
       BatchException {
+    DaoManagerFactory.initMemcachedManager(subsystem);
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     // Query any nested objects using the current memcached session. This is
     // outside the fetch above to make sure that the statement and result set

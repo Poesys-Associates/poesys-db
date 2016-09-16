@@ -45,6 +45,7 @@ public class DeleteMemcachedByKey<T extends IDbDto> extends DeleteByKey<T>
     // Only proceed if the dto is DELETED or CASCADE_DELETED.
     if (dto.getStatus() == IDbDto.Status.DELETED
         || dto.getStatus() == IDbDto.Status.CASCADE_DELETED) {
+      DaoManagerFactory.initMemcachedManager(subsystem);
       IDaoManager manager = DaoManagerFactory.getManager(subsystem);
       manager.removeObjectFromCache(dto.getPrimaryKey().getCacheName(),
                                     dto.getPrimaryKey());
