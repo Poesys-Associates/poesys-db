@@ -27,7 +27,7 @@ import com.poesys.db.dto.IDbDto;
  * @author Robert J. Muller
  *
  */
-public class CachedObject {
+public class DtoTrackingObject {
   private final IDbDto dto;
   boolean isProcessed = false;
 
@@ -36,7 +36,7 @@ public class CachedObject {
    *
    * @param dto the object retrieved from the cache
    */
-  public CachedObject(IDbDto dto) {
+  public DtoTrackingObject(IDbDto dto) {
     super();
     this.dto = dto;
   }
@@ -50,14 +50,13 @@ public class CachedObject {
   public boolean isProcessed() {
     return isProcessed;
   }
-
+  
   /**
-   * Mark the DTO as processed in the current thread.
-   * 
-   * @param isProcessed
+   * Set the object's processed status to true or false
+   * @param processed true if processed, false if not processed
    */
-  public void setProcessed(boolean isProcessed) {
-    this.isProcessed = isProcessed;
+  public void setProcessed(boolean processed) {
+    isProcessed = processed;
   }
 
   /**

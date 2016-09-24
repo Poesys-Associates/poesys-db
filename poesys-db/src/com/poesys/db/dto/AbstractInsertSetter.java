@@ -49,8 +49,7 @@ abstract public class AbstractInsertSetter extends AbstractSetter<IDbDto>
         for (IDbDto dto : getDtos()) {
           // Only attempt an insert if the object is there and needs to be
           // inserted!
-          if (dto != null && !dto.isProcessed()
-              && dto.getStatus() == IDbDto.Status.NEW) {
+          if (dto != null && dto.getStatus() == IDbDto.Status.NEW) {
             // Insert class portions of object from root to leaf.
             if (dto.getInserters() != null) {
               // Suppress further nested inserts until the last insert.

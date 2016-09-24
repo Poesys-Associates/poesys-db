@@ -99,20 +99,13 @@ public abstract class AbstractBatch<T extends IDbDto> {
     builder.append("\n");
     dto.setFailed();
     // Mark the DTO as unprocessed as it did not complete processing.
-    dto.setProcessed(false);
+    if (Thread.currentThread() instanceof PoesysTrackingThread) {
+      PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
+      if (thread.getDto(dto.getPrimaryKey().getStringKey()) != null) {
+        thread.setProcessed(dto.getPrimaryKey().getStringKey(), false);
+      }
+    }
     errors = true;
     return errors;
-  }
-
-  /**
-   * Set all the DTOs in a list as processed.
-   * 
-   * @param list a list of unprocessed DTOs
-   * @param processed the value to which to set the flag (true, false)
-   */
-  protected void setProcessed(List<T> list, Boolean processed) {
-    for (T dto : list) {
-      dto.setProcessed(processed);
-    }
   }
 }

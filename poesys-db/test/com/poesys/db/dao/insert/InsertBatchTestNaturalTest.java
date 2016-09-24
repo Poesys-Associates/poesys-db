@@ -134,18 +134,16 @@ public class InsertBatchTestNaturalTest extends ConnectionTest {
 
     for (int i = 0; i < OBJECT_COUNT; i++) {
       // Create the primary key.
-      Integer keyValue = null;
+      String keyValue = null;
       if (i > 0 && i % 3 == 0) {
-        // Put a duplicate key in for a few rows.
-        keyValue = new Integer(i - 1);
+        // Put an invalid string (TOO LONG) key in for a few rows.
+        keyValue = "aaaaabbbbbccccc" + (new Integer(i)).toString();
       } else {
-        keyValue = new Integer(i);
+        keyValue = (new Integer(i)).toString();
       }
 
       // Create the DTO.
-      errorDtos.add(new TestNatural(keyValue.toString(),
-                                    keyValue.toString(),
-                                    col1));
+      errorDtos.add(new TestNatural(keyValue, keyValue, col1));
     }
 
     for (int i = 0; i < OBJECT_COUNT; i++) {
@@ -170,7 +168,7 @@ public class InsertBatchTestNaturalTest extends ConnectionTest {
       try {
         cut.insert(conn, errorDtos, BATCH_SIZE);
         fail();
-      } catch (BatchException e) {
+      } catch (Throwable e) {
         assertTrue(true);
         System.out.println(e.getMessage());
       }

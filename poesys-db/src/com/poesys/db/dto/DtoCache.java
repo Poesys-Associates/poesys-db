@@ -133,13 +133,6 @@ public class DtoCache<T extends IDbDto> implements IDtoCache<T> {
     logger.debug("Cleared cache " + cacheName);
   }
   
-  @Override
-  public void clearProcessedFlags() {
-    for (IDbDto dto : cache.values()) {
-      dto.setProcessed(false);
-    }
-  }
-
   /**
    * Send the primary key values in the cache to the debug log.
    */

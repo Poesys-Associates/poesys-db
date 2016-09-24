@@ -26,6 +26,8 @@ import org.apache.log4j.Logger;
 
 import com.poesys.db.BatchException;
 import com.poesys.db.InvalidParametersException;
+import com.poesys.db.Message;
+import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.dto.IDbDto.Status;
 import com.poesys.db.pk.IPrimaryKey;
@@ -52,6 +54,13 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
   /** Error message when no DTO supplied */
   private static final String NO_DTO_MSG =
     "com.poesys.db.dao.update.msg.no_dto";
+  /** Error message when insert throws exception */
+  private static final String UPDATE_ERROR =
+    "com.poesys.db.dao.update.msg.update";
+  private static final String THREAD_ERROR = "com.poesys.db.dao.msg.thread";
+
+  /** timeout for the cache thread */
+  private static final int TIMEOUT = 1000 * 60;
 
   /** Indicates whether this is a leaf update */
   private boolean leaf = false;
@@ -69,6 +78,69 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
   @Override
   public void update(Connection connection, T dto) throws SQLException,
       BatchException {
+    // Check that the DTO is there and is new.
+    if (dto == null) {
+      throw new InvalidParametersException(NO_DTO_MSG);
+    } else if (dto.getStatus() == IDbDto.Status.CHANGED) {
+      // Process CHANGED DTOs only
+      // Check for the tracking thread and create it if it's not already there.
+      PoesysTrackingThread thread = null;
+      if (Thread.currentThread() instanceof PoesysTrackingThread) {
+        thread = (PoesysTrackingThread)Thread.currentThread();
+        // Process only if not already processed
+        if (thread.isProcessed(dto.getPrimaryKey().getStringKey())) {
+          updateInDatabase(connection, dto);
+        }
+      } else {
+        Runnable query = new Runnable() {
+          public void run() {
+            try {
+              updateInDatabase(connection, dto);
+            } catch (SQLException e) {
+              // Log and let the thread complete immediately
+              Object[] args = { dto.getPrimaryKey().getStringKey() };
+              String message = Message.getMessage(UPDATE_ERROR, args);
+              logger.error(message, e);
+              throw new RuntimeException(message, e);
+            } catch (BatchException e) {
+              // Log and let the thread complete immediately
+              Object[] args = { dto.getPrimaryKey().getStringKey() };
+              String message = Message.getMessage(UPDATE_ERROR, args);
+              logger.error(message, e);
+              throw new RuntimeException(message, e);
+            }
+          }
+        };
+        thread = new PoesysTrackingThread(query);
+        thread.start();
+        // Join the thread, blocking until the thread completes or
+        // until the query times out.
+        try {
+          thread.join(TIMEOUT);
+        } catch (InterruptedException e) {
+          Object[] args = {"update", dto.getPrimaryKey().getStringKey()};
+          String message = Message.getMessage(THREAD_ERROR, args);
+          logger.error(message, e);
+        }
+      }
+
+      // After processing the object, post-process nested objects.
+      // This gets done regardless of main object status.
+      postprocess(connection, dto);
+    }
+  }
+
+  /**
+   * Update the DTO in the database. This method must only be called for a DTO
+   * that has status CHANGED and has not already been processed.
+   * 
+   * @param connection the SQL connection
+   * @param dto the DTO to update in the database
+   * @throws SQLException when there is a database problem
+   * @throws BatchException when there is an exception during a batch operation
+   */
+  private void updateInDatabase(Connection connection, T dto)
+      throws SQLException, BatchException {
     PreparedStatement stmt = null;
 
     if (dto == null) {
@@ -80,48 +152,41 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
 
     String sqlStmt = null;
 
-    if (!dto.isProcessed() && dto.getStatus() == IDbDto.Status.CHANGED) {
+    try {
+      IPrimaryKey key = dto.getPrimaryKey();
+      sqlStmt = sql.getSql(key);
+      if (sqlStmt != null) {
+        stmt = connection.prepareStatement(sqlStmt);
+        sql.setParams(stmt, 1, dto);
 
-      try {
-        IPrimaryKey key = dto.getPrimaryKey();
-        sqlStmt = sql.getSql(key);
-        if (sqlStmt != null) {
-          stmt = connection.prepareStatement(sqlStmt);
-          sql.setParams(stmt, 1, dto);
+        logger.debug("Executing update with key " + key);
+        logger.debug("SQL: " + sqlStmt);
 
-          logger.debug("Executing update with key " + key);
-          logger.debug("SQL: " + sqlStmt);
+        stmt.executeUpdate();
 
-          stmt.executeUpdate();
-
-          // Note that the caller must set the DTO status to EXISTING once ALL
-          // processing is complete (over the entire inheritance hierarchy).
-        }
-      } catch (SQLException e) {
-        logger.error(e.getMessage());
-        logger.error(sqlStmt);
-        logger.error("Updated object key: "
-                     + dto.getPrimaryKey().getValueList());
-        dto.setFailed();
-        throw e;
-      } catch (RuntimeException e) {
-        dto.setFailed();
-        throw e;
-      } finally {
-        // Set status to EXISTING after processing the changes.
-        if (dto.getStatus() == Status.CHANGED) {
-          dto.setExisting();
-        }
-        if (stmt != null) {
-          stmt.close();
-        }
+        // Note that the caller must set the DTO status to EXISTING once ALL
+        // processing is complete (over the entire inheritance hierarchy).
       }
-      dto.setProcessed(true);
+    } catch (SQLException e) {
+      logger.error(e.getMessage());
+      logger.error(sqlStmt);
+      logger.error("Updated object key: " + dto.getPrimaryKey().getValueList());
+      dto.setFailed();
+      throw e;
+    } catch (RuntimeException e) {
+      dto.setFailed();
+      throw e;
+    } finally {
+      // Set status to EXISTING after processing the changes.
+      if (dto.getStatus() == Status.CHANGED) {
+        dto.setExisting();
+      }
+      if (stmt != null) {
+        stmt.close();
+      }
     }
-
-    // After processing the object, post-process nested objects.
-    // This gets done regardless of main object status.
-    postprocess(connection, dto);
+    ((PoesysTrackingThread)Thread.currentThread()).setProcessed(dto.getPrimaryKey().getStringKey(),
+                                                                true);
   }
 
   /**

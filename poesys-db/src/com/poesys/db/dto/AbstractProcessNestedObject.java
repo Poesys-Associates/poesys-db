@@ -24,6 +24,7 @@ import java.sql.SQLException;
 import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
+import com.poesys.db.dao.PoesysTrackingThread;
 
 
 /**
@@ -97,9 +98,15 @@ public abstract class AbstractProcessNestedObject<T extends IDbDto> extends
   @Override
   public void set(Connection connection) throws SQLException {
     T dto = getDto();
+    boolean isProcessed = false;
 
-    // If there is a DTO to process, get the status and process appropriately.
-    if (dto != null && !dto.isProcessed()) {
+    if (Thread.currentThread() instanceof PoesysTrackingThread) {
+      // Currently processing in hierarchy, check processed status
+      isProcessed =
+        ((PoesysTrackingThread)Thread.currentThread()).isProcessed(dto.getPrimaryKey().getStringKey());
+    }
+
+    if (dto != null && !isProcessed) {
       try {
         IDbDto.Status status = dto.getStatus();
         if (status == IDbDto.Status.NEW) {

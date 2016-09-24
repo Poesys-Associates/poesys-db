@@ -315,14 +315,4 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
   public void setSuppressNestedPreInserts(boolean suppressNestedPreInserts) {
     dto.setSuppressNestedPreInserts(suppressNestedPreInserts);
   }
-
-  @Override
-  public boolean isProcessed() {
-    return dto.isProcessed();
-  }
-
-  @Override
-  public void setProcessed(boolean processed) {
-    dto.setProcessed(processed);
-  }
 }

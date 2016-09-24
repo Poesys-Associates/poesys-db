@@ -195,21 +195,6 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
   boolean isQueried();
 
   /**
-   * Has the object been fully processed (inserted, updated, deleted)? If so,
-   * don't process any further.
-   * 
-   * @return true if processed, false if not
-   */
-  boolean isProcessed();
-
-  /**
-   * Set the DTO to processed (true) or unprocessed (false).
-   * 
-   * @param processed true or false
-   */
-  void setProcessed(boolean processed);
-
-  /**
    * Set the flag indicating whether the object was queried from the database.
    * 
    * @param queried true if queried, false if retrieved from cache

@@ -95,11 +95,10 @@ public final class MemcachedDaoManager implements IDaoManager {
   private static final Logger logger =
     Logger.getLogger(MemcachedDaoManager.class);
 
+  private IDbDto dto = null;
+
   /** Singleton memcached manager instance */
   private static IDaoManager memcachedManager = null;
-
-  /** Singleton local, in-memory cache manager instance */
-  private static IDaoManager inMemoryCacheManager = null;
 
   /** Memcached client pool */
   private static ObjectPool<MemcachedClient> clients = null;
@@ -131,6 +130,11 @@ public final class MemcachedDaoManager implements IDaoManager {
     "com.poesys.db.dao.query.msg.memcached_stats_complete";
   private static final String STATS_ERROR =
     "com.poesys.db.dao.query.msg.memcached_stats_error";
+  /** Error message when thread is interrupted or timed out */
+  private static final String THREAD_ERROR = "com.poesys.db.dao.msg.thread";
+  /** Error message when thread is interrupted or timed out */
+  private static final String NONSERIALIZABLE_ERROR =
+    "com.poesys.db.dao.msg.nonserializable";
 
   // Memcached options from property file
 
@@ -167,6 +171,8 @@ public final class MemcachedDaoManager implements IDaoManager {
 
   /** Period in milliseconds to sleep before re-trying memcached get */
   private static final long RETRY_SLEEP_PERIOD = 5L * 1000L;
+  /** timeout for the query thread */
+  private static final int TIMEOUT = 1000 * 60;
 
   /**
    * Disable the default constructor.
@@ -226,10 +232,6 @@ public final class MemcachedDaoManager implements IDaoManager {
           }
         }
       };
-    }
-    if (inMemoryCacheManager == null) {
-      // Get the singleton cache manager for in-memory storage management.
-      inMemoryCacheManager = CacheDaoManager.getInstance();
     }
     return memcachedManager;
   }
@@ -314,13 +316,45 @@ public final class MemcachedDaoManager implements IDaoManager {
   @SuppressWarnings("unchecked")
   @Override
   public <T extends IDbDto> T getCachedObject(IPrimaryKey key) {
+    // Check for the separate thread and create it if it's not already there.
+    PoesysTrackingThread thread = null;
+    if (Thread.currentThread() instanceof PoesysTrackingThread) {
+      thread = (PoesysTrackingThread)Thread.currentThread();
+      getFromMemcached(key);
+    } else {
+      Runnable query = new Runnable() {
+        public void run() {
+          getFromMemcached(key);
+        }
+      };
+      thread = new PoesysTrackingThread(query);
+      thread.start();
+      // Join the thread, blocking until the thread completes or
+      // until the query times out.
+      try {
+        thread.join(TIMEOUT);
+      } catch (InterruptedException e) {
+        Object[] args = { "update", dto.getPrimaryKey().getStringKey() };
+        String message = Message.getMessage(THREAD_ERROR, args);
+        logger.error(message, e);
+      }
+    }
+
+    return (T)dto;
+  }
+
+  /**
+   * Get the object from memcached. This always runs in a PoesysTrackingThread
+   * container.
+   * 
+   * @param key the primary key to look up in memcached
+   */
+  private void getFromMemcached(IPrimaryKey key) {
+    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
     MemcachedClient client = clients.getObject();
-    T object = null;
 
     try {
-      // Check the in-memory cache for the object first.
-      object = inMemoryCacheManager.getCachedObject(key);
-      if (object == null) {
+      if (dto == null) {
         // Not previously de-serialized, get it from the cache.
         logger.debug("Getting object " + key.getStringKey() + " from the cache");
 
@@ -330,7 +364,9 @@ public final class MemcachedDaoManager implements IDaoManager {
         int retries = TIMEOUT_RETRIES;
         while (retries > 0) {
           try {
-            object = (T)client.get(key.getStringKey());
+            dto = (IDbDto)client.get(key.getStringKey());
+            thread.addDto(dto);
+            thread.setProcessed(key.getStringKey(), true);
             // Break out of loop after no-exception get; no need to check
             // object for null, just means not cached
             break;
@@ -366,21 +402,11 @@ public final class MemcachedDaoManager implements IDaoManager {
           }
         }
 
-        if (object != null) {
+        if (dto != null) {
           logger.debug("Retrieved object " + key.getStringKey()
                        + " from the cache");
-          // Cache the object in memory before getting nested objects so that
-          // objects nested under themselves don't create an infinite
-          // deserialization loop.
-          IDaoManager manager = CacheDaoManager.getInstance();
-          manager.putObjectInCache(object.getPrimaryKey().getCacheName(),
-                                   0,
-                                   object);
-
           // Iterate through the setters to process nested objects.
-          object.deserializeNestedObjects();
-          // Now set the processed flag off so further updates will happen.
-          object.setProcessed(false);
+          dto.deserializeNestedObjects();
         } else {
           logger.debug("No object " + key.getStringKey() + " in the cache");
         }
@@ -388,8 +414,6 @@ public final class MemcachedDaoManager implements IDaoManager {
     } finally {
       clients.returnObject(client);
     }
-
-    return object;
   }
 
   @Override
@@ -402,8 +426,8 @@ public final class MemcachedDaoManager implements IDaoManager {
       String key = object.getPrimaryKey().getStringKey();
       client.set(key, expireTime, object, new SerializingTranscoder());
       logger.debug("Cached object \"" + key + "\" of type "
-                   + object.getClass().getName() + " in memcached with expiration time "
-                   + expireTime + "ms");
+                   + object.getClass().getName()
+                   + " in memcached with expiration time " + expireTime + "ms");
       // Get the in-memory cache manager. Adding the new object to this
       // cache means that setters getting nested objects will get this
       // object rather than getting a different one by deserializing from
@@ -421,11 +445,10 @@ public final class MemcachedDaoManager implements IDaoManager {
     } catch (IllegalArgumentException e) {
       Throwable cause = e.getCause();
       if (cause instanceof NotSerializableException) {
-        logger.error("Non-serializable object: " + object.getClass().getName(),
-                     cause);
-        DbErrorException e1 =
-          new DbErrorException("Non-serializable object: "
-                               + object.getClass().getName(), e);
+        Object[] args = { object.getClass().getName() };
+        String message = Message.getMessage(NONSERIALIZABLE_ERROR, args);
+        logger.error(message, cause);
+        DbErrorException e1 = new DbErrorException(message, e);
         throw e1;
       }
     } finally {
@@ -436,12 +459,6 @@ public final class MemcachedDaoManager implements IDaoManager {
   @Override
   public void removeObjectFromCache(String cacheName, IPrimaryKey key) {
     MemcachedClient client = clients.getObject();
-
-    // Check the cache for the object first, remove it if it's there.
-    IDbDto object = inMemoryCacheManager.getCachedObject(key);
-    if (object != null) {
-      inMemoryCacheManager.removeObjectFromCache(cacheName, key);
-    }
 
     try {
       // asynch, object may get deleted after delay
@@ -459,8 +476,7 @@ public final class MemcachedDaoManager implements IDaoManager {
 
   @Override
   public void clearTemporaryCaches() {
-    // Clear all the in-memory caches
-    inMemoryCacheManager.clearAllCaches();
+    // Nothing to do, no temp caches for memcached support
   }
 
   @Override
@@ -492,10 +508,5 @@ public final class MemcachedDaoManager implements IDaoManager {
     } finally {
       clients.returnObject(client);
     }
-  }
-
-  @Override
-  public void clearAllProcessedFlags() {
-    // Nothing to do; deserialization clears the processed flags.    
   }
 }

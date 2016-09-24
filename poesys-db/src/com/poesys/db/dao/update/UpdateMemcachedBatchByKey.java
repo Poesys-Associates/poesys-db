@@ -7,8 +7,6 @@ package com.poesys.db.dao.update;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
 import com.poesys.db.BatchException;
 import com.poesys.db.dao.DaoManagerFactory;
@@ -42,25 +40,19 @@ public class UpdateMemcachedBatchByKey<T extends IDbDto> extends
   @Override
   public void update(Connection connection, Collection<T> dtos, int size)
       throws SQLException, BatchException {
-    // Track processed flag for objects.
-    Map<T, Boolean> processedList = new HashMap<T, Boolean>();
-    for (T dto : dtos) {
-      processedList.put(dto, dto.isProcessed());
-    }
-    super.update(connection, dtos, size);
-    // Only remove from cache if DTOs exists and isn't empty.
+    // Remove any CHANGED DTOs from the cache, then do the update, which resets
+    // status to EXISTING.
     if (dtos != null && dtos.size() > 0) {
       DaoManagerFactory.initMemcachedManager(subsystem);
       IDaoManager manager = DaoManagerFactory.getManager(subsystem);
       for (T dto : dtos) {
-        // Only remove if processed during update step (original processed flag
-        // set to false).
-        if (!processedList.get(dto)) {
+        if (dto.hasStatusChanged()) {
           manager.removeObjectFromCache(dto.getPrimaryKey().getCacheName(),
                                         dto.getPrimaryKey());
         }
       }
     }
+    super.update(connection, dtos, size);
   }
 
   @Override

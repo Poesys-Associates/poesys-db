@@ -29,9 +29,10 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.Message;
 import com.poesys.db.NoPrimaryKeyException;
 import com.poesys.db.dao.AbstractBatch;
-import com.poesys.db.dao.DataEvent;
+import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -70,10 +71,17 @@ public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
   /** Error message when no primary key supplied */
   private static final String NO_KEY_MSG =
     "com.poesys.db.dao.delete.msg.no_delete_key";
+  /** Error message when post-processing throws an exception */
+  private static final String POST_PROCESSING_ERROR =
+    "com.poesys.db.dao.delete.msg.postprocessing";
+  /** Error message when thread is interrupted or timed out */
+  private static final String THREAD_ERROR = "com.poesys.db.dao.msg.thread";
   /** Builder for error string built in batch processing */
   private StringBuilder builder = new StringBuilder();
   /** Flag indicating whether there are batch errors */
   private boolean hasErrors = false;
+  /** timeout for the cache thread */
+  private static final int TIMEOUT = 1000 * 60;
 
   /**
    * Create a DeleteBatchByKey object by supplying the concrete implementation
@@ -178,25 +186,66 @@ public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
        * the child processing must be in a completely separate loop after the
        * first loop that processes the parents. Only process DELETED DTOs here;
        * don't process FAILED, NEW, or CHANGED DTOs. Also notify parent
-       * observers of the delete for both DELETED and CASCADE_DELETED DTOs.
+       * observers of the delete for both DELETED and CASCADE_DELETED DTOs. The
+       * separate thread is required to track processing history, to prevent
+       * infinite processing loops.
        */
       for (IDbDto dto : dtos) {
-        if (!dto.isProcessed() && dto.getStatus() == IDbDto.Status.DELETED) {
-            dto.setProcessed(true);
-          
-          postprocess(connection, dto);
+        PoesysTrackingThread thread = null;
 
-          dto.notify(DataEvent.DELETE);
-        } else if (dto.getStatus() == IDbDto.Status.CASCADE_DELETED) {
-          // Just notify DTO to update its observer parents of the delete.
-          dto.notify(DataEvent.DELETE);
+        // If the current thread is a PoesysTrackingThread, just postprocess in
+        // that
+        // thread; if not, start a new thread for the postprocessing.
+        if (Thread.currentThread() instanceof PoesysTrackingThread) {
+          thread = (PoesysTrackingThread)Thread.currentThread();
+          if (thread.getDto(dto.getPrimaryKey().getStringKey()) == null) {
+            // DTO not in history, add it so we can track processing.
+            thread.addDto(dto);
+          }
+          thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
+          postprocess(connection, dto);
+        } else {
+          Runnable process = new Runnable() {
+            public void run() {
+              try {
+                postprocess(connection, dto);
+              } catch (SQLException e) {
+                // Log and let the thread complete immediately
+                Object[] args = { dto.getPrimaryKey().getStringKey() };
+                String message =
+                  Message.getMessage(POST_PROCESSING_ERROR, args);
+                logger.error(message, e);
+                throw new RuntimeException(message, e);
+              } catch (BatchException e) {
+                // Log and let the thread complete immediately
+                Object[] args = { dto.getPrimaryKey().getStringKey() };
+                String message =
+                  Message.getMessage(POST_PROCESSING_ERROR, args);
+                logger.error(message, e);
+                throw new RuntimeException(message, e);
+              }
+            }
+          };
+          thread = new PoesysTrackingThread(process);
+          thread.addDto(dto);
+          thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
+          thread.start();
+
+          // Join the thread, blocking until the thread completes or
+          // until the query times out.
+          try {
+            thread.join(TIMEOUT);
+          } catch (InterruptedException e) {
+            Object[] args = {"insert", dto.getPrimaryKey().getStringKey()};
+            String message = Message.getMessage(THREAD_ERROR, args);
+            logger.error(message, e);
+          }
         }
       }
-
-      // If there are errors, throw a batch exception.
-      if (hasErrors) {
-        throw new BatchException(builder.toString());
-      }
+    }
+    // If there are errors, throw a batch exception.
+    if (hasErrors) {
+      throw new BatchException(builder.toString());
     }
   }
 

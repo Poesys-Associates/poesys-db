@@ -26,6 +26,7 @@ import java.util.Collection;
 import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
+import com.poesys.db.dao.PoesysTrackingThread;
 
 
 /**
@@ -107,11 +108,21 @@ public abstract class AbstractProcessNestedObjects<T extends IDbDto, C extends C
     C deletes = (C)new ArrayList<T>();
 
     C dtos = getDtos();
+    
+    PoesysTrackingThread thread = null;
+    if (Thread.currentThread() instanceof PoesysTrackingThread) {
+      thread = (PoesysTrackingThread)Thread.currentThread();
+    }
 
     if (dtos != null) {
       for (T dto : dtos) {
-        IDbDto.Status status = dto.getStatus();
-        if (!dto.isProcessed()) {
+        String key = dto.getPrimaryKey().getStringKey();
+        boolean isProcessed = false;
+        if (thread != null && thread.isProcessed(key)) {
+          isProcessed = true;
+        }
+        if (!isProcessed) {
+          IDbDto.Status status = dto.getStatus();
           if (status == IDbDto.Status.NEW) {
             inserts.add(dto);
           } else if (status == IDbDto.Status.CHANGED) {

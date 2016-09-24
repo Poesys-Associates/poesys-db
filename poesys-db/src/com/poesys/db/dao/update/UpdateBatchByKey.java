@@ -29,8 +29,10 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.Message;
 import com.poesys.db.NoPrimaryKeyException;
 import com.poesys.db.dao.AbstractBatch;
+import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.dto.IDbDto.Status;
 import com.poesys.db.pk.IPrimaryKey;
@@ -72,10 +74,20 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
   /** Error message when no primary key supplied */
   private static final String NO_KEY_MSG =
     "com.poesys.db.dao.update.msg.no_update_key";
+  /** Error message when post-processing throws an exception */
+  private static final String POST_PROCESSING_ERROR =
+    "com.poesys.db.dao.update.msg.postprocessing";
+  /** Error message updating a DTO already processed */
+  private static final String ALREADY_PROCESSED_WARNING =
+    "com.poesys.db.dao.delete.msg.processed";
+  /** Error message when thread is interrupted or timed out */
+  private static final String THREAD_ERROR = "com.poesys.db.dao.msg.thread";
   /** Builder for the batch processing error strings */
   private StringBuilder builder = new StringBuilder();
   /** Flag indicating whether a batch has encountered errors */
   private boolean hasErrors = false;
+  /** timeout for the cache thread */
+  private static final int TIMEOUT = 1000 * 60;
 
   /**
    * Create an UpdateBatchByKey object by supplying the concrete implementation
@@ -112,7 +124,21 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
           dto.preprocessNestedObjects(connection);
 
           // Only proceed if the dto is CHANGED and unprocessed.
-          if (dto.getStatus() == IDbDto.Status.CHANGED && !dto.isProcessed()) {
+          if (dto.getStatus() == IDbDto.Status.CHANGED) {
+            if (Thread.currentThread() instanceof PoesysTrackingThread) {
+              PoesysTrackingThread thread =
+                (PoesysTrackingThread)Thread.currentThread();
+              if (thread.getDto(dto.getPrimaryKey().getStringKey()) != null) {
+                if (thread.isProcessed(dto.getPrimaryKey().getStringKey())) {
+                  // update already processed, warn then skip this DTO
+                  Object[] args = { dto.getPrimaryKey().getStringKey() };
+                  String message =
+                    Message.getMessage(ALREADY_PROCESSED_WARNING, args);
+                  logger.warn(message);
+                  continue;
+                }
+              }
+            }
             dto.validateForUpdate();
 
             // Everything is valid, so proceed to the main update.
@@ -191,15 +217,59 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
        * the inheritance hierarchy).
        */
       for (T dto : dtos) {
-        if (!dto.isProcessed()
-            && (dto.getStatus() == IDbDto.Status.CHANGED || dto.getStatus() == IDbDto.Status.EXISTING)) {
-          dto.setProcessed(true);
-          postprocess(connection, dto);
+        PoesysTrackingThread thread = null;
+
+        // If the current thread is a PoesysTrackingThread, just postprocess in
+        // that thread; if not, start a new thread for the postprocessing.
+        if (Thread.currentThread() instanceof PoesysTrackingThread) {
+          thread = (PoesysTrackingThread)Thread.currentThread();
+          if (thread.getDto(dto.getPrimaryKey().getStringKey()) == null) {
+            // DTO not in history, add it so we can track processing.
+            thread.addDto(dto);
+          }
+          if (!thread.isProcessed(dto.getPrimaryKey().getStringKey())
+              && (dto.getStatus() == IDbDto.Status.CHANGED || dto.getStatus() == IDbDto.Status.EXISTING)) {
+            thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
+            postprocess(connection, dto);
+          }
+        } else {
+          Runnable process = new Runnable() {
+            public void run() {
+              try {
+                postprocess(connection, dto);
+              } catch (SQLException e) {
+                // Log and let the thread complete immediately
+                Object[] args = { dto.getPrimaryKey().getStringKey() };
+                String message =
+                  Message.getMessage(POST_PROCESSING_ERROR, args);
+                logger.error(message, e);
+                throw new RuntimeException(message, e);
+              } catch (BatchException e) {
+                // Log and let the thread complete immediately
+                Object[] args = { dto.getPrimaryKey().getStringKey() };
+                String message =
+                  Message.getMessage(POST_PROCESSING_ERROR, args);
+                logger.error(message, e);
+                throw new RuntimeException(message, e);
+              }
+            }
+          };
+          thread = new PoesysTrackingThread(process);
+          thread.addDto(dto);
+          thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
+          thread.start();
+
+          // Join the thread, blocking until the thread completes or
+          // until the query times out.
+          try {
+            thread.join(TIMEOUT);
+          } catch (InterruptedException e) {
+            Object[] args = { "update", dto.getPrimaryKey().getStringKey() };
+            String message = Message.getMessage(THREAD_ERROR, args);
+            logger.error(message, e);
+          }
         }
       }
-
-      // Set processed flag to prevent further processing of this object.
-      setProcessed(list, true);
 
       // If there are errors, throw a batch exception.
       if (hasErrors) {

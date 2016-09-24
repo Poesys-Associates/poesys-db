@@ -85,9 +85,6 @@ public abstract class AbstractDto implements IDbDto {
    */
   private Status status;
 
-  /** whether this DTO has been fully processed (inserted, updated, deleted) */
-  private boolean processed = false;
-
   /** whether the DTO is an abstract class (true) or a concrete one (false) */
   protected boolean abstractClass = false;
 
@@ -234,8 +231,6 @@ public abstract class AbstractDto implements IDbDto {
       // Allow undo to EXISTING, FAILED, or CHANGED
       previousStatus = status;
       status = Status.CHANGED;
-      // Reset processed flag
-      processed = false;
     } else if (status == Status.NEW) {
       // do nothing, just ignore the attempt to set to CHANGED
     } else {
@@ -261,8 +256,6 @@ public abstract class AbstractDto implements IDbDto {
       markChildrenDeleted();
       // Notify the parent of the marking.
       notify(DataEvent.MARKED_DELETED);
-      // Reset the processed flag.
-      processed = false;
     } else if (status == Status.DELETED || status == Status.CASCADE_DELETED) {
       // do nothing, it's already DELETED
     } else if (status == Status.NEW) {
@@ -615,15 +608,5 @@ public abstract class AbstractDto implements IDbDto {
   public void update(ISubject subject, DataEvent event) {
     // Default action is to do nothing; concrete DTOs must implement the
     // appropriate method that handles actions for updating nested children.
-  }
-
-  @Override
-  public boolean isProcessed() {
-    return processed;
-  }
-
-  @Override
-  public void setProcessed(boolean processed) {
-    this.processed = processed;
   }
 }

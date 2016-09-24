@@ -178,10 +178,4 @@ public class CacheDaoManager implements IDaoManager {
     // Clear all the in-memory caches.
     map.clear();
   }
-  
-  public void clearAllProcessedFlags() {
-    for (IDtoCache<IDbDto> cache : map.values()) {
-      cache.clearProcessedFlags();
-    }
-  }
 }

@@ -26,16 +26,16 @@ import com.poesys.db.dto.IDbDto;
 
 
 /**
- * A Thread object that contains the retrieval state of a Poesys/DB cached
+ * A Thread object that contains the retrieval and processing state of a Poesys/DB 
  * object tree retrieval. The class tracks the set of retrieved objects as a
  * history of objects retrieved. Each object is in a container object that has
  * attributes related to Poesys/DB processing. The Thread subclass thus provides
- * a container for operations involving multiple objects, and provides a place
+ * a container for operations involving multiple objects and provides a place
  * outside the objects to track processing.
  * 
  * @author Robert J. Muller
  */
-public class CacheThread extends Thread {
+public class PoesysTrackingThread extends Thread {
   private static final String NO_DTO_FOR_KEY_ERR =
     "No retrieved DTO with this key: ";
 
@@ -43,26 +43,26 @@ public class CacheThread extends Thread {
    * map of DTOs indexed by global primary key (string version of DTO primary
    * key)
    */
-  private final Map<String, CachedObject> history =
-    new HashMap<String, CachedObject>();
+  private final Map<String, DtoTrackingObject> history =
+    new HashMap<String, DtoTrackingObject>();
 
   // Error messages
   private static final String NO_DTO_ERR =
     "com.poesys.db.dao.query.msg.no_cached_dto_error";
 
   /**
-   * Create a CacheThread object.
+   * Create a PoesysTrackingThread object.
    *
    */
-  public CacheThread() {
+  public PoesysTrackingThread() {
   }
 
   /**
-   * Create a CacheThread object with a task.
+   * Create a PoesysTrackingThread object with a task.
    *
    * @param target the Runnable task
    */
-  public CacheThread(Runnable target) {
+  public PoesysTrackingThread(Runnable target) {
     super(target);
   }
 
@@ -71,7 +71,7 @@ public class CacheThread extends Thread {
    *
    * @param name the thread name
    */
-  public CacheThread(String name) {
+  public PoesysTrackingThread(String name) {
     super(name);
   }
 
@@ -81,7 +81,7 @@ public class CacheThread extends Thread {
    * @param group the group of threads
    * @param target the Runnable task
    */
-  public CacheThread(ThreadGroup group, Runnable target) {
+  public PoesysTrackingThread(ThreadGroup group, Runnable target) {
     super(group, target);
   }
 
@@ -91,7 +91,7 @@ public class CacheThread extends Thread {
    * @param group a group of threads
    * @param name the thread name
    */
-  public CacheThread(ThreadGroup group, String name) {
+  public PoesysTrackingThread(ThreadGroup group, String name) {
     super(group, name);
   }
 
@@ -101,7 +101,7 @@ public class CacheThread extends Thread {
    * @param target the task
    * @param name the thread name
    */
-  public CacheThread(Runnable target, String name) {
+  public PoesysTrackingThread(Runnable target, String name) {
     super(target, name);
   }
 
@@ -112,7 +112,7 @@ public class CacheThread extends Thread {
    * @param target the task
    * @param name the thread name
    */
-  public CacheThread(ThreadGroup group, Runnable target, String name) {
+  public PoesysTrackingThread(ThreadGroup group, Runnable target, String name) {
     super(group, target, name);
   }
 
@@ -125,7 +125,7 @@ public class CacheThread extends Thread {
    * @param name the thread name
    * @param stackSize integer, size of the thread stack
    */
-  public CacheThread(ThreadGroup group,
+  public PoesysTrackingThread(ThreadGroup group,
                      Runnable target,
                      String name,
                      long stackSize) {
@@ -141,7 +141,7 @@ public class CacheThread extends Thread {
    */
   public IDbDto getDto(String key) {
     IDbDto dto = null;
-    CachedObject obj = history.get(key);
+    DtoTrackingObject obj = history.get(key);
     if (obj != null) {
       dto = obj.getDto();
     }
@@ -157,7 +157,7 @@ public class CacheThread extends Thread {
     if (dto == null) {
       throw new InvalidParametersException(NO_DTO_ERR);
     }
-    CachedObject obj = new CachedObject(dto);
+    DtoTrackingObject obj = new DtoTrackingObject(dto);
     history.put(dto.getPrimaryKey().getStringKey(), obj);
   }
 
@@ -170,7 +170,7 @@ public class CacheThread extends Thread {
    */
   public boolean isProcessed(String key) {
     boolean processed = false;
-    CachedObject obj = history.get(key);
+    DtoTrackingObject obj = history.get(key);
     if (obj != null) {
       processed = obj.isProcessed;
     } 
@@ -184,7 +184,7 @@ public class CacheThread extends Thread {
    * @param processed true for processed, false for not processed
    */
   public void setProcessed(String key, boolean processed) {
-    CachedObject obj = history.get(key);
+    DtoTrackingObject obj = history.get(key);
     if (obj != null) {
       obj.setProcessed(processed);
     } else {

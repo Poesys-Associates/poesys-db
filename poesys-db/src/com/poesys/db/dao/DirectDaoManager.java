@@ -125,9 +125,4 @@ public final class DirectDaoManager implements IDaoManager {
   public void clearAllCaches() {
     // No caches to clear
   }
-
-  @Override
-  public void clearAllProcessedFlags() {
-    // Nothing to do, no caches    
-  }
 }

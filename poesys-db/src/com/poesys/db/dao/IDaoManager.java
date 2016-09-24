@@ -159,9 +159,4 @@ public interface IDaoManager {
    * Clear all caches associated with the DAO Manager.
    */
   void clearAllCaches();
-  
-  /**
-   * Clear the processed flags in any IDbDto objects in all the caches associated with the DAO Manager.
-   */
-  void clearAllProcessedFlags();
 }

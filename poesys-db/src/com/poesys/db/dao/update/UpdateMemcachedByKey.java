@@ -39,13 +39,11 @@ public class UpdateMemcachedByKey<T extends IDbDto> extends UpdateByKey<T>
   @Override
   public void update(Connection connection, T dto) throws SQLException,
       BatchException {
-    // Only remove from cache if DTO exists and hasn't been processed.
-    if (dto != null && !dto.isProcessed()) {
-      // Initialize factory to use memcached.
-      DaoManagerFactory.initMemcachedManager(subsystem);
-      // Get the memcached DAO manager.
+    // Remove CHANGED DTOs from the cache.
+    if (dto != null && dto.hasStatusChanged()) {
       DaoManagerFactory.initMemcachedManager(subsystem);
       IDaoManager manager = DaoManagerFactory.getManager(subsystem);
+      
       manager.removeObjectFromCache(dto.getPrimaryKey().getCacheName(),
                                     dto.getPrimaryKey());
     }
