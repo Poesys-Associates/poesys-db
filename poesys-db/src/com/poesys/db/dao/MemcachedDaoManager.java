@@ -365,10 +365,12 @@ public final class MemcachedDaoManager implements IDaoManager {
         while (retries > 0) {
           try {
             dto = (IDbDto)client.get(key.getStringKey());
-            thread.addDto(dto);
-            thread.setProcessed(key.getStringKey(), true);
-            // Break out of loop after no-exception get; no need to check
-            // object for null, just means not cached
+            if (dto != null) {
+              // object found, track and set processed
+              thread.addDto(dto);
+              thread.setProcessed(key.getStringKey(), true);
+            }
+            // Break out of loop after no-exception get
             break;
           } catch (Exception e) {
             retries--;
