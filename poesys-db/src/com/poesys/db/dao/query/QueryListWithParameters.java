@@ -29,8 +29,11 @@ import java.util.Collection;
 import org.apache.log4j.Logger;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.Message;
+import com.poesys.db.NoRequiredValueException;
 import com.poesys.db.connection.ConnectionFactoryFactory;
 import com.poesys.db.connection.IConnectionFactory;
+import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
 
 
@@ -61,9 +64,25 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
   /** Number of rows to fetch at once, optimizes query fetching */
   protected final int rows;
 
+  /** the collection or list of query result DTOs */
+  @SuppressWarnings("unchecked")
+  private C list = (C)new ArrayList<T>();
+
+  /** timeout for the query thread */
+  private static final int TIMEOUT = 1000 * 60;
+
   /** Error getting resource bundle, can't resolve to bundle text so a constant */
   private static final String RESOURCE_BUNDLE_ERROR =
     "Problem getting Poesys/DB resource bundle";
+
+  /** Error message for query with no parameter object */
+  private static final String PARAM_ERROR =
+    "com.poesys.db.dto.msg.no_parameter";
+  /** Error message when thread is interrupted or timed out */
+  private static final String THREAD_ERROR = "com.poesys.db.dao.msg.thread";
+  /** Error message when query returns SQL exception querying list */
+  private static final String SQL_ERROR =
+    "com.poesys.db.dao.query.msg.sql_parameter_list";
 
   /**
    * Create a QueryListWithParameters object.
@@ -80,18 +99,75 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
     this.rows = rows;
   }
 
-  @SuppressWarnings("unchecked")
+  @Override
   public C query(S parameters) throws SQLException, BatchException {
-    C list = (C)new ArrayList<T>();
+    // Make sure the key is there.
+    if (parameters == null) {
+      throw new NoRequiredValueException(PARAM_ERROR);
+    }
+
+    PoesysTrackingThread thread = null;
+
+    // If the current thread is a PoesysTrackingThread, just run the query in
+    // that thread directly; if not, start a new thread to run it.
+    if (Thread.currentThread() instanceof PoesysTrackingThread) {
+      thread = (PoesysTrackingThread)Thread.currentThread();
+      logger.debug("Using existing TrackingThread " + thread.getId());
+      doDatabaseQuery(parameters, thread);
+    } else {
+      thread = new PoesysTrackingThread(getRunnableQuery(parameters));
+      logger.debug("Starting new TrackingThread " + thread.getId());
+
+      thread.start();
+      // Join the thread, blocking until the thread completes or
+      // until the query times out.
+      try {
+        thread.join(TIMEOUT);
+      } catch (InterruptedException e) {
+        Object[] args =
+          { "parameterized query", parameters.getPrimaryKey().getStringKey() };
+        String message = Message.getMessage(THREAD_ERROR, args);
+        logger.error(message, e);
+      }
+    }
+
+    return list;
+  }
+
+  /**
+   * Create a runnable query object that runs within a PoesysTrackingThread.
+   * This method does a simple database query within the thread.
+   * 
+   * @param parameters the parameters object
+   * @return the runnable query
+   */
+  private Runnable getRunnableQuery(S parameters) {
+    Runnable query = new Runnable() {
+      public void run() {
+        // Get the current tracking thread in which this is running.
+        PoesysTrackingThread thread =
+          (PoesysTrackingThread)Thread.currentThread();
+        doDatabaseQuery(parameters, thread);
+      }
+    };
+
+    return query;
+  }
+
+  /**
+   * Execute the query with the parameters using a specified tracking thread.
+   * 
+   * @param parameters the query parameters
+   * @param thread the tracking thread
+   */
+  private void doDatabaseQuery(S parameters, PoesysTrackingThread thread) {
     PreparedStatement stmt = null;
     ResultSet rs = null;
-
-    validateParameters(parameters);
-
     Connection connection = null;
 
     // Query the list of objects based on the parameters.
     try {
+      validateParameters(parameters);
       logger.debug("Querying list with parameters: " + sql.getSql());
       IConnectionFactory factory =
         ConnectionFactoryFactory.getInstance(subsystem);
@@ -102,47 +178,65 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
       sql.bindParameters(stmt, parameters);
       rs = stmt.executeQuery();
 
-      // Loop through and fetch all the results, adding each to the result list.
+      // Loop through and fetch all the results, adding each to the result
+      // list.
       int count = 0;
       while (rs.next()) {
-        T object = getObject(connection, rs);
+        T object = getObject(connection, rs, thread);
         if (object != null) {
           list.add(object);
           count++;
         }
       }
-      logger.debug("Fetched " + count + " objects");
+      logger.debug("Fetched " + count + (count == 1 ? " object" : " objects"));
     } catch (SQLException e) {
       // Log the message and the SQL statement, then rethrow the exception.
-      logger.error("Query list with parameters error: " + e.getMessage());
+      Object[] args = { e.getMessage() };
+      String message = Message.getMessage(SQL_ERROR, args);
+      logger.error(message, e);
       // Log a debugging message for the "already been closed" error
       if ("PooledConnection has already been closed.".equals(e.getMessage())) {
         logger.debug("Closed connection: " + connection);
       }
-      logger.error("Query list with parameters sql: " + sql.getSql() + "\n");
       logger.debug("SQL statement in class: " + sql.getClass().getName());
-      throw e;
+      throw new RuntimeException(message, e);
     } catch (IOException e) {
-      // Problem with resource bundle, rethrow as SQLException
-      throw new SQLException(RESOURCE_BUNDLE_ERROR);
+      logger.error(RESOURCE_BUNDLE_ERROR, e);
+      throw new RuntimeException(RESOURCE_BUNDLE_ERROR);
+    } catch (BatchException e) {
+      Object[] args = { e.getMessage() };
+      String message = Message.getMessage(SQL_ERROR, args);
+      logger.error(message, e);
     } finally {
       // Close the statement and result set as required.
       if (stmt != null) {
-        stmt.close();
-      }
-      if (rs != null) {
-        rs.close();
+        try {
+          stmt.close();
+        } catch (SQLException e) {
+          // Log and ignore
+          logger.warn("Error closing SQL statement", e);
+        }
       }
       if (connection != null) {
         String connectionString = connection.toString();
-        connection.close();
+        try {
+          connection.close();
+        } catch (SQLException e) {
+          // Log and ignore
+          logger.warn("Error closing connection " + connectionString, e);
+        }
         logger.debug("Closed connection " + connectionString);
       }
     }
 
-    queryNestedObjectsForList(connection, list);
-
-    return list;
+    // Query nested objects outside of loop to ensure statement closed
+    /*
+     * try { queryNestedObjectsForList(connection, list); } catch (SQLException
+     * e) { Object[] args = { e.getMessage() }; String message =
+     * Message.getMessage(SQL_ERROR, args); logger.error(message, e); } catch
+     * (BatchException e) { Object[] args = { e.getMessage() }; String message =
+     * Message.getMessage(SQL_ERROR, args); logger.error(message, e); }
+     */
   }
 
   /**
@@ -177,21 +271,32 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
   }
 
   /**
-   * Get a DTO from a SQL result set. Subclasses can override this method to
-   * provide caching or other services for the object.
+   * Get a DTO from a SQL result set and add the DTO to the tracking thread.
+   * Subclasses can override this method to provide caching or other services
+   * for the object.
    * 
    * @param connection the database connection (for nested object queries)
    * @param rs the result set from an executed SQL statement
+   * @param thread the tracking thread for the query
    * @return the object
    * @throws SQLException when there is a database access problem
    * @throws BatchException when batch processing fails for a nested object
    */
-  protected T getObject(Connection connection, ResultSet rs)
-      throws SQLException, BatchException {
+  protected T getObject(Connection connection, ResultSet rs,
+                        PoesysTrackingThread thread) throws SQLException,
+      BatchException {
     T object = sql.getData(rs);
     // Set the new and changed flags to show this object exists and is
     // unchanged from the version in the database.
     object.setExisting();
+    // Check whether the object is already tracked; get nested objects if not.
+    if (thread.getDto(object.getPrimaryKey().getStringKey()) == null) {
+      // Track the DTO before getting nested objects.
+      thread.addDto(object);
+      object.queryNestedObjects();
+      // object is complete, set it as processed.
+      thread.setProcessed(object.getPrimaryKey().getStringKey(), true);
+    }
     return object;
   }
 

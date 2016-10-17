@@ -78,7 +78,7 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
   @Override
   public void update(Connection connection, T dto) throws SQLException,
       BatchException {
-    // Check that the DTO is there and is new.
+    // Check that the DTO is there and is CHANGED.
     if (dto == null) {
       throw new InvalidParametersException(NO_DTO_MSG);
     } else if (dto.getStatus() == IDbDto.Status.CHANGED) {
@@ -118,16 +118,16 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
         try {
           thread.join(TIMEOUT);
         } catch (InterruptedException e) {
-          Object[] args = {"update", dto.getPrimaryKey().getStringKey()};
+          Object[] args = { "update", dto.getPrimaryKey().getStringKey() };
           String message = Message.getMessage(THREAD_ERROR, args);
           logger.error(message, e);
         }
       }
 
-      // After processing the object, post-process nested objects.
-      // This gets done regardless of main object status.
-      postprocess(connection, dto);
     }
+    // After processing the object, post-process nested objects.
+    // This gets done regardless of main object status.
+    postprocess(connection, dto);
   }
 
   /**
@@ -185,8 +185,17 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
         stmt.close();
       }
     }
-    ((PoesysTrackingThread)Thread.currentThread()).setProcessed(dto.getPrimaryKey().getStringKey(),
-                                                                true);
+
+    PoesysTrackingThread thread =
+      ((PoesysTrackingThread)Thread.currentThread());
+    // Add the DTO to the tracking thread if not tracked.
+    if (thread.getDto(dto.getPrimaryKey().getStringKey()) == null) {
+      thread.addDto(dto);
+    }
+    // Process the nested objects.
+    postprocess(connection, dto);
+    // Set the object as processed.
+    thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
   }
 
   /**

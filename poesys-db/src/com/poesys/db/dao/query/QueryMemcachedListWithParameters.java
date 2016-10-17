@@ -26,9 +26,9 @@ import java.util.Collection;
 import org.apache.log4j.Logger;
 
 import com.poesys.db.BatchException;
-import com.poesys.db.dao.CacheDaoManager;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoManager;
+import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -75,37 +75,48 @@ public class QueryMemcachedListWithParameters<T extends IDbDto, S extends IDbDto
   }
 
   @Override
-  protected T getObject(Connection connection, ResultSet rs)
-      throws SQLException, BatchException {
+  protected T getObject(Connection connection, ResultSet rs,
+                        PoesysTrackingThread thread) throws SQLException,
+      BatchException {
     IPrimaryKey key = sql.getPrimaryKey(rs);
-    // Look the object up in the local Java cache first.
-    DaoManagerFactory.initMemcachedManager(subsystem);
-    T object = DaoManagerFactory.getManager(subsystem).getCachedObject(key);
+    logger.debug("Primary key for cache lookup: " + key.getStringKey());
+    // Look the object up in the thread history first.
+    @SuppressWarnings("unchecked")
+    T object = (T)thread.getDto(key.getStringKey());
     if (object == null) {
-      // Not locally cached, extract from list query result set.
-      object = sql.getData(rs);
-      logger.debug("Queried " + key.getStringKey()
-                   + " from database for list (parameterized)");
-      // Only cache if successfully retrieved
-      if (object != null) {
-        // Set the new and changed flags to show this object exists and is
-        // unchanged from the version in the database.
-        object.setExisting();
-        object.setQueried(true);
-        // Cache the object in memory before getting nested objects.
-        CacheDaoManager.getInstance().putObjectInCache(object.getClass().getName(),
-                                                       0,
-                                                       object);
-        // Cache object in memcached.
-        DaoManagerFactory.getManager(subsystem).putObjectInCache(object.getPrimaryKey().getCacheName(),
-                                                                 expiration,
-                                                                 object);
+      IDaoManager manager = DaoManagerFactory.initMemcachedManager(subsystem);
+      object = manager.getCachedObject(key);
+      if (object == null) {
+        // Not previously retrieved, extract from list query result set.
+        object = sql.getData(rs);
+        logger.debug("Queried " + key.getStringKey()
+                     + " from database for list (parameterized)");
+        // Only cache if successfully retrieved
+        if (object != null) {
+          // Set the new and changed flags to show this object exists and is
+          // unchanged from the version in the database.
+          object.setExisting();
+          object.setQueried(true);
+          // Cache object in memcached.
+          DaoManagerFactory.getManager(subsystem).putObjectInCache(object.getPrimaryKey().getCacheName(),
+                                                                   expiration,
+                                                                   object);
+        }
       }
     } else {
       object.setQueried(false);
       logger.debug("Retrieved " + key.getStringKey()
                    + " from cache for list (parameterized)");
     }
+
+    if (object != null) {
+      thread.addDto(object);
+      object.queryNestedObjects();
+      // object is complete, set it as processed.
+      thread.setProcessed(object.getPrimaryKey().getStringKey(), true);
+      logger.debug("Retrieved all nested objects for " + key.getStringKey());
+    }
+    
     return object;
   }
 
@@ -120,15 +131,18 @@ public class QueryMemcachedListWithParameters<T extends IDbDto, S extends IDbDto
       throws SQLException, BatchException {
     DaoManagerFactory.initMemcachedManager(subsystem);
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
+    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
     // Query any nested objects. This is outside the fetch above to make sure
     // that the statement and result set are closed before recursing.
     for (T object : list) {
       object.queryNestedObjects();
-      // Cache the object to ensure all nested object keys get serialized.
-      if (object.isQueried()) {
+      // Cache the object if not already cached.
+      if (thread.getDto(object.getPrimaryKey().getStringKey()) == null
+          && object.isQueried()) {
         manager.putObjectInCache(object.getPrimaryKey().getCacheName(),
                                  expiration,
                                  object);
+        thread.addDto(object);
       }
     }
   }

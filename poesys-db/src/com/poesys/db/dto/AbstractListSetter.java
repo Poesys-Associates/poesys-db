@@ -23,6 +23,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import org.apache.log4j.Logger;
+
 import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
@@ -49,6 +51,9 @@ import com.poesys.db.dao.query.IQueryListWithParameters;
  */
 abstract public class AbstractListSetter<T extends IDbDto, S extends IDbDto, C extends Collection<T>>
     extends AbstractSetter<T> implements ISet {
+  /** Logger for debugging */
+  private static final Logger logger =
+    Logger.getLogger(AbstractListSetter.class);
 
   /** Serial version UID for Serializable object */
   private static final long serialVersionUID = 1L;
@@ -73,7 +78,7 @@ abstract public class AbstractListSetter<T extends IDbDto, S extends IDbDto, C e
     IQueryListWithParameters<T, S, C> dao =
       factory.getQueryListWithParameters(getSql(), subsystem, getFetchSize());
     // Query using the outer object as parameters (that is, the parent key).
-    C list;
+    C list = null;
     try {
       list = dao.query(getParametersDto());
     } catch (ConstraintViolationException e) {
@@ -82,6 +87,8 @@ abstract public class AbstractListSetter<T extends IDbDto, S extends IDbDto, C e
       throw new DbErrorException(e.getMessage(), e);
     } catch (DtoStatusException e) {
       throw new DbErrorException(e.getMessage(), e);
+    } catch (Throwable t) {
+      logger.error("Unexpected exception during list setting", t);
     }
     if (list == null) {
       list = (C)new ArrayList<T>();

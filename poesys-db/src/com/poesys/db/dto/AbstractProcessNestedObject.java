@@ -100,13 +100,15 @@ public abstract class AbstractProcessNestedObject<T extends IDbDto> extends
     T dto = getDto();
     boolean isProcessed = false;
 
-    if (Thread.currentThread() instanceof PoesysTrackingThread) {
-      // Currently processing in hierarchy, check processed status
-      isProcessed =
-        ((PoesysTrackingThread)Thread.currentThread()).isProcessed(dto.getPrimaryKey().getStringKey());
-    }
-
     if (dto != null && !isProcessed) {
+      if (Thread.currentThread() instanceof PoesysTrackingThread) {
+        // Currently processing in hierarchy, check processed status
+        PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
+        String key = dto.getPrimaryKey().getStringKey();
+        if (thread.getDto(key) != null)
+        isProcessed = thread.isProcessed(key);
+      }
+
       try {
         IDbDto.Status status = dto.getStatus();
         if (status == IDbDto.Status.NEW) {

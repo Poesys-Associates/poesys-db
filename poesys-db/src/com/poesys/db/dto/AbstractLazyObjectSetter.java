@@ -59,31 +59,25 @@ abstract public class AbstractLazyObjectSetter<T extends IDbDto> extends
 
   @Override
   public void set(Connection connection) throws SQLException {
-    // Only set if the object is already set; if it is being deserialized, and
-    // if the object is not already set, it wasn't before; otherwise, this is a
-    // lazy load and the loading method sets the flag true. This works with the
-    // lazy loading proxies to set the object up properly for lazy loading.
-    if (isSet()) {
-      try {
-        IDaoManager manager = DaoManagerFactory.getManager(subsystem);
-        IDaoFactory<T> factory =
-          manager.getFactory(getClassName(), subsystem, expiration);
-        IQueryByKey<T> dao = factory.getQueryByKey(getSql(), subsystem);
-        // If there is a key, query using it; otherwise, just return as there is
-        // nothing to query and set.
-        if (getKey() != null) {
-          // Query using the outer object as parameters (that is, the parent
-          // key).
-          T dto = dao.queryByKey(getKey());
-          set(dto);
-        }
-      } catch (ConstraintViolationException e) {
-        throw new DbErrorException(e.getMessage(), e);
-      } catch (BatchException e) {
-        throw new DbErrorException(e.getMessage(), e);
-      } catch (DtoStatusException e) {
-        throw new DbErrorException(e.getMessage(), e);
+    try {
+      IDaoManager manager = DaoManagerFactory.getManager(subsystem);
+      IDaoFactory<T> factory =
+        manager.getFactory(getClassName(), subsystem, expiration);
+      IQueryByKey<T> dao = factory.getQueryByKey(getSql(), subsystem);
+      // If there is a key, query using it; otherwise, just return as there is
+      // nothing to query and set.
+      if (getKey() != null) {
+        // Query using the outer object as parameters (that is, the parent
+        // key).
+        T dto = dao.queryByKey(getKey());
+        set(dto);
       }
+    } catch (ConstraintViolationException e) {
+      throw new DbErrorException(e.getMessage(), e);
+    } catch (BatchException e) {
+      throw new DbErrorException(e.getMessage(), e);
+    } catch (DtoStatusException e) {
+      throw new DbErrorException(e.getMessage(), e);
     }
   }
 }

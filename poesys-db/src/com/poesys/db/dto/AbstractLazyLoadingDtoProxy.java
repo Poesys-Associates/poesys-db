@@ -195,6 +195,11 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
   @Override
   public void queryNestedObjects() throws SQLException, BatchException {
     dto.queryNestedObjects();
+    if (readObjectSetters != null) {
+      for (ISet set : readObjectSetters) {
+        set.set(null);
+      }
+    }
   }
 
   @Override

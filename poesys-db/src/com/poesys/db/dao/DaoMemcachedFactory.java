@@ -77,12 +77,14 @@ import com.poesys.db.dto.IDbDto;
  * external cache. As well, memcached supports object expiration in
  * milliseconds, and you can set that through the constructor on this factory.
  * There should be a tag on the Persistent stereotype that specifies the desired
- * expiration time in milliseconds for all the DTOs of a given type.
+ * expiration time in milliseconds for all the DTOs of a given type. Memcached
+ * uses a special Thread subclass, PoesysTrackingThread, to register DTOs being
+ * processed and to set their processed state.
  * </p>
  * 
  * @see IDaoFactory
  * @see DaoDirectFactory
- * @see CacheDaoManager
+ * @see PoesysTrackingThread
  * @see MemcachedDaoManager
  * 
  * @author Robert J. Muller

@@ -70,40 +70,35 @@ abstract public class AbstractListReadSetter<T extends IDbDto> extends
 
   @Override
   public void set(Connection connection) throws SQLException {
-    // Only set if the object is already set; it is being deserialized, so if
-    // the object is not already set, it wasn't before. This works with the
-    // lazy loading proxies to set the object up properly for lazy loading.
-    if (isSet()) {
-      IDaoManager manager = DaoManagerFactory.getManager(subsystem);
-      IDaoFactory<T> factory =
-        manager.getFactory(getClassName(), subsystem, expiration);
-      IQueryByKey<T> dao = factory.getQueryByKey(getSql(), subsystem);
-      List<T> list = null;
+    IDaoManager manager = DaoManagerFactory.getManager(subsystem);
+    IDaoFactory<T> factory =
+      manager.getFactory(getClassName(), subsystem, expiration);
+    IQueryByKey<T> dao = factory.getQueryByKey(getSql(), subsystem);
+    List<T> list = null;
 
-      // Query using the primary keys.
-      if (getPrimaryKeys() != null) {
-        list = getEmptyList();
-        try {
-          for (IPrimaryKey key : getPrimaryKeys()) {
-            T dto = dao.queryByKey(key);
-            list.add(dto);
-            // Process the deserialized nested objects.
-            dto.deserializeNestedObjects();
-          }
-        } catch (ConstraintViolationException e) {
-          throw new DbErrorException(e.getMessage(), e);
-        } catch (BatchException e) {
-          throw new DbErrorException(e.getMessage(), e);
-        } catch (DtoStatusException e) {
-          throw new DbErrorException(e.getMessage(), e);
+    // Query using the primary keys.
+    if (getPrimaryKeys() != null) {
+      list = getEmptyList();
+      try {
+        for (IPrimaryKey key : getPrimaryKeys()) {
+          T dto = dao.queryByKey(key);
+          list.add(dto);
+          // Process the deserialized nested objects.
+          dto.deserializeNestedObjects();
         }
+      } catch (ConstraintViolationException e) {
+        throw new DbErrorException(e.getMessage(), e);
+      } catch (BatchException e) {
+        throw new DbErrorException(e.getMessage(), e);
+      } catch (DtoStatusException e) {
+        throw new DbErrorException(e.getMessage(), e);
       }
-
-      // Convert the array list to a thread-safe list.
-      list = getThreadSafeList(list);
-
-      set(list);
     }
+
+    // Convert the array list to a thread-safe list.
+    list = getThreadSafeList(list);
+
+    set(list);
   }
 
   /**

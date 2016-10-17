@@ -48,9 +48,7 @@ import com.poesys.db.pk.IPrimaryKey;
  * de-serializes it and returns it without querying; if the object is not
  * cached, the method queries and caches the object. This subclass overrides the
  * queryByKey method to add caching to the logic; the code replaces all the code
- * in the superclass because the caching has to happen right in the middle of
- * the method and there's no easy way to split apart the shared code from the
- * caching-specific code.
+ * in the superclass as the code must run in a separate tracking thread.
  * 
  * @author Robert J. Muller
  * @param <T> the type of IDbDto to query
@@ -65,19 +63,25 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
   /** expiration time in milliseconds for cached objects */
   private Integer expiration;
 
-  private T dto = null;
+  protected T dto = null;
 
   /** timeout for the query thread */
-  private static final int TIMEOUT = 1000 * 60;
+  private static final int TIMEOUT = 1000 * 1000;
 
   /** error getting resource bundle, can't resolve to bundle text so a constant */
   private static final String RESOURCE_BUNDLE_ERROR =
     "Problem getting Poesys/DB resource bundle";
   /** Error message when thread is interrupted or timed out */
   private static final String THREAD_ERROR = "com.poesys.db.dao.msg.thread";
+  /** Error message when thread gets SQL error */
+  private static final String SQL_ERROR =
+    "com.poesys.db.dto.msg.unexpected_sql_error";
+  private static final String NESTED_OBJECT_ERROR =
+    "com.poesys.db.dao.query.msg.query_nested_objects";
+  private static final String BATCH_ERROR = "com.poesys.db.dao.query.msg.batch";
 
   /**
-   * Create a QueryCacheByKey object with the appropriate SQL class, the
+   * Create a QueryMemcachedByKey object with the appropriate SQL class, the
    * subsystem that contains the T class, and the memcached expiration time for
    * objects of type T in the cache.
    * 
@@ -102,35 +106,117 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
       throw new NoPrimaryKeyException(NO_PRIMARY_KEY_MSG);
     }
 
-    // Get the PoesysTrackingThread for later history addition.
-    // Set the DTO object from the cache if it is cached.
-     PoesysTrackingThread thread = getThreadAndDto(key);
+    Runnable query = getRunnableQuery(key);
+    PoesysTrackingThread thread = null;
 
-    // Only proceed if the DTO object was not in the cache.
-    if (dto == null) {
-      queryDtoFromDatabase(key, thread);
+    // If the current thread is a PoesysTrackingThread, just run the query in
+    // that thread; if not, start a new thread to get the objects and its
+    // dependents.
+    if (Thread.currentThread() instanceof PoesysTrackingThread) {
+      thread = (PoesysTrackingThread)Thread.currentThread();
+      logger.debug("Using existing tracking thread " + thread.getId());
+      getDto(key, thread);
     } else {
-      dto.setQueried(false);
-      logger.debug("Found object " + key.getCacheName() + " with key "
-                   + key.getStringKey() + " in memcached ");
+      thread = new PoesysTrackingThread(query);
+      logger.debug("Starting new tracking thread " + thread.getId());
+      thread.start();
+      // Join the thread, blocking until the thread completes or
+      // until the query times out.
+      try {
+        thread.join(TIMEOUT);
+      } catch (InterruptedException e) {
+        Object[] args = { "update", dto.getPrimaryKey().getStringKey() };
+        String message = Message.getMessage(THREAD_ERROR, args);
+        logger.error(message, e);
+      }
+    }
+
+    // Clear the class member variable to make method reentrant.
+    T returnedDto = dto;
+    dto = null;
+
+    return returnedDto;
+  }
+
+  /**
+   * Create a runnable query object that runs within a PoesysTrackingThread. The
+   * run method checks the cache for the DTO. If it is cached, it gets it from
+   * the cache; if not, it queries the object from the database. The method then
+   * queries nested objects. All these activities happen in a single run of the
+   * query in the tracking thread.
+   * 
+   * @param key the primary key of the DTO
+   * @return the runnable query
+   */
+  protected Runnable getRunnableQuery(IPrimaryKey key) {
+    // Create a runnable query object that does the query.
+    Runnable query = new Runnable() {
+      public void run() {
+        // Get the current tracking thread in which this is running.
+        PoesysTrackingThread thread =
+          (PoesysTrackingThread)Thread.currentThread();
+        getDto(key, thread);
+      }
+    };
+    return query;
+  }
+
+  /**
+   * Get the DTO identified by a primary key either from memcached or by
+   * querying it from the database. Update the tracking thread with the DTO.
+   * 
+   * @param key the primary key
+   * @param thread the tracking thread
+   */
+  @SuppressWarnings("unchecked")
+  private void getDto(IPrimaryKey key, PoesysTrackingThread thread) {
+    dto = (T)thread.getDto(key.getStringKey());
+    if (dto == null) {
+      dto = getObjectByKeyFromCache(key);
+      // Only proceed if the DTO object was not in the tracking thread or cache.
+      if (dto == null) {
+        try {
+          dto = queryDtoFromDatabase(key);
+          thread.addDto(dto);
+        } catch (SQLException e) {
+          logger.error(SQL_ERROR, e);
+          throw new RuntimeException(SQL_ERROR, e);
+        }
+      } else {
+        dto.setQueried(false);
+        logger.debug("Found object " + key.getCacheName() + " with key "
+                     + key.getStringKey() + " in memcached ");
+      }
+
       // Add the DTO to the thread history before getting nested objects.
-      thread.addDto(dto);
-    }
+      if (dto != null) {
+        thread.addDto(dto);
+      }
 
-    // For queried objects, get the nested objects and cache the DTO.
-    // This is done outside the query method to ensure that the
-    // SQL resources are completely closed.
-    if (dto != null && dto.isQueried()) {
-      dto.queryNestedObjects();
-      // Get the memcached cache manager.
-      DaoManagerFactory.initMemcachedManager(subsystem);
-      IDaoManager memcachedManager = DaoManagerFactory.getManager(subsystem);
-      memcachedManager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
-                                        expiration,
-                                        dto);
+      // For queried objects, get the nested objects and cache the DTO.
+      // This is done outside the query method to ensure that the
+      // SQL resources are completely closed. Note that the memcached
+      // retrieval processes nested objects regardless of whether the
+      // object comes from the cache or the database.
+      if (dto != null) {
+        try {
+          dto.queryNestedObjects();
+          thread.setProcessed(key.getStringKey(), true);
+        } catch (SQLException e) {
+          logger.error(SQL_ERROR, e);
+          throw new RuntimeException(SQL_ERROR, e);
+        } catch (BatchException e) {
+          logger.error(SQL_ERROR, e);
+          throw new RuntimeException(SQL_ERROR, e);
+        }
+        // Get the memcached cache manager.
+        DaoManagerFactory.initMemcachedManager(subsystem);
+        IDaoManager memcachedManager = DaoManagerFactory.getManager(subsystem);
+        memcachedManager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
+                                          expiration,
+                                          dto);
+      }
     }
-
-    return dto;
   }
 
   /**
@@ -138,14 +224,14 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
    * object and setting it into the thread history.
    * 
    * @param key the primary key of the DTO to query
-   * @param thread the cache thread holding the DTO query history
    * @throws SQLException if there is a problem querying the database
+   * @return the DTO
    */
-  private void queryDtoFromDatabase(IPrimaryKey key, PoesysTrackingThread thread)
-      throws SQLException {
+  protected T queryDtoFromDatabase(IPrimaryKey key) throws SQLException {
     Connection connection = null;
     PreparedStatement stmt = null;
     ResultSet rs = null;
+    T dto = null;
 
     try {
       IConnectionFactory factory =
@@ -168,8 +254,6 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
           dto.setExisting();
           dto.setQueried(true);
           logger.debug("Queried " + key.getStringKey() + " from database");
-          // Add the DTO to the thread history before getting nested objects.
-          thread.addDto(dto);
         }
       } else {
         logger.debug("Object " + key.getStringKey() + " not found in database");
@@ -198,41 +282,7 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
         logger.debug("Closed connection " + connectionString);
       }
     }
-  }
-
-  /**
-   * Get the cache thread and set the dto data member based on cache content.
-   * 
-   * @param key the primary key of the DTO to get
-   * @return the
-   */
-  private PoesysTrackingThread getThreadAndDto(IPrimaryKey key) {
-    PoesysTrackingThread thread = null;
-
-    // If the current thread is a PoesysTrackingThread, just run the query in that
-    // thread; if not, start a new thread.
-    if (Thread.currentThread() instanceof PoesysTrackingThread) {
-      getObjectByKeyFromCache(key);
-      thread = (PoesysTrackingThread)Thread.currentThread();
-    } else {
-      Runnable query = new Runnable() {
-        public void run() {
-          dto = getObjectByKeyFromCache(key);
-        }
-      };
-      thread = new PoesysTrackingThread(query);
-      thread.start();
-      // Join the thread, blocking until the thread completes or
-      // until the query times out.
-      try {
-        thread.join(TIMEOUT);
-      } catch (InterruptedException e) {
-        Object[] args = {"update", dto.getPrimaryKey().getStringKey()};
-        String message = Message.getMessage(THREAD_ERROR, args);
-        logger.error(message, e);
-      }
-    }
-    return thread;
+    return dto;
   }
 
   /**
@@ -266,6 +316,20 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
                    + keyString + "\"");
       // Check the cache for the object.
       object = service.getObject(key, expiration);
+      if (object != null) {
+        thread.addDto(object);
+        try {
+          object.queryNestedObjects();
+        } catch (SQLException e) {
+          String msg = Message.getMessage(NESTED_OBJECT_ERROR, null);
+          logger.error(msg, e);
+          throw new RuntimeException(msg, e);
+        } catch (BatchException e) {
+          String msg = Message.getMessage(BATCH_ERROR, null);
+          logger.error(msg, e);
+          throw new RuntimeException(msg, e);
+        }
+      }
     } else {
       object.setQueried(false);
       logger.debug("Found object in thread history: " + keyString);

@@ -24,6 +24,7 @@ import java.sql.SQLException;
 import java.util.Collection;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.dto.IDtoCache;
 import com.poesys.db.pk.IPrimaryKey;
@@ -63,7 +64,7 @@ public class QueryCacheListWithParameters<T extends IDbDto, S extends IDbDto, C 
   }
 
   @Override
-  protected T getObject(Connection connection, ResultSet rs)
+  protected T getObject(Connection connection, ResultSet rs, PoesysTrackingThread thread)
       throws SQLException, BatchException {
     IPrimaryKey key = sql.getPrimaryKey(rs);
     // Look the object up in the cache, create if not there and cache it.
@@ -78,6 +79,11 @@ public class QueryCacheListWithParameters<T extends IDbDto, S extends IDbDto, C 
         // Set the new and changed flags to show this object exists and is
         // unchanged from the version in the database.
         object.setExisting();
+        // Track the DTO before getting nested objects.
+        thread.addDto(object);
+        object.queryNestedObjects();
+        // object is complete, set it as processed.
+        thread.setProcessed(object.getPrimaryKey().getStringKey(), true);
       }
     }
     return object;

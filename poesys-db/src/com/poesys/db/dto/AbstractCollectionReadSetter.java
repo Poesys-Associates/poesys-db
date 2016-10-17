@@ -59,8 +59,9 @@ abstract public class AbstractCollectionReadSetter<T extends IDbDto> extends
 
   /** Serial version UID for this Serializable class */
   private static final long serialVersionUID = 1L;
-  
-  private static final Logger logger = Logger.getLogger(AbstractCollectionReadSetter.class);
+
+  private static final Logger logger =
+    Logger.getLogger(AbstractCollectionReadSetter.class);
 
   /**
    * Create a AbstractListSetter object.
@@ -75,38 +76,36 @@ abstract public class AbstractCollectionReadSetter<T extends IDbDto> extends
 
   @Override
   public void set(Connection connection) throws SQLException {
-    // Only set if the object is already set; it is being deserialized, so if
-    // the object is not already set, it wasn't before. This works with the
-    // lazy loading proxies to set the object up properly for lazy loading.
-   if (isSet()) {
-      IDaoManager manager = DaoManagerFactory.getManager(subsystem);
-      IDaoFactory<T> factory =
-        manager.getFactory(getClassName(), subsystem, expiration);
-      IQueryByKey<T> dao = factory.getQueryByKey(getSql(), subsystem);
-      // Query using the primary keys.
-      Collection<T> collection = null;
-      if (getPrimaryKeys() != null) {
-        // Never reuse old array, avoid ConcurrentModificationException
-        collection = new ArrayList<T>(getPrimaryKeys().size());
-        T dto = null; // for exception handling
-        try {
-          // Copy primary key array to avoid ConcurrentModificationException
-          List<IPrimaryKey> keyList = new ArrayList<IPrimaryKey>(getPrimaryKeys());
-          for (IPrimaryKey key : keyList) {
-            dto = dao.queryByKey(key);
-            collection.add(dto);
-            dto.deserializeNestedObjects();
-          }
-        } catch (ConstraintViolationException e) {
-          throw new DbErrorException(e.getMessage(), e);
-        } catch (BatchException e) {
-          throw new DbErrorException(e.getMessage(), e);
-        } catch (DtoStatusException e) {
-          throw new DbErrorException(e.getMessage(), e);
-        } catch (java.util.ConcurrentModificationException e) {
-          logger.error("Concurrent modification for DTO " + dto.getPrimaryKey(), e);
-          throw new DbErrorException("Concurrent modification for DTO " + dto.getPrimaryKey(), e);
+    IDaoManager manager = DaoManagerFactory.getManager(subsystem);
+    IDaoFactory<T> factory =
+      manager.getFactory(getClassName(), subsystem, expiration);
+    IQueryByKey<T> dao = factory.getQueryByKey(getSql(), subsystem);
+    // Query using the primary keys.
+    Collection<T> collection = null;
+    if (getPrimaryKeys() != null) {
+      // Never reuse old array, avoid ConcurrentModificationException
+      collection = new ArrayList<T>(getPrimaryKeys().size());
+      T dto = null; // for exception handling
+      try {
+        // Copy primary key array to avoid ConcurrentModificationException
+        List<IPrimaryKey> keyList =
+          new ArrayList<IPrimaryKey>(getPrimaryKeys());
+        for (IPrimaryKey key : keyList) {
+          dto = dao.queryByKey(key);
+          collection.add(dto);
+          dto.deserializeNestedObjects();
         }
+      } catch (ConstraintViolationException e) {
+        throw new DbErrorException(e.getMessage(), e);
+      } catch (BatchException e) {
+        throw new DbErrorException(e.getMessage(), e);
+      } catch (DtoStatusException e) {
+        throw new DbErrorException(e.getMessage(), e);
+      } catch (java.util.ConcurrentModificationException e) {
+        logger.error("Concurrent modification for DTO " + dto.getPrimaryKey(),
+                     e);
+        throw new DbErrorException("Concurrent modification for DTO "
+                                   + dto.getPrimaryKey(), e);
       }
 
       // Make the list thread safe and valid.
@@ -165,6 +164,6 @@ abstract public class AbstractCollectionReadSetter<T extends IDbDto> extends
   @Override
   public boolean isSet() {
     // Check the collection of objects; if it isn't null, it's been set.
-    return getObjectCollection() != null;
+    return getObjectCollection() != null && getObjectCollection().size() > 0;
   }
 }

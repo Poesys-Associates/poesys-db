@@ -26,9 +26,9 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import com.poesys.db.BatchException;
-import com.poesys.db.dao.CacheDaoManager;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoManager;
+import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -88,11 +88,11 @@ public class QueryMemcachedList<T extends IDbDto> extends QueryList<T> {
         // unchanged from the version in the database.
         object.setExisting();
         object.setQueried(true);
-        // Cache the object in memory before getting nested objects.
-        IDaoManager cacheManager = CacheDaoManager.getInstance();
-        cacheManager.putObjectInCache(object.getPrimaryKey().getCacheName(),
-                                      0,
-                                      object);
+        if (Thread.currentThread() instanceof PoesysTrackingThread) {
+          PoesysTrackingThread thread =
+            (PoesysTrackingThread)Thread.currentThread();
+          thread.addDto(object);
+        }
       }
     } else {
       object.setQueried(false);
@@ -116,6 +116,11 @@ public class QueryMemcachedList<T extends IDbDto> extends QueryList<T> {
         manager.putObjectInCache(object.getPrimaryKey().getCacheName(),
                                  expiration,
                                  object);
+        if (Thread.currentThread() instanceof PoesysTrackingThread) {
+          PoesysTrackingThread thread =
+            (PoesysTrackingThread)Thread.currentThread();
+          thread.setProcessed(object.getPrimaryKey().getStringKey(), true);
+        }
       }
     }
   }

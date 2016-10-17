@@ -323,10 +323,7 @@ public abstract class AbstractDto implements IDbDto {
   public void queryNestedObjects() throws SQLException, BatchException {
     if (querySetters != null) {
       for (ISet set : querySetters) {
-        // Only set if not already set
-        if (!set.isSet()) {
-          set.set(null);
-        }
+        set.set(null);
       }
     }
   }
@@ -336,10 +333,7 @@ public abstract class AbstractDto implements IDbDto {
       BatchException {
     if (insertQuerySetters != null) {
       for (ISet set : insertQuerySetters) {
-        // Only set the object if not already set
-        if (!set.isSet()) {
-          set.set(null);
-        }
+        set.set(null);
       }
     }
   }

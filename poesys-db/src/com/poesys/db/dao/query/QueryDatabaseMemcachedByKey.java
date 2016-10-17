@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Poesys Associates. All rights reserved.
+ * Copyright (c) 2011, 2016 Poesys Associates. All rights reserved.
  * 
  * This file is part of Poesys-DB.
  * 
@@ -18,43 +18,33 @@
 package com.poesys.db.dao.query;
 
 
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import org.apache.log4j.Logger;
 
 import com.poesys.db.BatchException;
-import com.poesys.db.ConstraintViolationException;
-import com.poesys.db.DbErrorException;
-import com.poesys.db.NoPrimaryKeyException;
-import com.poesys.db.connection.ConnectionFactoryFactory;
-import com.poesys.db.connection.IConnectionFactory;
-import com.poesys.db.dao.CacheDaoManager;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoManager;
+import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.pk.IPrimaryKey;
 
 
 /**
- * An implementation of the IQueryByKey interface that implements the basic
- * elements of a query by primary key including caching in the distributed
- * memcached server. If the object is already cached, the queryByKey method
- * de-serializes it and returns it without querying; if the object is not
- * cached, the method queries and caches the object. This subclass overrides the
- * queryByKey method to add caching to the logic; the code replaces all the code
- * in the superclass because the caching has to happen right in the middle of
- * the method and there's no easy way to split apart the shared code from the
- * caching-specific code.
+ * An implementation of the IQueryByKey interface and a subclass of the
+ * memcached query-by-key that implements querying the DTO from the database
+ * regardless of cache status, caching the returned DTO. The runnable always
+ * queries and caches the object. This subclass overrides the getRunnableQuery()
+ * method to remove the cache check before the query. You use this method when
+ * you want to guarantee that the value is synchronized with the database--for
+ * example, during testing that updates the data through direct JDBC, or when
+ * testing the actual changes to the database.
  * 
  * @author Robert J. Muller
  * @param <T> the type of IDbDto to query
  */
 public class QueryDatabaseMemcachedByKey<T extends IDbDto> extends
-    QueryByKey<T> implements IQueryByKey<T> {
+    QueryMemcachedByKey<T> implements IQueryByKey<T> {
   /** Logger for debugging */
   private static final Logger logger =
     Logger.getLogger(QueryDatabaseMemcachedByKey.class);
@@ -63,127 +53,77 @@ public class QueryDatabaseMemcachedByKey<T extends IDbDto> extends
   /** expiration time in milliseconds for cached objects */
   private Integer expiration;
 
-  /** Error getting resource bundle, can't resolve to bundle text so a constant */
-  private static final String RESOURCE_BUNDLE_ERROR =
-    "Problem getting Poesys/DB resource bundle";
+  /** Error message when thread gets SQL error */
+  private static final String SQL_ERROR =
+    "com.poesys.db.dto.msg.unexpected_sql_error";
 
   /**
-   * Create a QueryCacheByKey object with the appropriate SQL class, the
-   * subsystem that contains the T class, and the memcached expiration time for
-   * objects of type T in the cache.
+   * Create a QueryDatabaseMemcachedByKey object with the appropriate SQL class,
+   * the subsystem that contains the T class, and the memcached expiration time
+   * for objects of type T in the cache.
    * 
    * @param sql the SQL statement specification
-   * @param subsystem the subsystem that owns the object being queried
+   * @param subsystem the subsystem name for the subsystem containing the T
+   *          class
    * @param expiration the memcached expiration time in milliseconds for the
    *          cached object
    */
   public QueryDatabaseMemcachedByKey(IKeyQuerySql<T> sql,
                                      String subsystem,
                                      Integer expiration) {
-    super(sql, subsystem);
+    super(sql, subsystem, expiration);
     this.subsystem = subsystem;
     this.expiration = expiration;
   }
 
+  /**
+   * Create a runnable query object that runs within a PoesysTrackingThread. The
+   * run method always queries the object from the database. The method then
+   * queries nested objects. All these activities happen in a single run of the
+   * query in the tracking thread.
+   * 
+   * @param key the primary key of the DTO
+   * @return the runnable query
+   */
   @Override
-  public T queryByKey(IPrimaryKey key) throws SQLException, BatchException {
-    PreparedStatement stmt = null;
-    ResultSet rs = null;
-
-    // Make sure the key is there.
-    if (key == null) {
-      throw new NoPrimaryKeyException(NO_PRIMARY_KEY_MSG);
-    }
-
-    // Get the Memcached and in-memory cache managers.
-    DaoManagerFactory.initMemcachedManager(subsystem);
-    IDaoManager manager = DaoManagerFactory.getManager(subsystem);
-    IDaoManager cacheManager = CacheDaoManager.getInstance();
-
-    T object = null;
-
-    Connection connection = null;
-
-    try {
-      IConnectionFactory factory =
-        ConnectionFactoryFactory.getInstance(subsystem);
-      connection = factory.getConnection();
-      stmt = connection.prepareStatement(sql.getSql(key));
-      key.setParams(stmt, 1);
-      logger.debug("Querying database object by key: " + sql.getSql(key));
-      logger.debug("Setting key value: " + key.getValueList());
-      rs = stmt.executeQuery();
-
-      // Get a single result from the ResultSet and create the IDto.
-      if (rs.next()) {
-        object = sql.getData(key, rs);
-        if (object != null) {
-          // Set the new and changed flags to show this object exists and is
-          // unchanged from the version in the database.
-          object.setExisting();
-          object.setQueried(true);
-          logger.debug("Queried " + key.getStringKey() + " from database");
-          // Cache the object in memory before getting nested objects.
-          // This will replace any existing object in the cache.
-          cacheManager.putObjectInCache(object.getPrimaryKey().getCacheName(),
-                                        expiration,
-                                        object);
+  protected Runnable getRunnableQuery(IPrimaryKey key) {
+    // Create a runnable query object that does the query.
+    Runnable query = new Runnable() {
+      public void run() {
+        // Get the current tracking thread in which this is running.
+        PoesysTrackingThread thread =
+          (PoesysTrackingThread)Thread.currentThread();
+        try {
+          dto = queryDtoFromDatabase(key);
+          thread.addDto(dto);
+        } catch (SQLException e) {
+          logger.error(SQL_ERROR, e);
+          throw new RuntimeException(SQL_ERROR, e);
         }
-      } else {
-        logger.debug("Object " + key.getStringKey() + " not found in database");
-      }
-    } catch (ConstraintViolationException e) {
-      throw new DbErrorException(e.getMessage(), e);
-    } catch (SQLException e) {
-      // Log the message, the SQL statement, the key value parameters, and
-      // the SQL statement class, then rethrow the exception.
-      logger.error("Memcached database query by key error: " + e.getMessage());
-      logger.error("Memcached database query by key sql: " + sql.getSql(key)
-                   + "\n");
-      logger.error("Memcached database query by key parameter values: "
-                   + key.getValueList());
-      logger.debug("SQL statement in class: " + sql.getClass().getName());
-      throw e;
-    } catch (IOException e) {
-      // Problem with resource bundle, rethrow as SQLException
-      throw new SQLException(RESOURCE_BUNDLE_ERROR);
-    } finally {
-      if (stmt != null) {
-        stmt.close();
-      }
-      if (rs != null) {
-        rs.close();
-      }
-      // Close the connection.
-      if (connection != null) {
-        String connectionString = connection.toString();
-        connection.close();
-        logger.debug("Closed connection " + connectionString);
-      }
-    }
 
-    // Query any nested objects. This is outside the fetch above to make sure
-    // that the statement and result set are closed before recursing.
-    if (object != null) {
-      object.queryNestedObjects();
-      // If the object was queried, cache it.
-      if (object.isQueried()) {
-        // Now cache the object as all the details have been filled in.
-        manager.putObjectInCache(object.getPrimaryKey().getCacheName(),
-                                 expiration,
-                                 object);
+        // For queried objects, get the nested objects and cache the DTO.
+        // This is done outside the query method to ensure that the
+        // SQL resources are completely closed.
+        if (dto != null && dto.isQueried()) {
+          try {
+            dto.queryNestedObjects();
+          } catch (SQLException e) {
+            logger.error(SQL_ERROR, e);
+            throw new RuntimeException(SQL_ERROR, e);
+          } catch (BatchException e) {
+            logger.error(SQL_ERROR, e);
+            throw new RuntimeException(SQL_ERROR, e);
+          }
+          // Get the memcached cache manager.
+          DaoManagerFactory.initMemcachedManager(subsystem);
+          IDaoManager memcachedManager =
+            DaoManagerFactory.getManager(subsystem);
+          memcachedManager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
+                                            expiration,
+                                            dto);
+        }
       }
-    }
-
-    return object;
-  }
-
-  @Override
-  public void close() {
-  }
-
-  @Override
-  public void setExpiration(int expiration) {
-    this.expiration = expiration;
+    };
+    return query;
   }
 }

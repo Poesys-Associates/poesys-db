@@ -340,7 +340,11 @@ public final class MemcachedDaoManager implements IDaoManager {
       }
     }
 
-    return (T)dto;
+    // Reset the dto member for the next retrieval, returning the object.
+    T dtoToReturn = (T)dto;
+    dto = null;
+
+    return dtoToReturn;
   }
 
   /**
@@ -430,14 +434,11 @@ public final class MemcachedDaoManager implements IDaoManager {
       logger.debug("Cached object \"" + key + "\" of type "
                    + object.getClass().getName()
                    + " in memcached with expiration time " + expireTime + "ms");
-      // Get the in-memory cache manager. Adding the new object to this
-      // cache means that setters getting nested objects will get this
-      // object rather than getting a different one by deserializing from
-      // memcached.
-      IDaoManager localCacheManager = CacheDaoManager.getInstance();
-      localCacheManager.putObjectInCache(object.getPrimaryKey().getCacheName(),
-                                         expireTime,
-                                         object);
+      // Register the object in the tracking thread.
+      if (Thread.currentThread() instanceof PoesysTrackingThread) {
+        PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
+        thread.addDto(object);
+      }
     } catch (IllegalStateException e) {
       List<String> errors = new ArrayList<String>(1);
       errors.add(object.getPrimaryKey().getStringKey());
