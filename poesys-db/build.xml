@@ -17,12 +17,12 @@
 		</fileset>
 		<path path="${build}" />
 	</path>
-	
+
 	<!-- ================================= 
           target: compile Compiles the Java classes               
          ================================= -->
 	<target name="compile" description="Compiles the Java classes">
-		<mkdir dir="${build}"/>
+		<mkdir dir="${build}" />
 		<javac source="1.8" target="1.8" destdir="${build}" deprecation="false" nowarn="on" debug="on" memoryMaximumSize="512m" fork="true" includeantruntime="false">
 			<classpath refid="project.classpath" />
 			<src path="${src}" />
@@ -36,13 +36,24 @@
 	<target name="jar" depends="compile">
 		<jar destfile="${dist}/${dist-file}.jar">
 			<fileset dir="${build}" includes="**/*.class" excludes="**/*Test*.class, **/*Fake*.class" />
-			<fileset dir="${build}" includes="**/*.properties" excludes="**/*database*, **/*memcached*" />
+			<fileset dir="${src}" includes="**/*.properties" excludes="**/*database*, **/*memcached*" />
 			<manifest />
 		</jar>
 		<javadoc access="private" author="true" destdir="doc" doctitle="Phoenix Bioinformatics Java API Client" nodeprecated="false" nodeprecatedlist="false" noindex="false" nonavbar="false" notree="false" source="1.8" sourcepath="src" splitindex="true" use="true" version="true">
 			<classpath refid="project.classpath" />
-        </javadoc>
-		</target>
+		</javadoc>
+	</target>
+
+	<!-- ================================= 
+          target: jar Builds the distribution jar file with the non-test classes and without the properties files             
+         ================================= -->
+	<target name="jar-no-javadoc" depends="compile">
+		<jar destfile="${dist}/${dist-file}.jar">
+			<fileset dir="${build}" includes="**/*.class" excludes="**/*Test*.class, **/*Fake*.class" />
+			<fileset dir="${src}" includes="**/*.properties" excludes="**/*database*, **/*memcached*" />
+			<manifest />
+		</jar>
+	</target>
 
 	<!-- ================================= 
           target: clean Remove compiled classes and jar file
