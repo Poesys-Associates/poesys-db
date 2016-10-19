@@ -66,7 +66,7 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
   protected T dto = null;
 
   /** timeout for the query thread */
-  private static final int TIMEOUT = 1000 * 1000;
+  private static final int TIMEOUT = 1000 * 60;
 
   /** error getting resource bundle, can't resolve to bundle text so a constant */
   private static final String RESOURCE_BUNDLE_ERROR =
@@ -76,9 +76,6 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
   /** Error message when thread gets SQL error */
   private static final String SQL_ERROR =
     "com.poesys.db.dto.msg.unexpected_sql_error";
-  private static final String NESTED_OBJECT_ERROR =
-    "com.poesys.db.dao.query.msg.query_nested_objects";
-  private static final String BATCH_ERROR = "com.poesys.db.dao.query.msg.batch";
 
   /**
    * Create a QueryMemcachedByKey object with the appropriate SQL class, the
@@ -100,7 +97,10 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
   }
 
   @Override
-  public T queryByKey(IPrimaryKey key) throws SQLException, BatchException {
+  public synchronized T queryByKey(IPrimaryKey key) throws SQLException,
+      BatchException {
+    T returnedDto = null;
+
     // Make sure the key is there.
     if (key == null) {
       throw new NoPrimaryKeyException(NO_PRIMARY_KEY_MSG);
@@ -132,9 +132,8 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
     }
 
     // Clear the class member variable to make method reentrant.
-    T returnedDto = dto;
+    returnedDto = dto;
     dto = null;
-
     return returnedDto;
   }
 
@@ -317,18 +316,7 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
       // Check the cache for the object.
       object = service.getObject(key, expiration);
       if (object != null) {
-        thread.addDto(object);
-        try {
-          object.queryNestedObjects();
-        } catch (SQLException e) {
-          String msg = Message.getMessage(NESTED_OBJECT_ERROR, null);
-          logger.error(msg, e);
-          throw new RuntimeException(msg, e);
-        } catch (BatchException e) {
-          String msg = Message.getMessage(BATCH_ERROR, null);
-          logger.error(msg, e);
-          throw new RuntimeException(msg, e);
-        }
+        logger.debug("Object found in memcached cache: \"" + keyString + "\"");
       }
     } else {
       object.setQueried(false);

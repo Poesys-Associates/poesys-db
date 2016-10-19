@@ -197,7 +197,9 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
     dto.queryNestedObjects();
     if (readObjectSetters != null) {
       for (ISet set : readObjectSetters) {
-        set.set(null);
+        if (!set.isSet()) {
+          set.set(null);
+        }
       }
     }
   }
