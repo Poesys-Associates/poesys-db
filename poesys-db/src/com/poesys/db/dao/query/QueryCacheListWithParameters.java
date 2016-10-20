@@ -64,28 +64,31 @@ public class QueryCacheListWithParameters<T extends IDbDto, S extends IDbDto, C 
   }
 
   @Override
-  protected T getObject(Connection connection, ResultSet rs, PoesysTrackingThread thread)
-      throws SQLException, BatchException {
+  protected T getObject(Connection connection, ResultSet rs,
+                        PoesysTrackingThread thread) throws SQLException,
+      BatchException {
     IPrimaryKey key = sql.getPrimaryKey(rs);
     // Look the object up in the cache, create if not there and cache it.
-    T object = cache.get(key);
-    if (object == null) {
-      object = sql.getData(rs);
+    T dto = cache.get(key);
+    if (dto == null) {
+      dto = sql.getData(rs);
       // Only cache if successfully retrieved
-      if (object != null) {
+      if (dto != null) {
         // Cache object here to avoid infinite loops when querying nested
         // objects.
-        cache.cache(object);
+        cache.cache(dto);
         // Set the new and changed flags to show this object exists and is
         // unchanged from the version in the database.
-        object.setExisting();
+        dto.setExisting();
         // Track the DTO before getting nested objects.
-        thread.addDto(object);
-        object.queryNestedObjects();
-        // object is complete, set it as processed.
-        thread.setProcessed(object.getPrimaryKey().getStringKey(), true);
+        if (dto != null) {
+          thread.addDto(dto);
+          dto.queryNestedObjects();
+          // object is complete, set it as processed.
+          thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
+        }
       }
     }
-    return object;
+    return dto;
   }
 }
