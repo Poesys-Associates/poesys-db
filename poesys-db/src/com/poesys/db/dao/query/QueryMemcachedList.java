@@ -50,7 +50,7 @@ public class QueryMemcachedList<T extends IDbDto> extends QueryList<T> {
   /** the name of the subsystem containing the T class */
   private final String subsystem;
   /** the memcached expiration time in milliseconds for T objects */
-  private int expiration;
+  private final int expiration;
 
   /**
    * Create a QueryCacheList object.
@@ -88,16 +88,22 @@ public class QueryMemcachedList<T extends IDbDto> extends QueryList<T> {
         // unchanged from the version in the database.
         object.setExisting();
         object.setQueried(true);
-        if (Thread.currentThread() instanceof PoesysTrackingThread) {
-          PoesysTrackingThread thread =
-            (PoesysTrackingThread)Thread.currentThread();
-          thread.addDto(object);
-        }
       }
     } else {
       object.setQueried(false);
       logger.debug("Retrieved " + key.getStringKey() + " from cache for list");
     }
+
+    if (object != null && Thread.currentThread() instanceof PoesysTrackingThread) {
+      PoesysTrackingThread thread =
+        (PoesysTrackingThread)Thread.currentThread();
+      thread.addDto(object);
+      object.queryNestedObjects();
+      // object is complete, set it as processed.
+      thread.setProcessed(object.getPrimaryKey().getStringKey(), true);
+      logger.debug("Retrieved all nested objects for " + key.getStringKey());
+    }
+    
     return object;
   }
 
@@ -131,6 +137,6 @@ public class QueryMemcachedList<T extends IDbDto> extends QueryList<T> {
 
   @Override
   public void setExpiration(int expiration) {
-    this.expiration = expiration;
+    // Do nothing, expiration is final for memcached implementation
   }
 }

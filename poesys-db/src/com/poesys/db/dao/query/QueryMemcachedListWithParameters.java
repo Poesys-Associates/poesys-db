@@ -52,7 +52,7 @@ public class QueryMemcachedListWithParameters<T extends IDbDto, S extends IDbDto
   /** the name of the subsystem containing the T class */
   private final String subsystem;
   /** the memcached expiration time in milliseconds for T objects */
-  private int expiration;
+  private final int expiration;
 
   /**
    * Create a QueryCacheList object with the appropriate SQL class, the name of
@@ -82,42 +82,42 @@ public class QueryMemcachedListWithParameters<T extends IDbDto, S extends IDbDto
     logger.debug("Primary key for cache lookup: " + key.getStringKey());
     // Look the object up in the thread history first.
     @SuppressWarnings("unchecked")
-    T object = (T)thread.getDto(key.getStringKey());
-    if (object == null) {
+    T dto = (T)thread.getDto(key.getStringKey());
+    if (dto == null) {
       IDaoManager manager = DaoManagerFactory.initMemcachedManager(subsystem);
-      object = manager.getCachedObject(key);
-      if (object == null) {
+      dto = manager.getCachedObject(key);
+      if (dto == null) {
         // Not previously retrieved, extract from list query result set.
-        object = sql.getData(rs);
+        dto = sql.getData(rs);
         logger.debug("Queried " + key.getStringKey()
                      + " from database for list (parameterized)");
         // Only cache if successfully retrieved
-        if (object != null) {
+        if (dto != null) {
           // Set the new and changed flags to show this object exists and is
           // unchanged from the version in the database.
-          object.setExisting();
-          object.setQueried(true);
+          dto.setExisting();
+          dto.setQueried(true);
           // Cache object in memcached.
-          DaoManagerFactory.getManager(subsystem).putObjectInCache(object.getPrimaryKey().getCacheName(),
+          DaoManagerFactory.getManager(subsystem).putObjectInCache(dto.getPrimaryKey().getCacheName(),
                                                                    expiration,
-                                                                   object);
+                                                                   dto);
         }
       }
     } else {
-      object.setQueried(false);
+      dto.setQueried(false);
       logger.debug("Retrieved " + key.getStringKey()
                    + " from cache for list (parameterized)");
     }
 
-    if (object != null) {
-      thread.addDto(object);
-      object.queryNestedObjects();
+    if (dto != null) {
+      thread.addDto(dto);
+      dto.queryNestedObjects();
       // object is complete, set it as processed.
-      thread.setProcessed(object.getPrimaryKey().getStringKey(), true);
+      thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
       logger.debug("Retrieved all nested objects for " + key.getStringKey());
     }
     
-    return object;
+    return dto;
   }
 
   @Override
@@ -134,15 +134,15 @@ public class QueryMemcachedListWithParameters<T extends IDbDto, S extends IDbDto
     PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
     // Query any nested objects. This is outside the fetch above to make sure
     // that the statement and result set are closed before recursing.
-    for (T object : list) {
-      object.queryNestedObjects();
+    for (T dto : list) {
+      dto.queryNestedObjects();
       // Cache the object if not already cached.
-      if (thread.getDto(object.getPrimaryKey().getStringKey()) == null
-          && object.isQueried()) {
-        manager.putObjectInCache(object.getPrimaryKey().getCacheName(),
+      if (thread.getDto(dto.getPrimaryKey().getStringKey()) == null
+          && dto.isQueried()) {
+        manager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
                                  expiration,
-                                 object);
-        thread.addDto(object);
+                                 dto);
+        thread.addDto(dto);
       }
     }
   }
@@ -153,6 +153,6 @@ public class QueryMemcachedListWithParameters<T extends IDbDto, S extends IDbDto
 
   @Override
   public void setExpiration(int expiration) {
-    this.expiration = expiration;
+    // Do nothing, expiration is final for memcached implementation
   }
 }

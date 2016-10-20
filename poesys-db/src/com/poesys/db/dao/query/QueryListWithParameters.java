@@ -99,6 +99,7 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
     this.rows = rows;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public C query(S parameters) throws SQLException, BatchException {
     // Make sure the key is there.
@@ -131,7 +132,11 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
       }
     }
 
-    return list;
+    // Reinitialize the list to make this method reentrant
+    C returnedList = list;
+    list = (C)new ArrayList<T>();
+    
+    return returnedList;
   }
 
   /**
@@ -228,15 +233,6 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
         logger.debug("Closed connection " + connectionString);
       }
     }
-
-    // Query nested objects outside of loop to ensure statement closed
-    /*
-     * try { queryNestedObjectsForList(connection, list); } catch (SQLException
-     * e) { Object[] args = { e.getMessage() }; String message =
-     * Message.getMessage(SQL_ERROR, args); logger.error(message, e); } catch
-     * (BatchException e) { Object[] args = { e.getMessage() }; String message =
-     * Message.getMessage(SQL_ERROR, args); logger.error(message, e); }
-     */
   }
 
   /**
@@ -291,10 +287,8 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
     object.setExisting();
     // Check whether the object is already tracked; get nested objects if not.
     if (thread.getDto(object.getPrimaryKey().getStringKey()) == null) {
-      // Track the DTO before getting nested objects.
+      // Track the DTO and set it as processed, nested objects already there.
       thread.addDto(object);
-      object.queryNestedObjects();
-      // object is complete, set it as processed.
       thread.setProcessed(object.getPrimaryKey().getStringKey(), true);
     }
     return object;

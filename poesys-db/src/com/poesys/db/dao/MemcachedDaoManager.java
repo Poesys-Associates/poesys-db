@@ -95,13 +95,10 @@ public final class MemcachedDaoManager implements IDaoManager {
   private static final Logger logger =
     Logger.getLogger(MemcachedDaoManager.class);
 
-  private IDbDto dto = null;
+  // private IDbDto dto = null;
 
   /** Singleton memcached manager instance */
   private static IDaoManager memcachedManager = null;
-
-  /** Memcached client pool */
-  private static ObjectPool<MemcachedClient> clients = null;
 
   /** Name of the memcached properties resource bundle */
   protected static final String BUNDLE = "com.poesys.db.memcached";
@@ -109,32 +106,6 @@ public final class MemcachedDaoManager implements IDaoManager {
   /** The resource bundle containing the memcached properties. */
   protected static final ResourceBundle properties =
     ResourceBundle.getBundle(BUNDLE);
-
-  // Error messages from the Poesys resource bundle.
-
-  private static final String INVALID_PORT =
-    "com.poesys.db.dao.query.msg.memcached_invalid_port";
-  private static final String MEMCACHED_QUEUE_FULL =
-    "com.poesys.db.dao.query.msg.memcached_queue_full";
-  private static final String MEMCACHED_CLIENT =
-    "com.poesys.db.dao.query.msg.memcached_client";
-  private static final String SHUTDOWN_CLIENT_ERROR =
-    "com.poesys.db.dao.query.msg.memcached_client_shutdown";
-  private static final String MEMCACHED_UNKNOWN_PROTOCOL =
-    "com.poesys.db.dao.query.msg.memcached_unknown_protocol";
-  private static final String MEMCACHED_GET_ERROR =
-    "com.poesys.db.dao.query.msg.memcached_get";
-  private static final String MEMCACHED_RETRY_WARNING =
-    "com.poesys.db.dao.query.msg.memcached_retry";
-  private static final String STATS_COMPLETE =
-    "com.poesys.db.dao.query.msg.memcached_stats_complete";
-  private static final String STATS_ERROR =
-    "com.poesys.db.dao.query.msg.memcached_stats_error";
-  /** Error message when thread is interrupted or timed out */
-  private static final String THREAD_ERROR = "com.poesys.db.dao.msg.thread";
-  /** Error message when thread is interrupted or timed out */
-  private static final String NONSERIALIZABLE_ERROR =
-    "com.poesys.db.dao.msg.nonserializable";
 
   // Memcached options from property file
 
@@ -169,6 +140,77 @@ public final class MemcachedDaoManager implements IDaoManager {
   private static final int INTERVAL =
     new Integer(properties.getString(MEMCACHED_PROP_POOL_INTERVAL));
 
+  /** Memcached client pool */
+  private static final ObjectPool<MemcachedClient> clients = new ObjectPool<MemcachedClient>(MIN, MAX, INTERVAL) {
+
+    @Override
+    protected String toString(MemcachedClient object) {
+      return object.toString();
+    }
+
+    @Override
+    protected MemcachedClient createObject() {
+      MemcachedClient client = null;
+      String protocol = properties.getString(MEMCACHED_PROP_PROTOCOL);
+
+      try {
+        if (BINARY.equalsIgnoreCase(protocol)) {
+          client =
+            new MemcachedClient(new BinaryConnectionFactory(ClientMode.Static),
+                                getSockets());
+        } else if (TEXT.equalsIgnoreCase(protocol)) {
+          client =
+            new MemcachedClient(new DefaultConnectionFactory(ClientMode.Static),
+                                getSockets());
+        } else {
+          Object[] args = new Object[1];
+          args[0] = protocol;
+          String msg = Message.getMessage(MEMCACHED_UNKNOWN_PROTOCOL, args);
+          throw new DbErrorException(msg);
+        }
+      } catch (IOException e) {
+        throw new DbErrorException(MEMCACHED_CLIENT, e);
+      }
+      return client;
+    }
+
+    @Override
+    protected void closeObject(MemcachedClient object) {
+      try {
+        object.shutdown();
+      } catch (Throwable e) {
+        // Ignore
+        logger.warn(SHUTDOWN_CLIENT_ERROR, e);
+      }
+    }
+  };
+
+  // Error messages from the Poesys resource bundle.
+
+  private static final String INVALID_PORT =
+    "com.poesys.db.dao.query.msg.memcached_invalid_port";
+  private static final String MEMCACHED_QUEUE_FULL =
+    "com.poesys.db.dao.query.msg.memcached_queue_full";
+  private static final String MEMCACHED_CLIENT =
+    "com.poesys.db.dao.query.msg.memcached_client";
+  private static final String SHUTDOWN_CLIENT_ERROR =
+    "com.poesys.db.dao.query.msg.memcached_client_shutdown";
+  private static final String MEMCACHED_UNKNOWN_PROTOCOL =
+    "com.poesys.db.dao.query.msg.memcached_unknown_protocol";
+  private static final String MEMCACHED_GET_ERROR =
+    "com.poesys.db.dao.query.msg.memcached_get";
+  private static final String MEMCACHED_RETRY_WARNING =
+    "com.poesys.db.dao.query.msg.memcached_retry";
+  private static final String STATS_COMPLETE =
+    "com.poesys.db.dao.query.msg.memcached_stats_complete";
+  private static final String STATS_ERROR =
+    "com.poesys.db.dao.query.msg.memcached_stats_error";
+  /** Error message when thread is interrupted or timed out */
+  private static final String THREAD_ERROR = "com.poesys.db.dao.msg.thread";
+  /** Error message when thread is interrupted or timed out */
+  private static final String NONSERIALIZABLE_ERROR =
+    "com.poesys.db.dao.msg.nonserializable";
+
   /** Period in milliseconds to sleep before re-trying memcached get */
   private static final long RETRY_SLEEP_PERIOD = 5L * 1000L;
   /** timeout for the query thread */
@@ -189,49 +231,6 @@ public final class MemcachedDaoManager implements IDaoManager {
   public static IDaoManager getInstance() {
     if (memcachedManager == null) {
       memcachedManager = new MemcachedDaoManager();
-      clients = new ObjectPool<MemcachedClient>(MIN, MAX, INTERVAL) {
-
-        @Override
-        protected String toString(MemcachedClient object) {
-          return object.toString();
-        }
-
-        @Override
-        protected MemcachedClient createObject() {
-          MemcachedClient client = null;
-          String protocol = properties.getString(MEMCACHED_PROP_PROTOCOL);
-
-          try {
-            if (BINARY.equalsIgnoreCase(protocol)) {
-              client =
-                new MemcachedClient(new BinaryConnectionFactory(ClientMode.Static),
-                                    getSockets());
-            } else if (TEXT.equalsIgnoreCase(protocol)) {
-              client =
-                new MemcachedClient(new DefaultConnectionFactory(ClientMode.Static),
-                                    getSockets());
-            } else {
-              Object[] args = new Object[1];
-              args[0] = protocol;
-              String msg = Message.getMessage(MEMCACHED_UNKNOWN_PROTOCOL, args);
-              throw new DbErrorException(msg);
-            }
-          } catch (IOException e) {
-            throw new DbErrorException(MEMCACHED_CLIENT, e);
-          }
-          return client;
-        }
-
-        @Override
-        protected void closeObject(MemcachedClient object) {
-          try {
-            object.shutdown();
-          } catch (Throwable e) {
-            // Ignore
-            logger.warn(SHUTDOWN_CLIENT_ERROR, e);
-          }
-        }
-      };
     }
     return memcachedManager;
   }
@@ -282,8 +281,7 @@ public final class MemcachedDaoManager implements IDaoManager {
 
   @Override
   public void clearCache(String name) {
-    // Memcached does not support cache clearing, just clear temp cache
-    clearTemporaryCaches();
+    // Memcached does not support cache clearing
   }
 
   @Override
@@ -324,6 +322,8 @@ public final class MemcachedDaoManager implements IDaoManager {
     } else {
       Runnable query = new Runnable() {
         public void run() {
+          // Just deserialize the object; the caller fills in
+          // any nested objects.
           getFromMemcached(key);
         }
       };
@@ -334,17 +334,13 @@ public final class MemcachedDaoManager implements IDaoManager {
       try {
         thread.join(TIMEOUT);
       } catch (InterruptedException e) {
-        Object[] args = { "update", dto.getPrimaryKey().getStringKey() };
+        Object[] args = { "update", key.getStringKey() };
         String message = Message.getMessage(THREAD_ERROR, args);
         logger.error(message, e);
       }
     }
 
-    // Reset the dto member for the next retrieval, returning the object.
-    T dtoToReturn = (T)dto;
-    dto = null;
-
-    return dtoToReturn;
+    return (T)thread.getDto(key.getStringKey());
   }
 
   /**
@@ -356,66 +352,65 @@ public final class MemcachedDaoManager implements IDaoManager {
   private void getFromMemcached(IPrimaryKey key) {
     PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
     MemcachedClient client = clients.getObject();
+    IDbDto dto = null;
 
     try {
-      if (dto == null) {
-        // Not previously de-serialized, get it from the cache.
-        logger.debug("Getting object " + key.getStringKey() + " from the cache");
+      // Not previously de-serialized, get it from the cache.
+      logger.debug("Getting object " + key.getStringKey() + " from the cache");
 
-        // Get the object synchronously but check for exceptions and retry to
-        // allow for memcached server being unavailable for a short period.
+      // Get the object synchronously but check for exceptions and retry to
+      // allow for memcached server being unavailable for a short period.
 
-        int retries = TIMEOUT_RETRIES;
-        while (retries > 0) {
-          try {
-            dto = (IDbDto)client.get(key.getStringKey());
-            if (dto != null) {
-              // object found, track and set processed
-              thread.addDto(dto);
-              thread.setProcessed(key.getStringKey(), true);
-            }
-            // Break out of loop after no-exception get
-            break;
-          } catch (Exception e) {
-            retries--;
-            if (retries == 0) {
-              // InterruptedException, ExecutionException, or RuntimeException
-              // Retries exhausted, fail with exception
-              Object[] args = new Object[1];
-              args[0] = key.getStringKey();
-              logger.error(Message.getMessage(MEMCACHED_GET_ERROR, args), e);
+      int retries = TIMEOUT_RETRIES;
+      while (retries > 0) {
+        try {
+          dto = (IDbDto)client.get(key.getStringKey());
+          if (dto != null) {
+            // object found, track and set processed
+            thread.addDto(dto);
+            thread.setProcessed(key.getStringKey(), true);
+          }
+          // Break out of loop after no-exception get
+          break;
+        } catch (Exception e) {
+          retries--;
+          if (retries == 0) {
+            // InterruptedException, ExecutionException, or RuntimeException
+            // Retries exhausted, fail with exception
+            Object[] args = new Object[1];
+            args[0] = key.getStringKey();
+            logger.error(Message.getMessage(MEMCACHED_GET_ERROR, args), e);
+            throw new DbErrorException(Message.getMessage(MEMCACHED_GET_ERROR,
+                                                          args));
+          } else {
+            // More retries, sleep for a short time and try again.
+
+            // First warn in log so as not to lose the exception sequence.
+            Object[] args1 = new Object[2];
+            args1[0] = key.getStringKey(); // object key
+            args1[1] = e.getMessage(); // exception message
+            logger.warn(Message.getMessage(MEMCACHED_RETRY_WARNING, args1), e);
+            try {
+              Thread.sleep(RETRY_SLEEP_PERIOD);
+            } catch (InterruptedException e1) {
+              // Externally interrupted sleep, something's wrong
+              Object[] args2 = new Object[1];
+              args2[0] = key.getStringKey();
+              logger.error(Message.getMessage(MEMCACHED_GET_ERROR, args2), e1);
               throw new DbErrorException(Message.getMessage(MEMCACHED_GET_ERROR,
-                                                            args));
-            } else {
-              // More retries, sleep for a short time and try again.
-
-              // First warn in log so as not to lose the exception sequence.
-              Object[] args1 = new Object[2];
-              args1[0] = key.getStringKey(); // object key
-              args1[1] = e.getMessage(); // exception message
-              logger.warn(Message.getMessage(MEMCACHED_RETRY_WARNING, args1), e);
-              try {
-                Thread.sleep(RETRY_SLEEP_PERIOD);
-              } catch (InterruptedException e1) {
-                // Externally interrupted sleep, something's wrong
-                Object[] args2 = new Object[1];
-                args2[0] = key.getStringKey();
-                logger.error(Message.getMessage(MEMCACHED_GET_ERROR, args2), e1);
-                throw new DbErrorException(Message.getMessage(MEMCACHED_GET_ERROR,
-                                                              args2));
-              }
+                                                            args2));
             }
           }
         }
+      }
 
-        if (dto != null) {
-          logger.debug("Retrieved object " + key.getStringKey()
-                       + " from the cache");
-          // Iterate through the setters to process nested objects.
-          dto.deserializeNestedObjects();
-        } else {
-          logger.debug("No object " + key.getStringKey() + " in the cache");
-        }
+      if (dto != null) {
+        logger.debug("Retrieved object " + key.getStringKey()
+                     + " from the cache");
+        // Iterate through the setters to process nested objects.
+        dto.deserializeNestedObjects();
+      } else {
+        logger.debug("No object " + key.getStringKey() + " in the cache");
       }
     } finally {
       clients.returnObject(client);
@@ -436,7 +431,8 @@ public final class MemcachedDaoManager implements IDaoManager {
                    + " in memcached with expiration time " + expireTime + "ms");
       // Register the object in the tracking thread.
       if (Thread.currentThread() instanceof PoesysTrackingThread) {
-        PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
+        PoesysTrackingThread thread =
+          (PoesysTrackingThread)Thread.currentThread();
         thread.addDto(object);
       }
     } catch (IllegalStateException e) {

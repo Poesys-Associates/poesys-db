@@ -51,7 +51,7 @@ public class QueryDatabaseMemcachedByKey<T extends IDbDto> extends
   /** the subsystem containing the T class */
   private final String subsystem;
   /** expiration time in milliseconds for cached objects */
-  private Integer expiration;
+  private final Integer expiration;
 
   /** Error message when thread gets SQL error */
   private static final String SQL_ERROR =
@@ -90,6 +90,7 @@ public class QueryDatabaseMemcachedByKey<T extends IDbDto> extends
     // Create a runnable query object that does the query.
     Runnable query = new Runnable() {
       public void run() {
+        T dto = null;
         // Get the current tracking thread in which this is running.
         PoesysTrackingThread thread =
           (PoesysTrackingThread)Thread.currentThread();

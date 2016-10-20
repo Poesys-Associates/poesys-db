@@ -61,9 +61,7 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
   /** the subsystem containing the T class */
   private final String subsystem;
   /** expiration time in milliseconds for cached objects */
-  private Integer expiration;
-
-  protected T dto = null;
+  private final Integer expiration;
 
   /** timeout for the query thread */
   private static final int TIMEOUT = 1000 * 60;
@@ -96,11 +94,9 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
     this.expiration = expiration;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
-  public synchronized T queryByKey(IPrimaryKey key) throws SQLException,
-      BatchException {
-    T returnedDto = null;
-
+  public T queryByKey(IPrimaryKey key) throws SQLException, BatchException {
     // Make sure the key is there.
     if (key == null) {
       throw new NoPrimaryKeyException(NO_PRIMARY_KEY_MSG);
@@ -125,16 +121,13 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
       try {
         thread.join(TIMEOUT);
       } catch (InterruptedException e) {
-        Object[] args = { "update", dto.getPrimaryKey().getStringKey() };
+        Object[] args = { "update", key.getStringKey() };
         String message = Message.getMessage(THREAD_ERROR, args);
         logger.error(message, e);
       }
     }
 
-    // Clear the class member variable to make method reentrant.
-    returnedDto = dto;
-    dto = null;
-    return returnedDto;
+    return (T)thread.getDto(key.getStringKey());
   }
 
   /**
@@ -169,14 +162,17 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
    */
   @SuppressWarnings("unchecked")
   private void getDto(IPrimaryKey key, PoesysTrackingThread thread) {
-    dto = (T)thread.getDto(key.getStringKey());
+    // Initialize DTO to null to make function reentrant
+    T dto = (T)thread.getDto(key.getStringKey());
     if (dto == null) {
       dto = getObjectByKeyFromCache(key);
       // Only proceed if the DTO object was not in the tracking thread or cache.
       if (dto == null) {
         try {
           dto = queryDtoFromDatabase(key);
-          thread.addDto(dto);
+          if (dto != null) {
+            thread.addDto(dto);
+          }
         } catch (SQLException e) {
           logger.error(SQL_ERROR, e);
           throw new RuntimeException(SQL_ERROR, e);
@@ -332,6 +328,6 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
 
   @Override
   public void setExpiration(int expiration) {
-    this.expiration = expiration;
+    // Do nothing, expiration is final for reentrancy
   }
 }

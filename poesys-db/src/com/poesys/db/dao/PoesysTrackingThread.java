@@ -21,21 +21,27 @@ package com.poesys.db.dao;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.dto.IDbDto;
 
 
 /**
- * A Thread object that contains the retrieval and processing state of a Poesys/DB 
- * object tree retrieval. The class tracks the set of retrieved objects as a
- * history of objects retrieved. Each object is in a container object that has
- * attributes related to Poesys/DB processing. The Thread subclass thus provides
- * a container for operations involving multiple objects and provides a place
- * outside the objects to track processing.
+ * A Thread object that contains the retrieval and processing state of a
+ * Poesys/DB object tree retrieval. The class tracks the set of retrieved
+ * objects as a history of objects retrieved. Each object is in a container
+ * object that has attributes related to Poesys/DB processing. The Thread
+ * subclass thus provides a container for operations involving multiple objects
+ * and provides a place outside the objects to track processing.
  * 
  * @author Robert J. Muller
  */
 public class PoesysTrackingThread extends Thread {
+  /** Logger for debugging */
+  private static final Logger logger =
+    Logger.getLogger(PoesysTrackingThread.class);
+
   private static final String NO_DTO_FOR_KEY_ERR =
     "No retrieved DTO with this key: ";
 
@@ -126,9 +132,9 @@ public class PoesysTrackingThread extends Thread {
    * @param stackSize integer, size of the thread stack
    */
   public PoesysTrackingThread(ThreadGroup group,
-                     Runnable target,
-                     String name,
-                     long stackSize) {
+                              Runnable target,
+                              String name,
+                              long stackSize) {
     super(group, target, name, stackSize);
   }
 
@@ -158,7 +164,20 @@ public class PoesysTrackingThread extends Thread {
       throw new InvalidParametersException(NO_DTO_ERR);
     }
     DtoTrackingObject obj = new DtoTrackingObject(dto);
-    history.put(dto.getPrimaryKey().getStringKey(), obj);
+    try {
+      history.put(dto.getPrimaryKey().getStringKey(), obj);
+    } catch (Throwable e) {
+      logger.warn("Warning: exception adding tracking object to history", e);
+      if (history == null) {
+        logger.warn("Null history in tracking thread");
+      }
+      if (dto.getPrimaryKey() == null) {
+        logger.warn("Null DTO primary key in tracking thread");
+      }
+      if (dto.getPrimaryKey().getStringKey() == null) {
+        logger.warn("Null DTO primary key string in tracking thread");
+      }
+    }
   }
 
   /**
@@ -173,7 +192,7 @@ public class PoesysTrackingThread extends Thread {
     DtoTrackingObject obj = history.get(key);
     if (obj != null) {
       processed = obj.isProcessed;
-    } 
+    }
     return processed;
   }
 
