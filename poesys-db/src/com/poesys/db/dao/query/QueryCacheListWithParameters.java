@@ -23,6 +23,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
 
+import org.apache.log4j.Logger;
+
 import com.poesys.db.BatchException;
 import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
@@ -44,6 +46,10 @@ import com.poesys.db.pk.IPrimaryKey;
  */
 public class QueryCacheListWithParameters<T extends IDbDto, S extends IDbDto, C extends Collection<T>>
     extends QueryListWithParameters<T, S, C> {
+  /** Logger for debugging */
+  private static final Logger logger =
+    Logger.getLogger(QueryCacheListWithParameters.class);
+
   /** The cache of data transfer objects (DTOs) */
   private IDtoCache<T> cache;
 
@@ -68,6 +74,12 @@ public class QueryCacheListWithParameters<T extends IDbDto, S extends IDbDto, C 
                         PoesysTrackingThread thread) throws SQLException,
       BatchException {
     IPrimaryKey key = sql.getPrimaryKey(rs);
+    if (key == null) {
+      String msg = "Null primary key from result set";
+      logger.error(msg);
+      key = sql.getPrimaryKey(rs);
+      throw new SQLException(msg);
+    }
     // Look the object up in the cache, create if not there and cache it.
     T dto = cache.get(key);
     if (dto == null) {
@@ -80,12 +92,17 @@ public class QueryCacheListWithParameters<T extends IDbDto, S extends IDbDto, C 
         // Set the new and changed flags to show this object exists and is
         // unchanged from the version in the database.
         dto.setExisting();
-        // Track the DTO before getting nested objects.
-        if (dto != null) {
-          thread.addDto(dto);
-          dto.queryNestedObjects();
-          // object is complete, set it as processed.
-          thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
+        // If tracking and there is a DTO, track the DTO.
+        try {
+          if (thread != null && dto != null
+              && thread.getDto(key.getStringKey()) == null) {
+            thread.addDto(dto);
+            thread.setProcessed(key.getStringKey(), true);
+          }
+        } catch (Throwable e) {
+          logger.warn("Exception in querying cached list with parameters with tracking thread "
+                          + thread.getId(),
+                      e);
         }
       }
     }

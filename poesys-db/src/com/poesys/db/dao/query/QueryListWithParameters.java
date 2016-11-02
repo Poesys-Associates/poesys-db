@@ -35,6 +35,7 @@ import com.poesys.db.connection.ConnectionFactoryFactory;
 import com.poesys.db.connection.IConnectionFactory;
 import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
+import com.poesys.db.pk.IPrimaryKey;
 
 
 /**
@@ -281,17 +282,17 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
   protected T getObject(Connection connection, ResultSet rs,
                         PoesysTrackingThread thread) throws SQLException,
       BatchException {
-    T object = sql.getData(rs);
+    IPrimaryKey key = sql.getPrimaryKey(rs);
+    T dto = sql.getData(rs);
     // Set the new and changed flags to show this object exists and is
     // unchanged from the version in the database.
-    object.setExisting();
-    // Check whether the object is already tracked; get nested objects if not.
-    if (thread.getDto(object.getPrimaryKey().getStringKey()) == null) {
-      // Track the DTO and set it as processed, nested objects already there.
-      thread.addDto(object);
-      thread.setProcessed(object.getPrimaryKey().getStringKey(), true);
+    dto.setExisting();
+    // If tracking and there is a DTO, track the DTO.
+    if (thread != null && dto != null && thread.getDto(key.getStringKey()) == null) {
+      thread.addDto(dto);
+      thread.setProcessed(key.getStringKey(), true);
     }
-    return object;
+    return dto;
   }
 
   @Override
