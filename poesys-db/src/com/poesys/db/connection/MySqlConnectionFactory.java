@@ -111,7 +111,11 @@ public class MySqlConnectionFactory implements IConnectionFactory {
 
     // Set the autocommit feature off to handle transaction logic in the
     // business delegates or remote interfaces.
-    connection.setAutoCommit(false);
+    if (connection != null) {
+      logger.debug("Acquired direct MySQL JDBC connection " + connection);
+      connection.setAutoCommit(false);
+    }
+    
     return connection;
   }
 
