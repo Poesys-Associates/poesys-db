@@ -116,7 +116,6 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
           object.queryNestedObjects();
           // Set the new and changed flags to show this object exists and is
           // unchanged from the version in the database.
-          object.setExisting();
         }
         logger.debug("Queried object by key: "
                      + object.getPrimaryKey().getValueList());
@@ -150,6 +149,7 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
     // that the statement and result set are closed before recursing.
     if (object != null) {
       object.queryNestedObjects();
+      object.setExisting();
     }
 
     return object;

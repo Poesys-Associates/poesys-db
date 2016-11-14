@@ -18,7 +18,6 @@
 package com.poesys.db.dao.query;
 
 
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
@@ -70,7 +69,7 @@ public class QueryCacheListWithParameters<T extends IDbDto, S extends IDbDto, C 
   }
 
   @Override
-  protected T getObject(Connection connection, ResultSet rs,
+  protected T getObject(ResultSet rs,
                         PoesysTrackingThread thread) throws SQLException,
       BatchException {
     IPrimaryKey key = sql.getPrimaryKey(rs);

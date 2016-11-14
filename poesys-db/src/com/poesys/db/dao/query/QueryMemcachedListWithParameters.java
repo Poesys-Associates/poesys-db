@@ -18,7 +18,6 @@
 package com.poesys.db.dao.query;
 
 
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
@@ -26,6 +25,7 @@ import java.util.Collection;
 import org.apache.log4j.Logger;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.Message;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoManager;
 import com.poesys.db.dao.PoesysTrackingThread;
@@ -75,9 +75,8 @@ public class QueryMemcachedListWithParameters<T extends IDbDto, S extends IDbDto
   }
 
   @Override
-  protected T getObject(Connection connection, ResultSet rs,
-                        PoesysTrackingThread thread) throws SQLException,
-      BatchException {
+  protected T getObject(ResultSet rs, PoesysTrackingThread thread)
+      throws SQLException, BatchException {
     IPrimaryKey key = sql.getPrimaryKey(rs);
     logger.debug("Primary key for cache lookup: " + key.getStringKey());
     // Look the object up in the thread history first.
@@ -109,14 +108,6 @@ public class QueryMemcachedListWithParameters<T extends IDbDto, S extends IDbDto
                    + " from cache for list (parameterized)");
     }
 
-    if (dto != null) {
-      thread.addDto(dto);
-      dto.queryNestedObjects();
-      // object is complete, set it as processed.
-      thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
-      logger.debug("Retrieved all nested objects for " + key.getStringKey());
-    }
-    
     return dto;
   }
 
@@ -127,23 +118,41 @@ public class QueryMemcachedListWithParameters<T extends IDbDto, S extends IDbDto
   }
 
   @Override
-  protected void queryNestedObjectsForList(Connection connection, C list)
-      throws SQLException, BatchException {
+  protected void queryNestedObjectsForList(PoesysTrackingThread thread) {
     DaoManagerFactory.initMemcachedManager(subsystem);
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
-    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
     // Query any nested objects. This is outside the fetch above to make sure
     // that the statement and result set are closed before recursing.
     for (T dto : list) {
-      dto.queryNestedObjects();
-      // Cache the object if not already cached.
-      if (thread.getDto(dto.getPrimaryKey().getStringKey()) == null
-          && dto.isQueried()) {
-        manager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
-                                 expiration,
-                                 dto);
-        thread.addDto(dto);
-      }
+      try {
+        dto.queryNestedObjects();
+        // Cache the object if not already cached.
+        if (thread.getDto(dto.getPrimaryKey().getStringKey()) == null
+            && dto.isQueried()) {
+          manager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
+                                   expiration,
+                                   dto);
+          thread.addDto(dto);
+        }
+      } catch (SQLException e) {
+        // Log the message and the SQL statement, then rethrow the exception.
+        Object[] args = { e.getMessage() };
+        String message = Message.getMessage(SQL_ERROR, args);
+        logger.error(message, e);
+        // Log a debugging message for the "already been closed" error
+        if ("PooledConnection has already been closed.".equals(e.getMessage())) {
+          logger.debug("Closed pooled connection while getting nested objects");
+        }
+        logger.debug("SQL statement in class: " + sql.getClass().getName());
+        throw new RuntimeException(message, e);
+      } catch (BatchException e) {
+        Object[] args = { e.getMessage() };
+        String message = Message.getMessage(SQL_ERROR, args);
+        logger.error(message, e);
+      } // object is complete, set it as processed.
+      thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
+      logger.debug("Retrieved all nested objects for "
+                   + dto.getPrimaryKey().getStringKey());
     }
   }
 

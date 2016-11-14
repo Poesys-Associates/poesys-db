@@ -25,6 +25,7 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.Message;
 import com.poesys.db.dao.CacheDaoManager;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoManager;
@@ -113,20 +114,39 @@ public class QueryMemcachedListWithKeyList<T extends IDbDto> extends
   }
 
   @Override
-  protected void queryNestedObjectsForList(List<T> list) throws SQLException,
-      BatchException {
+  protected void queryNestedObjectsForList(List<T> list,
+                                           PoesysTrackingThread thread) {
     DaoManagerFactory.initMemcachedManager(subsystem);
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
-    // Query any nested objects using the current memcached session. This is
-    // outside the fetch above to make sure that the statement and result set
-    // are closed before recursing.
-    for (T dto : list) {
-      dto.queryNestedObjects();
-      // Cache the object to ensure all nested object keys get serialized.
-      if (dto.isQueried()) {
-        manager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
-                                 expiration,
-                                 dto);
+    if (list != null) {
+      for (T dto : list) {
+        try {
+          dto.queryNestedObjects();
+          // Cache the object to ensure all nested object keys get serialized.
+          if (dto.isQueried()) {
+            manager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
+                                     expiration,
+                                     dto);
+          }
+        } catch (SQLException e) {
+          // Log the message and the SQL statement, then rethrow the exception.
+          Object[] args = { e.getMessage() };
+          String message = Message.getMessage(SQL_ERROR, args);
+          logger.error(message, e);
+          // Log a debugging message for the "already been closed" error
+          if ("PooledConnection has already been closed.".equals(e.getMessage())) {
+            logger.debug("Closed pooled connection while getting nested objects");
+          }
+          logger.debug("SQL statement in class: " + sql.getClass().getName());
+          throw new RuntimeException(message, e);
+        } catch (BatchException e) {
+          Object[] args = { e.getMessage() };
+          String message = Message.getMessage(SQL_ERROR, args);
+          logger.error(message, e);
+        } // object is complete, set it as processed.
+        thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
+        logger.debug("Retrieved all nested objects for "
+                     + dto.getPrimaryKey().getStringKey());
       }
     }
   }

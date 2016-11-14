@@ -67,7 +67,7 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
 
   /** the collection or list of query result DTOs */
   @SuppressWarnings("unchecked")
-  private C list = (C)new ArrayList<T>();
+  protected C list = (C)new ArrayList<T>();
 
   /** timeout for the query thread */
   private static final int TIMEOUT = 1000 * 60;
@@ -77,12 +77,12 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
     "Problem getting Poesys/DB resource bundle";
 
   /** Error message for query with no parameter object */
-  private static final String PARAM_ERROR =
+  protected static final String PARAM_ERROR =
     "com.poesys.db.dto.msg.no_parameter";
   /** Error message when thread is interrupted or timed out */
-  private static final String THREAD_ERROR = "com.poesys.db.dao.msg.thread";
+  protected static final String THREAD_ERROR = "com.poesys.db.dao.msg.thread";
   /** Error message when query returns SQL exception querying list */
-  private static final String SQL_ERROR =
+  protected static final String SQL_ERROR =
     "com.poesys.db.dao.query.msg.sql_parameter_list";
 
   /**
@@ -103,7 +103,7 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
   @SuppressWarnings("unchecked")
   @Override
   public C query(S parameters) throws SQLException, BatchException {
-    // Make sure the key is there.
+    // Make sure the set of parameters exists.
     if (parameters == null) {
       throw new NoRequiredValueException(PARAM_ERROR);
     }
@@ -136,7 +136,7 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
     // Reinitialize the list to make this method reentrant
     C returnedList = list;
     list = (C)new ArrayList<T>();
-    
+
     return returnedList;
   }
 
@@ -188,11 +188,12 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
       // list.
       int count = 0;
       while (rs.next()) {
-        T object = getObject(connection, rs, thread);
-        if (object != null) {
-          list.add(object);
+        T dto = getObject(rs, thread);
+        if (dto != null) {
+          list.add(dto);
           count++;
         }
+        thread.addDto(dto);
       }
       logger.debug("Fetched " + count + (count == 1 ? " object" : " objects"));
     } catch (SQLException e) {
@@ -214,24 +215,72 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
       String message = Message.getMessage(SQL_ERROR, args);
       logger.error(message, e);
     } finally {
-      // Close the statement and result set as required.
-      if (stmt != null) {
-        try {
-          stmt.close();
-        } catch (SQLException e) {
-          // Log and ignore
-          logger.warn("Error closing SQL statement", e);
-        }
+      closeAllResources(stmt, connection);
+    }
+
+    // Process nested objects after DTOs tracked and SQL connection closed.
+    queryNestedObjectsForList(thread);
+  }
+
+  /**
+   * Close the statement and connection for the query.
+   * 
+   * @param stmt the SQL statement object
+   * @param connection the SQL connection object
+   */
+  private void closeAllResources(PreparedStatement stmt, Connection connection) {
+    // Close the statement and result set as required.
+    if (stmt != null) {
+      try {
+        stmt.close();
+      } catch (SQLException e) {
+        // Log and ignore
+        logger.warn("Error closing SQL statement", e);
       }
-      if (connection != null) {
-        String connectionString = connection.toString();
+    }
+    if (connection != null) {
+      String connectionString = connection.toString();
+      try {
+        connection.close();
+      } catch (SQLException e) {
+        // Log and ignore
+        logger.warn("Error closing connection " + connectionString, e);
+      }
+      logger.debug("Closed connection " + connectionString);
+    }
+  }
+
+  /**
+   * Query the nested objects for all the DTOs in a list of DTOs. Call this
+   * outside of a block that contains SQL resources (statement, result set,
+   * connection) to avoid memory leaks and connection exhaustion.
+   * 
+   * @param thread the tracking thread for this query
+   */
+  protected void queryNestedObjectsForList(PoesysTrackingThread thread) {
+    if (list != null) {
+      for (T dto : list) {
         try {
-          connection.close();
+          dto.queryNestedObjects();
         } catch (SQLException e) {
-          // Log and ignore
-          logger.warn("Error closing connection " + connectionString, e);
-        }
-        logger.debug("Closed connection " + connectionString);
+          // Log the message and the SQL statement, then rethrow the exception.
+          Object[] args = { e.getMessage() };
+          String message = Message.getMessage(SQL_ERROR, args);
+          logger.error(message, e);
+          // Log a debugging message for the "already been closed" error
+          if ("PooledConnection has already been closed.".equals(e.getMessage())) {
+            logger.debug("Closed pooled connection while getting nested objects");
+          }
+          logger.debug("SQL statement in class: " + sql.getClass().getName());
+          throw new RuntimeException(message, e);
+        } catch (BatchException e) {
+          Object[] args = { e.getMessage() };
+          String message = Message.getMessage(SQL_ERROR, args);
+          logger.error(message, e);
+        } // object is complete, set it as processed.
+        thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
+        logger.debug("Retrieved all nested objects for "
+                     + dto.getPrimaryKey().getStringKey());
       }
     }
   }
@@ -249,46 +298,26 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
   }
 
   /**
-   * Query the nested objects for all the objects in a list of objects of type
-   * C. You can override this method in a subclass to provide a session id for a
-   * caching session.
-   * 
-   * @param connection the JDBC connection
-   * @param list the list of objects of type C
-   * @throws SQLException when there is a database problem
-   * @throws BatchException when there is a batch processing problem
-   */
-  protected void queryNestedObjectsForList(Connection connection, C list)
-      throws SQLException, BatchException {
-    // Query any nested objects. This is outside the fetch above to make sure
-    // that the statement and result set are closed before recursing.
-    for (T object : list) {
-      object.queryNestedObjects();
-    }
-  }
-
-  /**
    * Get a DTO from a SQL result set and add the DTO to the tracking thread.
    * Subclasses can override this method to provide caching or other services
    * for the object.
    * 
-   * @param connection the database connection (for nested object queries)
    * @param rs the result set from an executed SQL statement
    * @param thread the tracking thread for the query
    * @return the object
    * @throws SQLException when there is a database access problem
    * @throws BatchException when batch processing fails for a nested object
    */
-  protected T getObject(Connection connection, ResultSet rs,
-                        PoesysTrackingThread thread) throws SQLException,
-      BatchException {
+  protected T getObject(ResultSet rs, PoesysTrackingThread thread)
+      throws SQLException, BatchException {
     IPrimaryKey key = sql.getPrimaryKey(rs);
     T dto = sql.getData(rs);
     // Set the new and changed flags to show this object exists and is
     // unchanged from the version in the database.
     dto.setExisting();
     // If tracking and there is a DTO, track the DTO.
-    if (thread != null && dto != null && thread.getDto(key.getStringKey()) == null) {
+    if (thread != null && dto != null
+        && thread.getDto(key.getStringKey()) == null) {
       thread.addDto(dto);
       thread.setProcessed(key.getStringKey(), true);
     }

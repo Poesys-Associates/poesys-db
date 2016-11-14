@@ -197,6 +197,7 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
         try {
           dto.queryNestedObjects();
           thread.setProcessed(key.getStringKey(), true);
+          dto.setExisting();
         } catch (SQLException e) {
           logger.error(SQL_ERROR, e);
           throw new RuntimeException(SQL_ERROR, e);

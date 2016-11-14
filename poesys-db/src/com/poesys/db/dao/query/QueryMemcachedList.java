@@ -98,10 +98,6 @@ public class QueryMemcachedList<T extends IDbDto> extends QueryList<T> {
       PoesysTrackingThread thread =
         (PoesysTrackingThread)Thread.currentThread();
       thread.addDto(object);
-      object.queryNestedObjects();
-      // object is complete, set it as processed.
-      thread.setProcessed(object.getPrimaryKey().getStringKey(), true);
-      logger.debug("Retrieved all nested objects for " + key.getStringKey());
     }
     
     return object;

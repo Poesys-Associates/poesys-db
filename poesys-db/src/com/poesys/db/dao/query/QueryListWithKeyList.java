@@ -29,8 +29,10 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.Message;
 import com.poesys.db.connection.ConnectionFactoryFactory;
 import com.poesys.db.connection.IConnectionFactory;
+import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
 
 
@@ -51,6 +53,9 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
   private static final Logger logger =
     Logger.getLogger(QueryListWithKeyList.class);
 
+  /** the list of query result DTOs */
+  private List<T> list = new ArrayList<T>();
+
   /** Internal Strategy-pattern object containing the SQL query with key list */
   protected final IKeyListQuerySql<T> sql;
   /** Number of rows to fetch at once, optimizes query fetching */
@@ -58,6 +63,14 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
   /** the client subsystem owning the queried object */
   protected final String subsystem;
 
+  /** timeout for the query thread */
+  private static final int TIMEOUT = 1000 * 60;
+
+  /** Error message when thread is interrupted or timed out */
+  protected static final String THREAD_ERROR = "com.poesys.db.dao.msg.thread";
+  /** Error message when query returns SQL exception querying list */
+  protected static final String SQL_ERROR =
+    "com.poesys.db.dao.query.msg.sql_parameter_list";
   /** Error getting resource bundle, can't resolve to bundle text so a constant */
   private static final String RESOURCE_BUNDLE_ERROR =
     "Problem getting Poesys/DB resource bundle";
@@ -77,8 +90,65 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
     this.rows = rows;
   }
 
+  @Override
   public List<T> query() throws SQLException, BatchException {
-    List<T> list = new ArrayList<T>();
+    PoesysTrackingThread thread = null;
+
+    // If the current thread is a PoesysTrackingThread, just run the query in
+    // that thread directly; if not, start a new thread to run it.
+    if (Thread.currentThread() instanceof PoesysTrackingThread) {
+      thread = (PoesysTrackingThread)Thread.currentThread();
+      logger.debug("Using existing TrackingThread " + thread.getId());
+      doDatabaseQuery(thread);
+    } else {
+      thread = new PoesysTrackingThread(getRunnableQuery());
+      logger.debug("Starting new TrackingThread " + thread.getId());
+
+      thread.start();
+      // Join the thread, blocking until the thread completes or
+      // until the query times out.
+      try {
+        thread.join(TIMEOUT);
+      } catch (InterruptedException e) {
+        Object[] args = { "key list query", sql.getKeyValues() };
+        String message = Message.getMessage(THREAD_ERROR, args);
+        logger.error(message, e);
+      }
+    }
+
+    // Reinitialize the list to make this method reentrant
+    List<T> returnedList = list;
+    list = new ArrayList<T>();
+
+    return returnedList;
+  }
+
+  /**
+   * Create a runnable query object that runs within a PoesysTrackingThread.
+   * This method runs the database query within the thread.
+   * 
+   * @return the runnable query
+   */
+  private Runnable getRunnableQuery() {
+    Runnable query = new Runnable() {
+      public void run() {
+        // Get the current tracking thread in which this is running.
+        PoesysTrackingThread thread =
+          (PoesysTrackingThread)Thread.currentThread();
+        doDatabaseQuery(thread);
+      }
+    };
+
+    return query;
+  }
+
+  /**
+   * Execute the query with the parameters using a specified tracking thread.
+   * 
+   * @param parameters the query parameters
+   * @param thread the tracking thread
+   */
+  protected void doDatabaseQuery(PoesysTrackingThread thread) {
     PreparedStatement stmt = null;
     ResultSet rs = null;
 
@@ -96,7 +166,8 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
       logger.debug("Binding key list: " + sql.getKeyValues());
       rs = stmt.executeQuery();
 
-      // Loop through and fetch all the results, adding each to the result list.
+      // Loop through and fetch all the results, adding each to the result list
+      // class member.
       int count = 0;
       while (rs.next()) {
         T object = getObject(rs);
@@ -108,48 +179,62 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
       logger.debug("Fetched " + count + " objects");
     } catch (SQLException e) {
       // Log the message and the SQL statement, then rethrow the exception.
-      logger.error("Query list with key list error: " + e.getMessage());
-      logger.error("Query list with key list sql: " + sql.getSql() + "\n");
+      Object[] args = { e.getMessage() };
+      String message = Message.getMessage(SQL_ERROR, args);
+      logger.error(message, e);
+      // Log a debugging message for the "already been closed" error
+      if ("PooledConnection has already been closed.".equals(e.getMessage())) {
+        logger.debug("Closed connection: " + connection);
+      }
       logger.debug("SQL statement in class: " + sql.getClass().getName());
-      throw e;
+      throw new RuntimeException(message, e);
     } catch (IOException e) {
-      // Problem with resource bundle, rethrow as SQLException
-      throw new SQLException(RESOURCE_BUNDLE_ERROR);
+      logger.error(RESOURCE_BUNDLE_ERROR, e);
+      throw new RuntimeException(RESOURCE_BUNDLE_ERROR);
+    } catch (BatchException e) {
+      Object[] args = { e.getMessage() };
+      String message = Message.getMessage(SQL_ERROR, args);
+      logger.error(message, e);
     } finally {
-      // Close the statement and result set as required.
-      if (stmt != null) {
-        stmt.close();
-      }
-      if (rs != null) {
-        rs.close();
-      }
-      if (connection != null) {
-        String connectionString = connection.toString();
-        connection.close();
-        logger.debug("Closed connection " + connectionString);
-      }
+      closeAllResources(stmt, connection);
     }
 
-    queryNestedObjectsForList(list);
-
-    return list;
+    queryNestedObjectsForList(list, thread);
   }
 
   /**
    * Query the nested objects for all the objects in a list of objects of type
-   * C. You can override this method in a subclass to provide a session id for a
-   * caching session.
+   * T. Call this outside of a block that contains SQL resources (statement,
+   * result set, connection) to avoid memory leaks and connection exhaustion.
    * 
    * @param list the list of objects of type C
-   * @throws SQLException when there is a database problem
-   * @throws BatchException when there is a batch processing problem
    */
-  protected void queryNestedObjectsForList(List<T> list) throws SQLException,
-      BatchException {
-    // Query any nested objects. This is outside the fetch above to make sure
-    // that the statement and result set are closed before recursing.
-    for (T object : list) {
-      object.queryNestedObjects();
+  protected void queryNestedObjectsForList(List<T> list,
+                                           PoesysTrackingThread thread) {
+    if (list != null) {
+      for (T dto : list) {
+        try {
+          dto.queryNestedObjects();
+        } catch (SQLException e) {
+          // Log the message and the SQL statement, then rethrow the exception.
+          Object[] args = { e.getMessage() };
+          String message = Message.getMessage(SQL_ERROR, args);
+          logger.error(message, e);
+          // Log a debugging message for the "already been closed" error
+          if ("PooledConnection has already been closed.".equals(e.getMessage())) {
+            logger.debug("Closed pooled connection while getting nested objects");
+          }
+          logger.debug("SQL statement in class: " + sql.getClass().getName());
+          throw new RuntimeException(message, e);
+        } catch (BatchException e) {
+          Object[] args = { e.getMessage() };
+          String message = Message.getMessage(SQL_ERROR, args);
+          logger.error(message, e);
+        } // object is complete, set it as processed.
+        thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
+        logger.debug("Retrieved all nested objects for "
+                     + dto.getPrimaryKey().getStringKey());
+      }
     }
   }
 
@@ -162,13 +247,40 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
    * @throws SQLException when there is a database access problem
    * @throws BatchException when batch processing fails for a nested object
    */
-  protected T getObject(ResultSet rs)
-      throws SQLException, BatchException {
+  protected T getObject(ResultSet rs) throws SQLException, BatchException {
     T object = sql.getData(rs);
     // Set the new and changed flags to show this object exists and is
     // unchanged from the version in the database.
     object.setExisting();
     return object;
+  }
+
+  /**
+   * Close the statement and connection for the query.
+   * 
+   * @param stmt the SQL statement object
+   * @param connection the SQL connection object
+   */
+  private void closeAllResources(PreparedStatement stmt, Connection connection) {
+    // Close the statement and result set as required.
+    if (stmt != null) {
+      try {
+        stmt.close();
+      } catch (SQLException e) {
+        // Log and ignore
+        logger.warn("Error closing SQL statement", e);
+      }
+    }
+    if (connection != null) {
+      String connectionString = connection.toString();
+      try {
+        connection.close();
+      } catch (SQLException e) {
+        // Log and ignore
+        logger.warn("Error closing connection " + connectionString, e);
+      }
+      logger.debug("Closed connection " + connectionString);
+    }
   }
 
   @Override
