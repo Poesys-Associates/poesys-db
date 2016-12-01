@@ -260,27 +260,30 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
   protected void queryNestedObjectsForList(PoesysTrackingThread thread) {
     if (list != null) {
       for (T dto : list) {
-        try {
-          dto.queryNestedObjects();
-        } catch (SQLException e) {
-          // Log the message and the SQL statement, then rethrow the exception.
-          Object[] args = { e.getMessage() };
-          String message = Message.getMessage(SQL_ERROR, args);
-          logger.error(message, e);
-          // Log a debugging message for the "already been closed" error
-          if ("PooledConnection has already been closed.".equals(e.getMessage())) {
-            logger.debug("Closed pooled connection while getting nested objects");
-          }
-          logger.debug("SQL statement in class: " + sql.getClass().getName());
-          throw new RuntimeException(message, e);
-        } catch (BatchException e) {
-          Object[] args = { e.getMessage() };
-          String message = Message.getMessage(SQL_ERROR, args);
-          logger.error(message, e);
-        } // object is complete, set it as processed.
-        thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
-        logger.debug("Retrieved all nested objects for "
-                     + dto.getPrimaryKey().getStringKey());
+        if (!thread.isProcessed(dto.getPrimaryKey().getStringKey())) {
+          try {
+            dto.queryNestedObjects();
+          } catch (SQLException e) {
+            // Log the message and the SQL statement, then rethrow the
+            // exception.
+            Object[] args = { e.getMessage() };
+            String message = Message.getMessage(SQL_ERROR, args);
+            logger.error(message, e);
+            // Log a debugging message for the "already been closed" error
+            if ("PooledConnection has already been closed.".equals(e.getMessage())) {
+              logger.debug("Closed pooled connection while getting nested objects");
+            }
+            logger.debug("SQL statement in class: " + sql.getClass().getName());
+            throw new RuntimeException(message, e);
+          } catch (BatchException e) {
+            Object[] args = { e.getMessage() };
+            String message = Message.getMessage(SQL_ERROR, args);
+            logger.error(message, e);
+          } // object is complete, set it as processed.
+          thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
+          logger.debug("Retrieved all nested objects for "
+                       + dto.getPrimaryKey().getStringKey());
+        }
       }
     }
   }
