@@ -18,10 +18,6 @@
 package com.poesys.db.dto;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
-
-import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.PoesysTrackingThread;
@@ -48,7 +44,7 @@ import com.poesys.db.dao.PoesysTrackingThread;
  *   }
  * 
  *   &#064;Override
- *   protected void doNew(Connection connection, IDbDto dto) throws SQLException,
+ *   protected void doNew(Connection connection, IDbDto dto),
  *       BatchException {
  *     // Insert the child.
  *     IInsert dao =
@@ -57,8 +53,7 @@ import com.poesys.db.dao.PoesysTrackingThread;
  *   }
  * 
  *   &#064;Override
- *   protected void doChanged(Connection connection, IDbDto dtos)
- *       throws SQLException, BatchException {
+ *   protected void doChanged(Connection connection, IDbDto dtos) {
  *     // Update the child.
  *     IUpdate dao =
  *       DaoManager.getFactory(Parent.class.getName()).getUpdate(new UpdateSqlChild());
@@ -80,7 +75,6 @@ import com.poesys.db.dao.PoesysTrackingThread;
  */
 public abstract class AbstractProcessNestedObject<T extends IDbDto> extends
     AbstractSetter<T> implements ISet {
-
   /** Serial version UID for Serializable object */
   private static final long serialVersionUID = 1L;
 
@@ -96,37 +90,33 @@ public abstract class AbstractProcessNestedObject<T extends IDbDto> extends
   }
 
   @Override
-  public void set(Connection connection) throws SQLException {
+  public void set() {
     T dto = getDto();
     boolean isProcessed = false;
+    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
 
     if (dto != null && !isProcessed) {
       if (Thread.currentThread() instanceof PoesysTrackingThread) {
         // Currently processing in hierarchy, check processed status
-        PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
         String key = dto.getPrimaryKey().getStringKey();
         if (thread.getDto(key) != null)
-        isProcessed = thread.isProcessed(key);
+          isProcessed = thread.isProcessed(key);
       }
 
       try {
         IDbDto.Status status = dto.getStatus();
         if (status == IDbDto.Status.NEW) {
-          doNew(connection, dto);
+          doNew(dto);
         } else if (status == IDbDto.Status.CHANGED
                    || status == IDbDto.Status.EXISTING) {
           // Process changed object or nested objects for existing object
-          doChanged(connection, dto);
+          doChanged(dto);
         } else if (status == IDbDto.Status.DELETED
                    || status == IDbDto.Status.CASCADE_DELETED) {
-          doDeleted(connection, dto);
+          doDeleted(dto);
         } // otherwise, ignore the DTO completely
       } catch (ConstraintViolationException e) {
-        throw new DbErrorException(e.getMessage(), e);
-      } catch (BatchException e) {
-        throw new DbErrorException(e.getMessage(), e);
-      } catch (DtoStatusException e) {
-        throw new DbErrorException(e.getMessage(), e);
+        throw new DbErrorException(e.getMessage(), thread, e);
       }
     }
   }
@@ -155,33 +145,21 @@ public abstract class AbstractProcessNestedObject<T extends IDbDto> extends
   /**
    * Process the NEW DTO.
    * 
-   * @param connection the database connection
    * @param dto the collection of NEW DTOs
-   * @throws BatchException when there is a SQL batch processing problem
-   * @throws SQLException when there is a SQL execution problem
    */
-  abstract protected void doNew(Connection connection, T dto)
-      throws SQLException, BatchException;
+  abstract protected void doNew(T dto);
 
   /**
    * Process the CHANGED DTO.
    * 
-   * @param connection the database connection
    * @param dto the CHANGED DTO
-   * @throws BatchException when there is a SQL batch processing problem
-   * @throws SQLException when there is a SQL execution problem
    */
-  abstract protected void doChanged(Connection connection, T dto)
-      throws SQLException, BatchException;
+  abstract protected void doChanged(T dto);
 
   /**
    * Process the DELETED DTO.
    * 
-   * @param connection the database connection
    * @param dto the DELETED DTO
-   * @throws BatchException when there is a SQL batch processing problem
-   * @throws SQLException when there is a SQL execution problem
    */
-  abstract protected void doDeleted(Connection connection, T dto)
-      throws SQLException, BatchException;
+  abstract protected void doDeleted(T dto);
 }

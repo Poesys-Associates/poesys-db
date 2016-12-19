@@ -14,13 +14,11 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.pk;
 
 
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -47,7 +45,7 @@ public abstract class AbstractSingleValuedPrimaryKey extends AbstractPrimaryKey 
   private static final long serialVersionUID = -1193848306520394312L;
   /** List of column values */
   protected List<AbstractColumnValue> list = null;
-  
+
   /**
    * Create a primary key value that has no list of values at all.
    * 
@@ -65,7 +63,8 @@ public abstract class AbstractSingleValuedPrimaryKey extends AbstractPrimaryKey 
    * @param className the name of the IDbDto class of the object that the
    *          primary key identifies
    */
-  public AbstractSingleValuedPrimaryKey(List<AbstractColumnValue> list, String className) {
+  public AbstractSingleValuedPrimaryKey(List<AbstractColumnValue> list,
+                                        String className) {
     super(className);
     this.list = list;
   }
@@ -79,7 +78,7 @@ public abstract class AbstractSingleValuedPrimaryKey extends AbstractPrimaryKey 
     boolean ret = false;
     if (key instanceof AbstractSingleValuedPrimaryKey) {
       AbstractSingleValuedPrimaryKey other =
-          (AbstractSingleValuedPrimaryKey)key;
+        (AbstractSingleValuedPrimaryKey)key;
       if (list != null && list.size() > 0) {
         AbstractColumnValue thisCol = list.get(0);
         AbstractColumnValue thatCol = other.list.get(0);
@@ -139,8 +138,7 @@ public abstract class AbstractSingleValuedPrimaryKey extends AbstractPrimaryKey 
    * 
    * @see com.poesys.db.dto.IPrimaryKey#setParams(PreparedStatement, int)
    */
-  public int setParams(PreparedStatement stmt, int nextIndex)
-      throws SQLException {
+  public int setParams(PreparedStatement stmt, int nextIndex) {
     int next = nextIndex;
     // Iterate through the natural key values, setting them into the statement.
     for (AbstractColumnValue col : list) {
@@ -167,14 +165,14 @@ public abstract class AbstractSingleValuedPrimaryKey extends AbstractPrimaryKey 
 
   /**
    * Copy the single-valued list and return the new list.
+   * 
    * @return the copy of the internal list
    */
   protected List<AbstractColumnValue> copyList() {
     AbstractColumnValue col = list.get(0).copy();
-    List<AbstractColumnValue> list =
-      new ArrayList<AbstractColumnValue>();
+    List<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
     list.add(col);
-  
+
     return new CopyOnWriteArrayList<AbstractColumnValue>(list);
   }
 }

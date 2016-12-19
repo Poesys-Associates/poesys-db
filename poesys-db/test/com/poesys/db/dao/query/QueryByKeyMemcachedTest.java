@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.insert.Insert;
@@ -67,13 +68,6 @@ public class QueryByKeyMemcachedTest extends ConnectionTest {
    */
   public void testQueryByKeySequenceTest() throws IOException, SQLException,
       BatchException {
-    Connection conn;
-    try {
-      conn = getConnection();
-    } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
-    }
-
     // Create the memcached DAO manager for this subsystem.
     DaoManagerFactory.initMemcachedManager(SUBSYSTEM);
 
@@ -83,37 +77,28 @@ public class QueryByKeyMemcachedTest extends ConnectionTest {
                                         SUBSYSTEM,
                                         EXPIRE_TIME);
     SequencePrimaryKey key =
-      PrimaryKeyFactory.createMySqlSequenceKey(conn, "test", "pkey", CLASS_NAME);
+      PrimaryKeyFactory.createMySqlSequenceKey("test",
+                                               "pkey",
+                                               CLASS_NAME,
+                                               getSubsystem());
     String col1 = "test";
     TestSequence dto = new TestSequence(key, col1);
 
-    // Insert the object.
-    try {
-      inserter.insert(conn, dto);
-      assertTrue(true);
-    } catch (SQLException e) {
-      fail("Insert test object failed: " + e.getMessage());
-    }
+    inserter.insert(dto);
+    assertTrue(true);
 
     // Query the object and test against the original.
-    try {
-      IKeyQuerySql<TestSequence> sql = new TestSequenceKeyQuerySql();
-      QueryByKey<TestSequence> query =
-        new QueryMemcachedByKey<TestSequence>(sql, SUBSYSTEM, EXPIRE_TIME);
-      IDbDto queriedDto = query.queryByKey(key);
-      assertTrue(queriedDto != null);
-      assertTrue("data not equal", dto.compareTo(queriedDto) == 0);
-      assertTrue("queried dto set to NEW",
-                 queriedDto.getStatus() != IDbDto.Status.NEW);
-      assertTrue("queried dto set to CHANGED",
-                 queriedDto.getStatus() != IDbDto.Status.CHANGED);
-    } catch (SQLException e) {
-      fail("Query by key exception: " + e.getMessage());
-    } finally {
-      if (conn != null) {
-        conn.close();
-      }
-    }
+    IKeyQuerySql<TestSequence> sql = new TestSequenceKeyQuerySql();
+    QueryByKey<TestSequence> query =
+      new QueryMemcachedByKey<TestSequence>(sql, SUBSYSTEM, EXPIRE_TIME);
+    IDbDto queriedDto = query.queryByKey(key);
+    assertTrue(queriedDto != null);
+    assertTrue("data not equal", dto.compareTo(queriedDto) == 0);
+    assertTrue("queried dto set to NEW",
+               queriedDto.getStatus() != IDbDto.Status.NEW);
+    assertTrue("queried dto set to CHANGED",
+               queriedDto.getStatus() != IDbDto.Status.CHANGED);
+
   }
 
   /**
@@ -136,7 +121,7 @@ public class QueryByKeyMemcachedTest extends ConnectionTest {
       try {
         conn = getConnection();
       } catch (SQLException e) {
-        throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+        throw new DbErrorException("Connect failed: " + e.getMessage(), e);
       }
 
       // Create the memcached DAO manager for this subsystem.
@@ -190,12 +175,13 @@ public class QueryByKeyMemcachedTest extends ConnectionTest {
       stmt.close();
       stmt = null;
 
+      conn.commit();
+
       // Insert the test row.
-      inserter.insert(conn, dto);
+      inserter.insert(dto);
     } catch (SQLException e) {
       fail("insert method failed: " + e.getMessage());
     } finally {
-      conn.commit();
       if (stmt != null) {
         stmt.close();
       }
@@ -206,20 +192,15 @@ public class QueryByKeyMemcachedTest extends ConnectionTest {
         conn.close();
       }
     }
-    // Query the object and test against the original.
-    try {
-      IKeyQuerySql<Parent> sql = new ParentKeyQuerySql();
-      QueryByKey<Parent> dao =
-        new QueryMemcachedByKey<Parent>(sql, SUBSYSTEM, EXPIRE_TIME);
-      IDbDto queriedDto = dao.queryByKey(key);
-      assertTrue(queriedDto != null);
-      assertTrue("data not equal", dto.compareTo(queriedDto) == 0);
-      assertTrue("queried dto set to NEW",
-                 queriedDto.getStatus() != IDbDto.Status.NEW);
-      assertTrue("queried dto set to CHANGED",
-                 queriedDto.getStatus() != IDbDto.Status.CHANGED);
-    } catch (SQLException e) {
-      fail("Query by key exception: " + e.getMessage());
-    }
+    IKeyQuerySql<Parent> sql = new ParentKeyQuerySql();
+    QueryByKey<Parent> dao =
+      new QueryMemcachedByKey<Parent>(sql, SUBSYSTEM, EXPIRE_TIME);
+    IDbDto queriedDto = dao.queryByKey(key);
+    assertTrue(queriedDto != null);
+    assertTrue("data not equal", dto.compareTo(queriedDto) == 0);
+    assertTrue("queried dto set to NEW",
+               queriedDto.getStatus() != IDbDto.Status.NEW);
+    assertTrue("queried dto set to CHANGED",
+               queriedDto.getStatus() != IDbDto.Status.CHANGED);
   }
 }

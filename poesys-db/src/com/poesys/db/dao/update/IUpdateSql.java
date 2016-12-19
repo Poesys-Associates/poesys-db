@@ -14,13 +14,11 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao.update;
 
 
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.pk.IPrimaryKey;
@@ -55,8 +53,7 @@ import com.poesys.db.pk.IPrimaryKey;
  *     return builder.toString();
  *   }
  * 
- *   public int setParams(PreparedStatement stmt, int next, IDto dto)
- *       throws SQLException {
+ *   public int setParams(PreparedStatement stmt, int next, IDto dto) {
  *     Natural test = (Natural)dto;
  *     stmt.setBigDecimal(next, test.getCol1());
  *     next++;
@@ -76,9 +73,11 @@ public interface IUpdateSql<T extends IDbDto> {
    * hard-coded set of columns.
    * </p>
    * 
-   * <pre><code>
+   * <pre>
+   * <code>
    * UPDATE Table SET col=?, col=?, ... WHERE &lt;key expression&gt;
-   * </code></pre>
+   * </code>
+   * </pre>
    * 
    * @param key the primary key for the object for which to generate SQL
    * 
@@ -93,10 +92,20 @@ public interface IUpdateSql<T extends IDbDto> {
    * @param stmt the prepared SQL statement
    * @param next the next parameter index after the last parameter index set
    * @param dto the data transfer object containing the values to set into the
-   *            statement
+   *          statement
    * @return the index of the next parameter to set (the first primary key
    *         value)
-   * @throws SQLException when the parameter setting fails with a SQL error
    */
-  int setParams(PreparedStatement stmt, int next, T dto) throws SQLException;
+  int setParams(PreparedStatement stmt, int next, T dto);
+
+  /**
+   * Return the parameters other than the primary key set by the setParams
+   * method as a string suitable for logging display. This lets you display the
+   * parameters to the SQL statement in the log along with the SQL statement.
+   * 
+   * @param dto the data transfer object containing the values to set into the
+   *          statement
+   * @return the parameter string suitable for logging display
+   */
+  String getParamString(T dto);
 }

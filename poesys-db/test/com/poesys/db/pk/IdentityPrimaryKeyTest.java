@@ -34,7 +34,7 @@ import com.poesys.db.dao.ConnectionTest;
 
 /**
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class IdentityPrimaryKeyTest extends ConnectionTest {
 

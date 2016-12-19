@@ -19,7 +19,6 @@ package com.poesys.db.pk;
 
 
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -124,8 +123,7 @@ public class GuidPrimaryKey extends AbstractSingleValuedPrimaryKey {
    * @see com.poesys.db.dto.IPrimaryKey#setParams(java.sql.PreparedStatement,
    * int)
    */
-  public int setParams(PreparedStatement stmt, int nextIndex)
-      throws SQLException {
+  public int setParams(PreparedStatement stmt, int nextIndex) {
     // Set the string parameter as the String representation of the UUID.
     return list.get(0).setParam(stmt, nextIndex);
   }

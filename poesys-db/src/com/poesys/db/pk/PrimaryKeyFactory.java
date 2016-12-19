@@ -20,7 +20,6 @@ package com.poesys.db.pk;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,11 +28,15 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.apache.log4j.Logger;
+
 import com.poesys.db.DuplicateKeyNameException;
 import com.poesys.db.InvalidParametersException;
+import com.poesys.db.Message;
 import com.poesys.db.NoPrimaryKeyException;
 import com.poesys.db.col.AbstractColumnValue;
 import com.poesys.db.col.BigIntegerColumnValue;
+import com.poesys.db.dao.PoesysTrackingThread;
 
 
 /**
@@ -45,6 +48,9 @@ import com.poesys.db.col.BigIntegerColumnValue;
  * @author Robert J. Muller
  */
 public class PrimaryKeyFactory {
+  /** logger for this class */
+  private static final Logger logger =
+    Logger.getLogger(PrimaryKeyFactory.class);
   /** The Oracle sequence query before the sequence name */
   private static final String ORA_SEQ1 = "SELECT ";
   /** The Oracle sequence query after the sequence name */
@@ -56,11 +62,22 @@ public class PrimaryKeyFactory {
   private static final String MYSQL_SEQ_QUERY =
     "SELECT value FROM mysql_sequence WHERE name = ?";
 
+  /**
+   * the last sequence key generated; generate and access only in one reentrant
+   * method
+   */
+  private static SequencePrimaryKey sequenceKey = null;
+
+  /** timeout for the query thread */
+  private static final int TIMEOUT = 1000 * 60;
+
   /** Error message for no sequence generation */
   private static final String NO_SEQ_MSG = "com.poesys.db.pk.msg.no_sequence";
   /** Error message for null value key name or value */
   private static final String NULL_VALUE_MSG =
     "com.poesys.db.pk.msg.null_value_parameters";
+  /** Error message when thread is interrupted or timed out */
+  private static final String THREAD_ERROR = "com.poesys.db.dao.msg.thread";
 
   /**
    * Create a natural primary key from a name and an integer. This is a shortcut
@@ -189,63 +206,108 @@ public class PrimaryKeyFactory {
    * and have it start with an appropriate value. The sequence name, if null,
    * defaults to the key column name.
    * 
-   * @param connection the connection to the Oracle database
    * @param sequenceName the name of the Oracle SEQUENCE object
    * @param name the name of the single primary key column
    * @param className the name of the IDbDto class of the object that the
    *          primary key identifies
+   * @param subsystem the subsystem of the IDbDto to which the key applies
    * @return the sequence primary key
-   * @throws InvalidParametersException when the name or sequence-generated
-   *           value is null
-   * @throws NoPrimaryKeyException when the sequence-generated value can't be
-   *           generated, possibly because of a SQL error such as the wrong
-   *           sequence name or because the sequence query failed to return a
-   *           value, which should never happen
-   * @throws SQLException when there is a problem closing the SQL statement
    */
-  public static SequencePrimaryKey createOracleSequenceKey(Connection connection,
-                                                           String sequenceName,
+  public static SequencePrimaryKey createOracleSequenceKey(String sequenceName,
                                                            String name,
-                                                           String className)
-      throws InvalidParametersException, NoPrimaryKeyException, SQLException {
-    PreparedStatement stmt = null;
-    SequencePrimaryKey key = null;
-    // Default the sequence name to the column name.
-    if (sequenceName == null) {
-      sequenceName = name;
-    }
+                                                           String className,
+                                                           String subsystem) {
+    Runnable query =
+      getRunnableOracleKeyGenerator(sequenceName, name, className);
+    PoesysTrackingThread thread = new PoesysTrackingThread(query, subsystem);
+    thread.start();
+    // Join the thread, blocking until the thread completes or
+    // until the query times out.
     try {
-      // Get the sequence value and set it into the primary key.
-      StringBuilder seq = new StringBuilder(ORA_SEQ1);
-      seq.append(sequenceName);
-      seq.append(ORA_SEQ2);
-      stmt = connection.prepareStatement(seq.toString());
-      ResultSet rs = stmt.executeQuery();
-      if (rs.next()) {
-        BigDecimal seqValue = rs.getBigDecimal("value");
-        key = new SequencePrimaryKey(name, seqValue.toBigInteger(), className);
-      } else {
-        List<String> list = new ArrayList<String>();
-        NoPrimaryKeyException d = new NoPrimaryKeyException(NO_SEQ_MSG);
-        list.add(sequenceName);
-        list.add("no value found");
-        d.setParameters(list);
-        throw d;
-      }
-    } catch (SQLException e) {
-      List<String> list = new ArrayList<String>();
-      NoPrimaryKeyException d = new NoPrimaryKeyException(NO_SEQ_MSG);
-      list.add(sequenceName);
-      list.add(e.getMessage());
-      d.setParameters(list);
-      throw d;
+      thread.join(TIMEOUT);
+    } catch (InterruptedException e) {
+      Object[] args =
+        { "generate MySQL sequence key", sequenceName, name, className,
+         subsystem };
+      String message = Message.getMessage(THREAD_ERROR, args);
+      logger.error(message, e);
     } finally {
-      // Close the statement if it is open.
-      if (stmt != null) {
-        stmt.close();
-      }
+      thread.closeConnection();
     }
+
+    // Make method reentrant by copying key and setting static variable back to
+    // null.
+    SequencePrimaryKey key = sequenceKey;
+    sequenceKey = null;
+
     return key;
+  }
+
+  /**
+   * Get a Runnable key generator for an Oracle Sequence key. This method
+   * generates a key from a sequence table in the target subsystem database and
+   * stores it in the static variable mysqlKey; the method that runs this
+   * Runnable must copy that value and set the variable back to null to be fully
+   * reentrant.
+   * 
+   * @param sequenceName the name of the MySQL sequence (optional)
+   * @param name the name of the single primary key column (and sequence name if
+   *          sequence name is null)
+   * @param className the name of the IDbDto class of the object that the
+   *          primary key identifies
+   * @return a Runnable key generator object
+   */
+  private static Runnable getRunnableOracleKeyGenerator(String sequenceName,
+                                                        String name,
+                                                        String className) {
+    // Create a runnable query object that does the query.
+    Runnable query = new Runnable() {
+      public void run() {
+        PreparedStatement stmt = null;
+
+        // Default the sequence name to the column name.
+        String finalName = sequenceName != null ? sequenceName : name;
+        try {
+          PoesysTrackingThread thread =
+            (PoesysTrackingThread)Thread.currentThread();
+          // Get the sequence value and set it into the primary key.
+          StringBuilder seq = new StringBuilder(ORA_SEQ1);
+          seq.append(finalName);
+          seq.append(ORA_SEQ2);
+          stmt = thread.getConnection().prepareStatement(seq.toString());
+          ResultSet rs = stmt.executeQuery();
+          if (rs.next()) {
+            BigDecimal seqValue = rs.getBigDecimal("value");
+            sequenceKey =
+              new SequencePrimaryKey(name, seqValue.toBigInteger(), className);
+          } else {
+            List<String> list = new ArrayList<String>();
+            NoPrimaryKeyException d = new NoPrimaryKeyException(NO_SEQ_MSG);
+            list.add(finalName);
+            list.add("no value found");
+            d.setParameters(list);
+            throw d;
+          }
+        } catch (SQLException e) {
+          List<String> list = new ArrayList<String>();
+          NoPrimaryKeyException d = new NoPrimaryKeyException(NO_SEQ_MSG);
+          list.add(finalName);
+          list.add(e.getMessage());
+          d.setParameters(list);
+          throw d;
+        } finally {
+          // Close the statement if it is open.
+          if (stmt != null) {
+            try {
+              stmt.close();
+            } catch (SQLException e) {
+              // ignore
+            }
+          }
+        }
+      }
+    };
+    return query;
   }
 
   /**
@@ -275,68 +337,111 @@ public class PrimaryKeyFactory {
    *  WHERE name = ?;
    * </pre>
    * 
-   * @param connection the connection to the MySQL database
    * @param sequenceName the name of the MySQL sequence
    * @param name the name of the single primary key column
    * @param className the name of the IDbDto class of the object that the
    *          primary key identifies
+   * @param subsystem the subsystem for which to generate the key
    * @return the sequence primary key
-   * @throws InvalidParametersException when the name or sequence-generated
-   *           value is null
-   * @throws NoPrimaryKeyException when the sequence-generated value can't be
-   *           generated, possibly because of a SQL error such as the wrong
-   *           sequence name
-   * @throws SQLException when there is a problem closing the SQL statement
    */
-  public static SequencePrimaryKey createMySqlSequenceKey(Connection connection,
-                                                          String sequenceName,
+  public static SequencePrimaryKey createMySqlSequenceKey(String sequenceName,
                                                           String name,
-                                                          String className)
-      throws InvalidParametersException, NoPrimaryKeyException, SQLException {
-    PreparedStatement stmt = null;
-    SequencePrimaryKey key = null;
-    // Default the sequence name to the column name.
-    if (sequenceName == null) {
-      sequenceName = name;
-    }
+                                                          String className,
+                                                          String subsystem) {
+    Runnable query =
+      getRunnableMySqlKeyGenerator(sequenceName, name, className);
+    PoesysTrackingThread thread = new PoesysTrackingThread(query, subsystem);
+    thread.start();
+    // Join the thread, blocking until the thread completes or
+    // until the query times out.
     try {
-      // Get the sequence value and set it into the primary key.
-      stmt = connection.prepareStatement(MYSQL_SEQ_UPDATE);
-      stmt.setString(1, sequenceName);
-      stmt.execute();
-      stmt.close();
-      stmt = connection.prepareStatement(MYSQL_SEQ_QUERY);
-      stmt.setString(1, sequenceName);
-      ResultSet rs = stmt.executeQuery();
-      if (rs.next()) {
-        BigDecimal seqValue = rs.getBigDecimal("value");
-        key = new SequencePrimaryKey(name, seqValue.toBigInteger(), className);
-      } else {
-        List<String> list = new ArrayList<String>();
-        NoPrimaryKeyException x = new NoPrimaryKeyException(NO_SEQ_MSG);
-        list.add(sequenceName);
-        list.add("No row for sequence in mysql_sequence table");
-        x.setParameters(list);
-        throw x;
-      }
-    } catch (SQLException e) {
-      List<String> list = new ArrayList<String>();
-      NoPrimaryKeyException x = new NoPrimaryKeyException(NO_SEQ_MSG);
-      list.add(sequenceName);
-      list.add(e.getMessage());
-      x.setParameters(list);
-      throw x;
+      thread.join(TIMEOUT);
+    } catch (InterruptedException e) {
+      Object[] args =
+        { "generate MySQL sequence key", sequenceName, name, className,
+         subsystem };
+      String message = Message.getMessage(THREAD_ERROR, args);
+      logger.error(message, e);
     } finally {
-      // Close the statement if it is open.
-      if (stmt != null) {
-        stmt.close();
-      }
-      // Commit the sequence generation.
-      if (connection != null) {
-        connection.commit();
-      }
+      thread.closeConnection();
     }
+
+    // Make method reentrant by copying key and setting static variable back to
+    // null.
+    SequencePrimaryKey key = sequenceKey;
+    sequenceKey = null;
+
     return key;
+  }
+
+  /**
+   * Get a Runnable key generator for a MySQL Sequence key. This method
+   * generates a key from a sequence table in the target subsystem database and
+   * stores it in the static variable mysqlKey; the method that runs this
+   * Runnable must copy that value and set the variable back to null to be fully
+   * reentrant.
+   * 
+   * @param sequenceName the name of the MySQL sequence (optional)
+   * @param name the name of the single primary key column (and sequence name if
+   *          sequence name is null)
+   * @param className the name of the IDbDto class of the object that the
+   *          primary key identifies
+   * @return a Runnable key generator object
+   */
+  private static Runnable getRunnableMySqlKeyGenerator(String sequenceName,
+                                                       String name,
+                                                       String className) {
+    // Create a runnable query object that does the query.
+    Runnable query = new Runnable() {
+      public void run() {
+        PreparedStatement stmt = null;
+        // Default the sequence name to the column name.
+        String finalName = sequenceName != null ? sequenceName : name;
+        try {
+          // Get the sequence value and set it into the primary key.
+          PoesysTrackingThread thread =
+            (PoesysTrackingThread)Thread.currentThread();
+          stmt = thread.getConnection().prepareStatement(MYSQL_SEQ_UPDATE);
+          stmt.setString(1, finalName);
+          stmt.execute();
+          stmt.close();
+          thread.getConnection().commit();
+          stmt = thread.getConnection().prepareStatement(MYSQL_SEQ_QUERY);
+          stmt.setString(1, finalName);
+          ResultSet rs = stmt.executeQuery();
+          if (rs.next()) {
+            BigDecimal seqValue = rs.getBigDecimal("value");
+            // Set the static variable from the thread.
+            sequenceKey =
+              new SequencePrimaryKey(name, seqValue.toBigInteger(), className);
+          } else {
+            List<String> list = new ArrayList<String>();
+            NoPrimaryKeyException x = new NoPrimaryKeyException(NO_SEQ_MSG);
+            list.add(finalName);
+            list.add("No row for sequence in mysql_sequence table");
+            x.setParameters(list);
+            throw x;
+          }
+        } catch (SQLException e) {
+          List<String> list = new ArrayList<String>();
+          NoPrimaryKeyException x = new NoPrimaryKeyException(NO_SEQ_MSG);
+          list.add(finalName);
+          list.add(e.getMessage());
+          x.setParameters(list);
+          throw x;
+        } finally {
+          // Close the statement if it is open.
+          if (stmt != null) {
+            try {
+              stmt.close();
+            } catch (SQLException e) {
+              // ignore
+            }
+          }
+        }
+      }
+    };
+    return query;
   }
 
   /**

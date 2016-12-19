@@ -37,7 +37,7 @@ import com.poesys.db.dao.ConnectionTest;
 /**
  * Test the CompositePrimaryKey class.
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class CompositePrimaryKeyTest extends ConnectionTest {
   private String col1Name = "col1";

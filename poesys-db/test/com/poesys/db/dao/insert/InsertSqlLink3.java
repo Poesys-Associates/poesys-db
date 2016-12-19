@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao.insert;
 
@@ -22,6 +21,7 @@ package com.poesys.db.dao.insert;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dto.Link3;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -34,17 +34,13 @@ import com.poesys.db.pk.IPrimaryKey;
  * 
  * @see com.poesys.db.dto.TestNatural
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class InsertSqlLink3 implements IInsertSql<Link3> {
   private static final String SQL1 = "INSERT INTO Link3 (";
   private static final String SQL2 = ", col) VALUES (?, ?)";
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.IInsertSql#getSql(com.poesys.db.pk.IPrimaryKey)
-   */
+  @Override
   public String getSql(IPrimaryKey key) {
     StringBuilder builder = new StringBuilder(SQL1);
     builder.append(key.getSqlInsertColumnList());
@@ -52,14 +48,12 @@ public class InsertSqlLink3 implements IInsertSql<Link3> {
     return builder.toString();
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.IInsertSql#setParams(java.sql.PreparedStatement,
-   *      int, java.lang.Object)
-   */
-  public void setParams(PreparedStatement stmt, int next, Link3 dto)
-      throws SQLException {
-    stmt.setString(next, dto.getCol());
+  @Override
+  public void setParams(PreparedStatement stmt, int next, Link3 dto) {
+    try {
+      stmt.setString(next, dto.getCol());
+    } catch (SQLException e) {
+      throw new DbErrorException("SQL error", e);
+    }
   }
 }

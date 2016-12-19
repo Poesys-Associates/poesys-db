@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao.update;
 
@@ -22,6 +21,7 @@ package com.poesys.db.dao.update;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dto.TestMultipleParams;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -34,33 +34,38 @@ import com.poesys.db.pk.IPrimaryKey;
  * parameters for the UPDATE statement.
  * </p>
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class UpdateSqlTestMultiple implements IUpdateSql<TestMultipleParams> {
   /** SQL statement that updates col1 */
   private static final String SQL =
     "UPDATE TestMultiple SET col1 = ? WHERE colType = ?";
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.IInsertSql#getSql(com.poesys.db.pk.IPrimaryKey)
-   */
+  @Override
   public String getSql(IPrimaryKey ignored) {
     StringBuilder builder = new StringBuilder(SQL);
     return builder.toString();
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.IInsertSql#setParams(java.sql.PreparedStatement,
-   *      int, java.lang.Object)
-   */
+  @Override
   public int setParams(PreparedStatement stmt, int ignored,
-                       TestMultipleParams dto) throws SQLException {
-    stmt.setString(1, dto.getCol1());
-    stmt.setString(2, dto.getColType());
+                       TestMultipleParams dto) {
+    try {
+      stmt.setString(1, dto.getCol1());
+      stmt.setString(2, dto.getColType());
+    } catch (SQLException e) {
+      throw new DbErrorException("SQL error", e);
+    }
     return 3;
+  }
+
+  @Override
+  public String getParamString(TestMultipleParams dto) {
+    StringBuilder builder = new StringBuilder("Parameters: \"");
+    builder.append(dto.getCol1());
+    builder.append("\", \"");
+    builder.append(dto.getColType());
+    builder.append("\"");
+    return builder.toString();
   }
 }

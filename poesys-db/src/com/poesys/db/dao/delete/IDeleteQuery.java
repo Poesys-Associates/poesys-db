@@ -17,16 +17,11 @@
  */
 package com.poesys.db.dao.delete;
 
-
-import java.sql.Connection;
-import java.sql.SQLException;
-
-
 /**
  * An interface for a Command pattern class that deletes a set of objects
- * identified by a query (a SELECT statement). This command simply deletes
- * the objects from the database, it does not handle caches, which must be
- * updated by the client or by the overall system.
+ * identified by a query (a SELECT statement). This command simply deletes the
+ * objects from the database, it does not handle caches, which must be updated
+ * by the client or by the overall system.
  * 
  * @author Robert J. Muller
  */
@@ -35,11 +30,8 @@ public interface IDeleteQuery {
    * Delete the contents of a DTO object in the database. The DTO must contain
    * values for the primary key. The DTO must have any setters required to
    * preprocess nested objects that must be handled before deleting the object.
-   * 
-   * @param connection the database connection with which to delete the data
-   * @throws SQLException when there is a SQL error with the delete
    */
-  public void delete(Connection connection) throws SQLException;
+  public void delete();
 
   /**
    * Close any resources allocated by the Command.

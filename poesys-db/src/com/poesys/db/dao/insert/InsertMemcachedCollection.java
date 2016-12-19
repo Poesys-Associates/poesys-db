@@ -18,11 +18,8 @@
 package com.poesys.db.dao.insert;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Collection;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoManager;
 import com.poesys.db.dto.IDbDto;
@@ -37,8 +34,6 @@ import com.poesys.db.dto.IDbDto;
  */
 public class InsertMemcachedCollection<T extends IDbDto> extends
     InsertCollection<T> implements IInsertCollection<T> {
-  /** the name of the subsystem containing the T class */
-  private final String subsystem;
   /** the memcached expiration time in milliseconds for T objects */
   private final int expiration;
 
@@ -53,15 +48,13 @@ public class InsertMemcachedCollection<T extends IDbDto> extends
   public InsertMemcachedCollection(IInsertSql<T> sql,
                                    String subsystem,
                                    int expiration) {
-    super(sql);
-    this.subsystem = subsystem;
+    super(sql, subsystem);
     this.expiration = expiration;
   }
 
   @Override
-  public void insert(Connection connection, Collection<T> dtos)
-      throws SQLException, BatchException {
-    super.insert(connection, dtos);
+  public void insert(Collection<T> dtos) {
+    super.insert(dtos);
     DaoManagerFactory.initMemcachedManager(subsystem);
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     for (T dto : dtos) {
@@ -74,9 +67,5 @@ public class InsertMemcachedCollection<T extends IDbDto> extends
                                  dto);
       }
     }
-  }
-
-  @Override
-  public void close() {
   }
 }

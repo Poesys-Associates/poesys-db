@@ -53,6 +53,6 @@ public class ConstraintViolationException extends DbErrorException {
    * @param arg0 the cause
    */
   public ConstraintViolationException(Throwable arg0) {
-    super(arg0);
+    super(arg0, null);
   }
 }

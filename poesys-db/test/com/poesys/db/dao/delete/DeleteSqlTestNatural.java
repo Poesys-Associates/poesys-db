@@ -14,13 +14,11 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao.delete;
 
 
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.dto.TestNatural;
@@ -34,32 +32,30 @@ import com.poesys.db.pk.IPrimaryKey;
  * 
  * @see com.poesys.db.dto.TestNatural
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class DeleteSqlTestNatural implements IDeleteSql<TestNatural> {
   /** SQL statement that updates col1 */
   private static final String SQL = "DELETE FROM TestNatural WHERE ";
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.IInsertSql#getSql(com.poesys.db.pk.IPrimaryKey)
-   */
+  @Override
   public String getSql(IPrimaryKey key) {
     StringBuilder builder = new StringBuilder(SQL);
     builder.append(key.getSqlWhereExpression(""));
     return builder.toString();
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.IInsertSql#setParams(java.sql.PreparedStatement,
-   *      int, java.lang.Object)
-   */
-  public int setParams(PreparedStatement stmt, int next, IDbDto dto)
-      throws SQLException {
+  @Override
+  public int setParams(PreparedStatement stmt, int next, IDbDto dto) {
     next = dto.getPrimaryKey().setParams(stmt, next);
     return next;
+  }
+
+  @Override
+  public String getParamString(TestNatural dto) {
+    StringBuilder builder = new StringBuilder("Parameters: None");
+    builder.append(dto.getCol1());
+    builder.append("\"");
+    return builder.toString();
   }
 }

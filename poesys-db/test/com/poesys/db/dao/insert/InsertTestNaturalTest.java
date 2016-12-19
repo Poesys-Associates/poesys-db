@@ -24,21 +24,18 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.List;
+
+import org.apache.log4j.Logger;
 
 import com.poesys.db.BatchException;
-import com.poesys.db.col.AbstractColumnValue;
-import com.poesys.db.col.StringColumnValue;
-import com.poesys.db.dao.ConnectionTest;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoFactory;
 import com.poesys.db.dao.IDaoManager;
+import com.poesys.db.dao.MemcachedTest;
 import com.poesys.db.dao.query.IKeyQuerySql;
-import com.poesys.db.dao.query.IQueryByKey;
 import com.poesys.db.dto.TestNatural;
 import com.poesys.db.pk.IPrimaryKey;
-import com.poesys.db.pk.NaturalPrimaryKey;
 
 
 /**
@@ -46,7 +43,10 @@ import com.poesys.db.pk.NaturalPrimaryKey;
  * 
  * @author Robert J. Muller
  */
-public class InsertTestNaturalTest extends ConnectionTest {
+public class InsertTestNaturalTest extends MemcachedTest {
+  private static final Logger logger =
+    Logger.getLogger(InsertTestNaturalTest.class);
+  /** SQL statement to query test row */
   private static final String QUERY =
     "SELECT col1 FROM TestNatural WHERE key1 = 'A' and key2 = 'B'";
 
@@ -62,10 +62,10 @@ public class InsertTestNaturalTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
     Insert<TestNatural> cut =
-      new Insert<TestNatural>(new InsertSqlTestNatural());
+      new Insert<TestNatural>(new InsertSqlTestNatural(), getSubsystem());
 
     // Create the DTO.
     BigDecimal col1 = new BigDecimal("1234.5678");
@@ -78,11 +78,13 @@ public class InsertTestNaturalTest extends ConnectionTest {
       stmt.executeUpdate("DELETE FROM TestNatural");
       stmt.close();
 
+      conn.commit();
+
       // Insert the test row.
-      stmt = conn.createStatement();
-      cut.insert(conn, dto);
+      cut.insert(dto);
 
       // Query the row.
+      stmt = conn.createStatement();
       ResultSet rs = stmt.executeQuery(QUERY);
       BigDecimal queriedCol1 = null;
       if (rs.next()) {
@@ -91,6 +93,7 @@ public class InsertTestNaturalTest extends ConnectionTest {
       assertTrue(queriedCol1 != null);
       // Must use compareTo here, not equals, because of precision difference
       assertTrue(col1.compareTo(queriedCol1) == 0);
+      conn.commit();
     } catch (SQLException e) {
       fail("insert method failed: " + e.getMessage());
     } finally {
@@ -113,11 +116,17 @@ public class InsertTestNaturalTest extends ConnectionTest {
     private static final String SQL =
       "SELECT key1, key2, col1 FROM TestNatural WHERE ";
 
-    public TestNatural getData(IPrimaryKey key, ResultSet rs)
-        throws SQLException {
-      String key1 = rs.getString("key1");
-      String key2 = rs.getString("key2");
-      BigDecimal col1 = rs.getBigDecimal("col1");
+    public TestNatural getData(IPrimaryKey key, ResultSet rs) {
+      String key1;
+      String key2;
+      BigDecimal col1;
+      try {
+        key1 = rs.getString("key1");
+        key2 = rs.getString("key2");
+        col1 = rs.getBigDecimal("col1");
+      } catch (SQLException e) {
+        throw new DbErrorException("SQL error", e);
+      }
       return new TestNatural(key1, key2, col1);
     }
 
@@ -139,17 +148,21 @@ public class InsertTestNaturalTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
 
-    IDaoManager manager = DaoManagerFactory.initMemcachedManager(getSubsystem());
+    // Need to clear any previously created manager for the subsystem, as
+    // the other tests in the suite create different kinds of managers for
+    // the same subsystem.
+    DaoManagerFactory.clearManager(getSubsystem());
+    // Create a memcached manager.
+    IDaoManager manager =
+      DaoManagerFactory.initMemcachedManager(getSubsystem());
     IDaoFactory<TestNatural> factory =
       manager.getFactory(TestNatural.class.getName(), getSubsystem(), null);
 
     IInsert<TestNatural> cut =
       factory.getInsert(new InsertSqlTestNatural(), true);
-    IQueryByKey<TestNatural> query =
-      factory.getQueryByKey(new Query(), getSubsystem());
 
     // Create the DTO.
     BigDecimal col1 = new BigDecimal("1234.5678");
@@ -162,21 +175,37 @@ public class InsertTestNaturalTest extends ConnectionTest {
       stmt.executeUpdate("DELETE FROM TestNatural");
       stmt.close();
 
+      conn.commit();
+
       // Insert the test row.
+      logger.debug("Inserting dto to memcached cache: " + dto.getPrimaryKey().getStringKey());
+      cut.insert(dto);
+      logger.debug("Inserted dto to memcached cache: " + dto.getPrimaryKey().getStringKey());
+
+      // Sleep for a couple of seconds to give the cache a chance to catch up.
+      try {
+        Thread.sleep(2000);
+      } catch (InterruptedException e) {
+        logger.error("Error in sleep wait for memcached", e);
+        fail("Error in sleep wait for memcached");
+      }
+      // Check memcached for the data.
+      logger.debug("Getting object from memcached with key "
+                   + dto.getPrimaryKey().getStringKey());
+      Object object = getFromMemcached(dto.getPrimaryKey());
+      assertTrue("Couldn't get memcached object", object != null);
+
+      // Query the row from the database.
       stmt = conn.createStatement();
-      cut.insert(conn, dto);
-
-      // Query the row.
-      List<AbstractColumnValue> keyList = new ArrayList<AbstractColumnValue>(2);
-      keyList.add(new StringColumnValue("key1", "A"));
-      keyList.add(new StringColumnValue("key2", "B"));
-      NaturalPrimaryKey key =
-        new NaturalPrimaryKey(keyList, TestNatural.class.getName());
-
-      TestNatural queried = query.queryByKey(key);
-      assertTrue(queried != null);
+      ResultSet rs = stmt.executeQuery(QUERY);
+      BigDecimal queriedCol1 = null;
+      if (rs.next()) {
+        queriedCol1 = rs.getBigDecimal("col1");
+      }
+      assertTrue(queriedCol1 != null);
       // Must use compareTo here, not equals, because of precision difference
-      assertTrue(queried.getCol1().compareTo(col1) == 0);
+      assertTrue(col1.compareTo(queriedCol1) == 0);
+      conn.commit();
     } catch (SQLException e) {
       fail("insert method failed: " + e.getMessage());
     } finally {

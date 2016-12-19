@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.col;
 
@@ -36,10 +35,10 @@ import com.poesys.ms.col.IColumnValue;
  */
 public class BigIntegerColumnValue extends AbstractColumnValue {
   /**
-   * Generated serial version UID for Serializable object
+   * serial version UID for Serializable object
    */
-  private static final long serialVersionUID = 4672732512858486239L;
-  
+  private static final long serialVersionUID = 1L;
+
   /** The BigInteger value */
   private BigInteger value = null;
 
@@ -60,11 +59,6 @@ public class BigIntegerColumnValue extends AbstractColumnValue {
     }
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.AbstractColumnValue#vallueEquals(com.poesys.db.dto.AbstractColumnValue)
-   */
   @Override
   public boolean valueEquals(AbstractColumnValue value) {
     boolean ret = false;
@@ -74,36 +68,23 @@ public class BigIntegerColumnValue extends AbstractColumnValue {
     return ret;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.ColumnValue#hashCode()
-   */
   @Override
   public int hashCode() {
     return value.hashCode();
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.ColumnValue#setParam(java.sql.PreparedStatement,
-   *      int)
-   */
   @Override
-  public int setParam(PreparedStatement stmt, int nextIndex)
-      throws SQLException {
+  public int setParam(PreparedStatement stmt, int nextIndex) {
     // Use the BigDecimal setter for the BigInteger by creating a BigDecimal
     // with the integer value.
-    stmt.setBigDecimal(nextIndex, new BigDecimal(value));
+    try {
+      stmt.setBigDecimal(nextIndex, new BigDecimal(value));
+    } catch (SQLException e) {
+      throwDbError(e);
+    }
     return ++nextIndex;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.ColumnValue#hasValue()
-   */
   @Override
   public boolean hasValue() {
     return value != null;
@@ -118,31 +99,16 @@ public class BigIntegerColumnValue extends AbstractColumnValue {
     return value;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.col.AbstractColumnValue#accept(com.poesys.db.col.IColumnVisitor)
-   */
   @Override
   protected void accept(IColumnVisitor visitor) {
     visitor.visit(this);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see java.lang.Object#toString()
-   */
   @Override
   public String toString() {
     return value.toString();
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.col.AbstractColumnValue#copy()
-   */
   @Override
   public AbstractColumnValue copy() {
     return new BigIntegerColumnValue(name, value);

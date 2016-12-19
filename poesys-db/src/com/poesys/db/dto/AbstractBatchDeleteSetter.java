@@ -18,16 +18,14 @@
 package com.poesys.db.dto;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.List;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoFactory;
 import com.poesys.db.dao.IDaoManager;
+import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dao.delete.IDeleteBatch;
 import com.poesys.db.dao.delete.IDeleteSql;
 
@@ -59,7 +57,8 @@ abstract public class AbstractBatchDeleteSetter<T extends IDbDto> extends
   }
 
   @Override
-  public void set(Connection connection) throws SQLException {
+  public void set() {
+    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     // Expiration is not used in deletes, just set to 0
     IDaoFactory<T> factory = manager.getFactory(getClassName(), subsystem, 0);
@@ -67,13 +66,9 @@ abstract public class AbstractBatchDeleteSetter<T extends IDbDto> extends
     List<T> links = getDtos();
 
     try {
-      dao.delete(connection, links, getBatchSize());
+      dao.delete(links, getBatchSize());
     } catch (ConstraintViolationException e) {
-      throw new DbErrorException(e.getMessage(), e);
-    } catch (BatchException e) {
-      throw new DbErrorException(e.getMessage(), e);
-    } catch (DtoStatusException e) {
-      throw new DbErrorException(e.getMessage(), e);
+      throw new DbErrorException(e.getMessage(), thread, e);
     }
   }
 

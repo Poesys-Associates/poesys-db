@@ -18,12 +18,9 @@
 package com.poesys.db.dto;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.PoesysTrackingThread;
@@ -56,8 +53,7 @@ import com.poesys.db.dao.PoesysTrackingThread;
  *   }
  * 
  *   &#064;Override
- *   protected void doNew(Connection connection, List&lt;Child&gt; dtos)
- *       throws SQLException, BatchException {
+ *   protected void doNew(Connection connection, List&lt;Child&gt; dtos) {
  *     IDaoFactory&lt;Child&gt; factory = DaoManager.getFactory(Parent.class.getName());
  *     // Insert the children.
  *     IInsertBatch&lt;Child&gt; dao = factory.getInsertBatch(new InsertSqlChild());
@@ -65,8 +61,7 @@ import com.poesys.db.dao.PoesysTrackingThread;
  *   }
  * 
  *   &#064;Override
- *   protected void doChanged(Connection connection, List&lt;Child&gt; dtos)
- *       throws SQLException, BatchException {
+ *   protected void doChanged(Connection connection, List&lt;Child&gt; dtos) {
  *     IDaoFactory&lt;Child&gt; factory = DaoManager.getFactory(Parent.class.getName());
  * 
  *     // Update the children.
@@ -102,13 +97,13 @@ public abstract class AbstractProcessNestedObjects<T extends IDbDto, C extends C
 
   @Override
   @SuppressWarnings("unchecked")
-  public void set(Connection connection) throws SQLException {
+  public void set() {
     C inserts = (C)new ArrayList<T>();
     C updates = (C)new ArrayList<T>();
     C deletes = (C)new ArrayList<T>();
 
     C dtos = getDtos();
-    
+
     PoesysTrackingThread thread = null;
     if (Thread.currentThread() instanceof PoesysTrackingThread) {
       thread = (PoesysTrackingThread)Thread.currentThread();
@@ -135,15 +130,11 @@ public abstract class AbstractProcessNestedObjects<T extends IDbDto, C extends C
       }
 
       try {
-        doNew(connection, inserts);
-        doChanged(connection, updates);
-        doDeleted(connection, deletes);
+        doNew(inserts);
+        doChanged(updates);
+        doDeleted(deletes);
       } catch (ConstraintViolationException e) {
-        throw new DbErrorException(e.getMessage(), e);
-      } catch (BatchException e) {
-        throw new DbErrorException(e.getMessage(), e);
-      } catch (DtoStatusException e) {
-        throw new DbErrorException(e.getMessage(), e);
+        throw new DbErrorException(e.getMessage(), thread, e);
       }
     }
   }
@@ -163,33 +154,21 @@ public abstract class AbstractProcessNestedObjects<T extends IDbDto, C extends C
   /**
    * Pre-process the NEW DTOs.
    * 
-   * @param connection the database connection
    * @param dtos the collection of NEW DTOs
-   * @throws BatchException when there is a SQL batch processing problem
-   * @throws SQLException when there is a SQL execution problem
    */
-  abstract protected void doNew(Connection connection, C dtos)
-      throws SQLException, BatchException;
+  abstract protected void doNew(C dtos);
 
   /**
    * Pre-process the CHANGED DTOs.
    * 
-   * @param connection the database connection
    * @param dtos the collection of CHANGED DTOs
-   * @throws BatchException when there is a SQL batch processing problem
-   * @throws SQLException when there is a SQL execution problem
    */
-  abstract protected void doChanged(Connection connection, C dtos)
-      throws SQLException, BatchException;
+  abstract protected void doChanged(C dtos);
 
   /**
    * Pre-process the DELETED DTOs.
    * 
-   * @param connection the database connection
    * @param dtos the collection of DELETED DTOs
-   * @throws BatchException when there is a SQL batch processing problem
-   * @throws SQLException when there is a SQL execution problem
    */
-  abstract protected void doDeleted(Connection connection, C dtos)
-      throws SQLException, BatchException;
+  abstract protected void doDeleted(C dtos);
 }

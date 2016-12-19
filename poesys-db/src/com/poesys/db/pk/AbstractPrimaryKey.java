@@ -19,7 +19,6 @@ package com.poesys.db.pk;
 
 
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 
 
 /**
@@ -66,7 +65,7 @@ public abstract class AbstractPrimaryKey implements IPrimaryKey {
   public AbstractPrimaryKey(String className) {
     this.className = className;
   }
-  
+
   @Override
   public String getCacheName() {
     return className;
@@ -97,14 +96,13 @@ public abstract class AbstractPrimaryKey implements IPrimaryKey {
   }
 
   @Override
-  public int setInsertParams(PreparedStatement stmt, int nextIndex)
-      throws SQLException {
+  public int setInsertParams(PreparedStatement stmt, int nextIndex) {
     // Default implementation sets the simple set of columns
     return setParams(stmt, nextIndex);
   }
 
   @Override
-  public void finalizeInsert(PreparedStatement stmt) throws SQLException {
+  public void finalizeInsert(PreparedStatement stmt) {
     // Do nothing as the default finalize action. Override this for identity
     // keys.
   }

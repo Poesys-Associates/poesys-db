@@ -28,7 +28,7 @@ import com.poesys.db.pk.IPrimaryKey;
  * primary key, and each class has a string attribute. Only the root string
  * attribute is not null (required).
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class RootClass extends AbstractTestDto {
   /** Generated serial version UID for Serializable object */

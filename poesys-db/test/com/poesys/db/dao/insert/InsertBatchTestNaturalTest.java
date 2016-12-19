@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dto.TestNatural;
 
@@ -57,10 +58,10 @@ public class InsertBatchTestNaturalTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
     InsertBatch<TestNatural> cut =
-      new InsertBatch<TestNatural>(new InsertSqlTestNatural());
+      new InsertBatch<TestNatural>(new InsertSqlTestNatural(), getSubsystem());
     List<TestNatural> dtos = new CopyOnWriteArrayList<TestNatural>();
     BigDecimal col1 = new BigDecimal("1234.5678");
 
@@ -78,10 +79,12 @@ public class InsertBatchTestNaturalTest extends ConnectionTest {
       stmt = conn.createStatement();
       stmt.executeUpdate("DELETE FROM TestNatural");
       stmt.close();
+      
+      conn.commit();
 
       // Insert the test batch.
       stmt = conn.createStatement();
-      cut.insert(conn, dtos, BATCH_SIZE);
+      cut.insert(dtos, BATCH_SIZE);
 
       query = conn.prepareStatement(QUERY);
 
@@ -96,10 +99,11 @@ public class InsertBatchTestNaturalTest extends ConnectionTest {
         if (rs.next()) {
           queriedCol1 = rs.getBigDecimal("col1");
         }
-        assertTrue(queriedCol1 != null);
+        assertTrue("Couldn't query object", queriedCol1 != null);
         // Must use compareTo here, not equals, because of precision difference
-        assertTrue(col1.compareTo(queriedCol1) == 0);
+        assertTrue("Wrong object found", col1.compareTo(queriedCol1) == 0);
       }
+      conn.commit();
     } catch (SQLException e) {
       fail("insert batch method failed: " + e.getMessage());
     } finally {
@@ -107,7 +111,6 @@ public class InsertBatchTestNaturalTest extends ConnectionTest {
         stmt.close();
       }
       if (conn != null) {
-        conn.commit();
         conn.close();
       }
     }
@@ -124,10 +127,10 @@ public class InsertBatchTestNaturalTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
     InsertBatch<TestNatural> cut =
-      new InsertBatch<TestNatural>(new InsertSqlTestNatural());
+      new InsertBatch<TestNatural>(new InsertSqlTestNatural(), getSubsystem());
     List<TestNatural> errorDtos = new CopyOnWriteArrayList<TestNatural>();
     Collection<TestNatural> goodDtos = new CopyOnWriteArrayList<TestNatural>();
     BigDecimal col1 = new BigDecimal("1234.5678");
@@ -162,11 +165,13 @@ public class InsertBatchTestNaturalTest extends ConnectionTest {
       stmt = conn.createStatement();
       stmt.executeUpdate("DELETE FROM TestNatural");
       stmt.close();
+      
+      conn.commit();
 
       // Insert the test batch.
       stmt = conn.createStatement();
       try {
-        cut.insert(conn, errorDtos, BATCH_SIZE);
+        cut.insert(errorDtos, BATCH_SIZE);
         fail();
       } catch (Throwable e) {
         assertTrue(true);
@@ -187,16 +192,17 @@ public class InsertBatchTestNaturalTest extends ConnectionTest {
         if (rs.next()) {
           // Got the object, compare the value.
           queriedCol1 = rs.getBigDecimal("col1");
-          assertTrue(queriedCol1 != null);
+          assertTrue("Couldn't query object from database", queriedCol1 != null);
           // Must use compareTo here, not equals, because of precision
           // difference
-          assertTrue(col1.compareTo(queriedCol1) == 0);
+          assertTrue("Wrong object", col1.compareTo(queriedCol1) == 0);
         } else {
           // No object in DB, make sure it's one of the "bad" ones.
-          assertTrue(i % 3 == 0);
+          assertTrue("Bad object found", i % 3 == 0);
         }
         i++;
       }
+      conn.commit();
     } catch (SQLException e) {
       fail("insert batch method failed: " + e.getMessage());
     } finally {
@@ -204,7 +210,6 @@ public class InsertBatchTestNaturalTest extends ConnectionTest {
         stmt.close();
       }
       if (conn != null) {
-        conn.commit();
         conn.close();
       }
     }
@@ -222,10 +227,10 @@ public class InsertBatchTestNaturalTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
     InsertBatch<TestNatural> cut =
-      new InsertBatch<TestNatural>(new InsertSqlTestNatural());
+      new InsertBatch<TestNatural>(new InsertSqlTestNatural(), getSubsystem());
     List<TestNatural> dtos = null;
     Statement stmt = null;
 
@@ -234,10 +239,12 @@ public class InsertBatchTestNaturalTest extends ConnectionTest {
       stmt = conn.createStatement();
       stmt.executeUpdate("DELETE FROM TestNatural");
       stmt.close();
+      
+      conn.commit();
 
       // Insert the test batch, which is null.
-      stmt = conn.createStatement();
-      cut.insert(conn, dtos, BATCH_SIZE);
+      cut.insert(dtos, BATCH_SIZE);
+      conn.commit();
     } catch (SQLException e) {
       fail("insert batch method with null input failed: " + e.getMessage());
     } finally {
@@ -245,7 +252,6 @@ public class InsertBatchTestNaturalTest extends ConnectionTest {
         stmt.close();
       }
       if (conn != null) {
-        conn.commit();
         conn.close();
       }
     }

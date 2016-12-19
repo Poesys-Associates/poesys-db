@@ -27,6 +27,7 @@ import java.util.List;
 import org.junit.Test;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.Message;
 import com.poesys.db.NoPrimaryKeyException;
 import com.poesys.db.dao.ConnectionTest;
@@ -40,8 +41,9 @@ import com.poesys.db.pk.PrimaryKeyFactory;
 
 
 /**
+ * CUT: QueryListWithParameters
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class QueryListWithParametersTest extends ConnectionTest {
   private static final String CLASS_NAME = "com.poesys.test.TestSequence";
@@ -67,18 +69,22 @@ public class QueryListWithParametersTest extends ConnectionTest {
       try {
         conn = getConnection();
       } catch (SQLException e) {
-        throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+        throw new DbErrorException("Connect failed: " + e.getMessage(), e);
       }
 
       // Delete all the rows from TestSequence
       try {
         stmt = conn.createStatement();
         stmt.execute("DELETE FROM TestSequence");
+        conn.commit();
       } catch (RuntimeException e1) {
         fail("Couldn't delete rows from TestSequence");
       } finally {
         if (stmt != null) {
           stmt.close();
+        }
+        if (conn != null) {
+          conn.close();
         }
       }
 
@@ -92,66 +98,56 @@ public class QueryListWithParametersTest extends ConnectionTest {
                                           EXPIRE_TIME);
       try {
         AbstractSingleValuedPrimaryKey key1 =
-          PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                                   "test",
+          PrimaryKeyFactory.createMySqlSequenceKey("test",
                                                    "pkey",
-                                                   CLASS_NAME);
+                                                   CLASS_NAME,
+                                                   getSubsystem());
         String col1 = "test";
         dto1 = new TestSequence(key1, col1);
         AbstractSingleValuedPrimaryKey key2 =
-          PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                                   "test",
+          PrimaryKeyFactory.createMySqlSequenceKey("test",
                                                    "pkey",
-                                                   CLASS_NAME);
+                                                   CLASS_NAME,
+                                                   getSubsystem());
         dto2 = new TestSequence(key2, col1);
         AbstractSingleValuedPrimaryKey key3 =
-          PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                                   "test",
+          PrimaryKeyFactory.createMySqlSequenceKey("test",
                                                    "pkey",
-                                                   CLASS_NAME);
+                                                   CLASS_NAME,
+                                                   getSubsystem());
         dto3 = new TestSequence(key3, "no test");
       } catch (NoPrimaryKeyException e1) {
         fail(Message.getMessage(e1.getMessage(), e1.getParameters().toArray()));
       }
 
       // Insert the objects.
-      inserter.insert(conn, dto1);
-      inserter.insert(conn, dto2);
-      inserter.insert(conn, dto3);
+      inserter.insert(dto1);
+      inserter.insert(dto2);
+      inserter.insert(dto3);
       assertTrue(true);
     } catch (SQLException e) {
       fail("Insert test objects failed: " + e.getMessage());
-    } finally {
-      if (conn != null) {
-        conn.commit();
-        conn.close();
-      }
     }
 
-    // Query the list of objects and test against the original.
-    try {
-      IParameterizedQuerySql<TestSequence, TestSequence> sql =
-        new TestSequenceQueryWithParametersSql();
-      QueryListWithParameters<TestSequence, TestSequence, List<TestSequence>> dao =
-        new QueryMemcachedListWithParameters<TestSequence, TestSequence, List<TestSequence>>(sql,
-                                                                                             SUBSYSTEM,
-                                                                                             EXPIRE_TIME,
-                                                                                             10);
-      List<TestSequence> queriedDtos = dao.query(dto1);
-      assertTrue("null list queried", queriedDtos != null);
-      // Should get back 2 of the 3 DTOs
-      assertTrue("wrong number of DTOs: " + queriedDtos.size(),
-                 queriedDtos.size() == 2);
-      for (TestSequence dto : queriedDtos) {
-        assertTrue("queried dto set to new, pk:"
-                       + dto.getPrimaryKey().getValueList(),
-                   dto.getStatus() != IDbDto.Status.NEW);
-        assertTrue("queried dto set to changed, pk :"
-                       + dto.getPrimaryKey().getValueList(),
-                   dto.getStatus() != IDbDto.Status.CHANGED);
-      }
-    } catch (SQLException e) {
-      fail("Query list with parameters exception: " + e.getMessage());
+    IParameterizedQuerySql<TestSequence, TestSequence> sql =
+      new TestSequenceQueryWithParametersSql();
+    QueryListWithParameters<TestSequence, TestSequence, List<TestSequence>> dao =
+      new QueryMemcachedListWithParameters<TestSequence, TestSequence, List<TestSequence>>(sql,
+                                                                                           SUBSYSTEM,
+                                                                                           EXPIRE_TIME,
+                                                                                           10);
+    List<TestSequence> queriedDtos = dao.query(dto1);
+    assertTrue("null list queried", queriedDtos != null);
+    // Should get back 2 of the 3 DTOs
+    assertTrue("wrong number of DTOs: " + queriedDtos.size(),
+               queriedDtos.size() == 2);
+    for (TestSequence dto : queriedDtos) {
+      assertTrue("queried dto set to new, pk:"
+                     + dto.getPrimaryKey().getValueList(),
+                 dto.getStatus() != IDbDto.Status.NEW);
+      assertTrue("queried dto set to changed, pk :"
+                     + dto.getPrimaryKey().getValueList(),
+                 dto.getStatus() != IDbDto.Status.CHANGED);
     }
   }
 }

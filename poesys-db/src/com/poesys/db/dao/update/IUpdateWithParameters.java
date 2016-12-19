@@ -18,9 +18,6 @@
 package com.poesys.db.dao.update;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
-
 import com.poesys.db.dto.IDbDto;
 
 
@@ -39,23 +36,7 @@ public interface IUpdateWithParameters<P extends IDbDto> {
    * Update the database based on the contents of the input DTO containing the
    * selection parameters and update data.
    * 
-   * @param connection the database connection with which to update the data
    * @param parameters the DTO containing the parameters
-   * @throws SQLException when there is a SQL error with the update
    */
-  public void update(Connection connection, P parameters) throws SQLException;
-
-  /**
-   * Is this inserter inserting into a leaf class?
-   * 
-   * @return true if leaf, false if superclass of a leaf
-   */
-  public boolean isLeaf();
-
-  /**
-   * Set the inserter to be a leaf inserter.
-   * 
-   * @param isLeaf true for a leaf inserter, false for a superclass inserter
-   */
-  public void setLeaf(boolean isLeaf);
+  public void update(P parameters);
 }

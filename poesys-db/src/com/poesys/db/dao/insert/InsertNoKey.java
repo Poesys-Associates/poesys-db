@@ -18,15 +18,9 @@
 package com.poesys.db.dao.insert;
 
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
 
-import com.poesys.db.BatchException;
-import com.poesys.db.InvalidParametersException;
 import com.poesys.db.dto.IDbDto;
-import com.poesys.db.dto.IDbDto.Status;
 import com.poesys.db.pk.IPrimaryKey;
 
 
@@ -73,87 +67,23 @@ import com.poesys.db.pk.IPrimaryKey;
  * @author Robert J. Muller
  * @param <T> the type of IDbDto to insert
  */
-public class InsertNoKey<T extends IDbDto> implements IInsert<T> {
-  /** The helper class for generating the SQL statement */
-  private final IInsertSql<T> sql;
-  /** Error message when no DTO supplied */
-  private static final String NO_DTO_MSG =
-    "com.poesys.db.dao.insert.msg.no_dto";
-
-  private boolean leaf = false;
+public class InsertNoKey<T extends IDbDto> extends Insert<T> {
 
   /**
    * Create an Insert object by supplying the concrete implementation of the
    * SQL-statement generator and JDBC setter.
    * 
    * @param sql the SQL INSERT statement generator object
+   * @param subsystem the subsystem of the DTO class T
    */
-  public InsertNoKey(IInsertSql<T> sql) {
-    this.sql = sql;
+  public InsertNoKey(IInsertSql<T> sql, String subsystem) {
+    super(sql, subsystem);
   }
 
   @Override
-  @SuppressWarnings("unchecked")
-  public void insert(Connection connection, IDbDto dto) throws SQLException,
-      BatchException {
-    PreparedStatement stmt = null;
-
-    // Check whether the DTO is there and is NEW.
-    if (dto == null) {
-      throw new InvalidParametersException(NO_DTO_MSG);
-    } else if (dto.getStatus() == Status.NEW) {
-      // A NEW DTO, proceed.
-      IPrimaryKey key = dto.getPrimaryKey();
-
-      // Run any validation after querying nested objects to be able to use
-      // them in validation.
-      dto.queryNestedObjectsForValidation();
-      dto.validateForInsert();
-
-      try {
-        // Prepare the statement, bind in the non-key column values, and execute
-        // the insert.
-        stmt =
-          connection.prepareStatement(sql.getSql(key),
-                                      Statement.RETURN_GENERATED_KEYS);
-        sql.setParams(stmt, 1, (T)dto);
-        // Tell JDBC to return the generated key result set.
-        stmt.executeUpdate();
-        // Finalize the insert by setting any auto-generated keys.
-        key.finalizeInsert(stmt);
-        // Finalize the insert by setting any auto-generated attributes.
-        // This includes putting the generated key into nested objects.
-        dto.finalizeInsert(stmt);
-
-        /*
-         * For a concrete class, insert any nested objects (composite children
-         * or associations) Only need to insert here, not update or delete, as
-         * parent is being inserted.
-         */
-        if (!dto.isAbstractClass()) {
-          dto.insertNestedObjects(connection);
-        }
-      } finally {
-        // Close the statement as required.
-        if (stmt != null) {
-          stmt.close();
-        }
-      }
-    }
-  }
-
-  @Override
-  public boolean isLeaf() {
-    return leaf;
-  }
-
-  @Override
-  public void setLeaf(boolean isLeaf) {
-    leaf = isLeaf;
-  }
-
-  @Override
-  public void close() {
-    // Nothing to do
+  protected int setKeyParams(PreparedStatement stmt, IPrimaryKey key) {
+    // Do nothing, no primary key field to set; return field 1 as next field to
+    // set
+    return 1;
   }
 }

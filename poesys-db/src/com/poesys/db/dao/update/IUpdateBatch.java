@@ -18,11 +18,8 @@
 package com.poesys.db.dao.update;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Collection;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.dto.IDbDto;
 
 
@@ -47,15 +44,11 @@ public interface IUpdateBatch<T extends IDbDto> {
    * implementation must pre-process and post-process all composite parts
    * regardless of the update status of the top-level DTO.
    * 
-   * @param connection the database connection with which to update the data
    * @param dtos the data transfer objects containing the desired state of the
    *          objects
    * @param size the size of the batches
-   * @throws SQLException when there is a SQL error with an update
-   * @throws BatchException when there is some kind of batch processing error
    */
-  public void update(Connection connection, Collection<T> dtos, int size)
-      throws SQLException, BatchException;
+  public void update(Collection<T> dtos, int size);
 
   /**
    * Close any resources allocated by the Command.

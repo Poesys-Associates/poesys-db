@@ -30,6 +30,7 @@ import net.spy.memcached.MemcachedClient;
 import org.apache.log4j.Logger;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.MemcachedTest;
 import com.poesys.db.dao.insert.Insert;
 import com.poesys.db.dao.insert.InsertMemcached;
@@ -63,7 +64,7 @@ public class UpdateMemcachedTestNaturalTest extends MemcachedTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
 
     // Create an Inserter to add the row to update
@@ -89,8 +90,10 @@ public class UpdateMemcachedTestNaturalTest extends MemcachedTest {
       stmt.executeUpdate("DELETE FROM TestNatural");
       stmt.close();
 
+      conn.commit();
+
       // Insert the row to update with the DAO class under test.
-      inserter.insert(conn, dto);
+      inserter.insert(dto);
 
       // Query the row using JDBC, no cache.
       stmt = conn.createStatement();
@@ -100,11 +103,13 @@ public class UpdateMemcachedTestNaturalTest extends MemcachedTest {
       }
       stmt.close();
       stmt = null;
+      
+      conn.commit();
 
       // Update the test object.
       BigDecimal col1Updated = new BigDecimal("100.3");
       dto.setCol1(col1Updated);
-      updater.update(conn, dto);
+      updater.update(dto);
 
       // Query the object directly using JDBC to test update in DB.
       stmt = conn.createStatement();
@@ -120,6 +125,8 @@ public class UpdateMemcachedTestNaturalTest extends MemcachedTest {
       }
       stmt.close();
       stmt = null;
+
+      conn.commit();
 
       // Get the memcached client for direct lookup of the object in the cache.
       MemcachedClient client = clients.getObject();

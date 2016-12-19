@@ -91,9 +91,9 @@ public class DtoCacheWithMessaging<T extends IDbDto> extends DtoCache<T> {
     } finally {
       if (connection != null) {
         try {
-          String connectionString = connection.toString();
+          int connectionId = connection.hashCode();
           connection.close();
-          logger.debug("Closed connection " + connectionString);
+          logger.debug("Closed connection " + connectionId);
         } catch (JMSException e) {
           Object[] objects = { getCacheName() };
           String message =

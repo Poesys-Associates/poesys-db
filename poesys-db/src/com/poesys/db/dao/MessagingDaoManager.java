@@ -42,11 +42,16 @@ public final class MessagingDaoManager extends CacheDaoManager implements
   /** Logger for debugging */
   private static final Logger logger =
     Logger.getLogger(MessagingDaoManager.class);
+  
+  private static String subsystem;
 
   /**
    * Create a MessagingDaoManager object.
+   * 
+   * @param classSubsystem the subsystem of the DTO class
    */
-  private MessagingDaoManager() {
+  private MessagingDaoManager(String classSubsystem) {
+    subsystem = classSubsystem;
   }
 
   /**
@@ -56,12 +61,12 @@ public final class MessagingDaoManager extends CacheDaoManager implements
    */
   public static IDaoManager getInstance() {
     if (manager == null) {
-      manager = new MessagingDaoManager();
+      manager = new MessagingDaoManager(subsystem);
       map = new ConcurrentHashMap<String, IDtoCache<IDbDto>>();
       // Start the cache listener for the delete topic, registering the
       // manager with the listener for later cache access.
       CacheListenerExecutor exec = new CacheListenerExecutor();
-      exec.execute(new CacheMessageListener());
+      exec.execute(new CacheMessageListener(subsystem));
     }
     return manager;
   }

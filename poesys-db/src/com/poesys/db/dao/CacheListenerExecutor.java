@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao;
 
@@ -30,11 +29,6 @@ import java.util.concurrent.Executor;
  */
 public class CacheListenerExecutor implements Executor {
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see java.util.concurrent.Executor#execute(java.lang.Runnable)
-   */
   @Override
   public void execute(Runnable task) {
     new Thread(task).start();

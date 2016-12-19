@@ -14,33 +14,33 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao.insert;
+
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dto.TestNatural;
 import com.poesys.db.pk.IPrimaryKey;
 
+
 /**
  * <p>
- * An Insert command that inserts into the TestNatural table, a table with
- * two natural key columns and one non-key column.
+ * An Insert command that inserts into the TestNatural table, a table with two
+ * natural key columns and one non-key column.
  * </p>
+ * 
  * @see com.poesys.db.dto.TestNatural
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class InsertSqlTestNatural implements IInsertSql<TestNatural> {
   private static final String SQL1 = "INSERT INTO TestNatural (";
   private static final String SQL2 = ", col1) VALUES (?, ?, ?)";
 
-  /*
-   * (non-Javadoc)
-   * @see com.poesys.db.dao.insert.IInsertSql#getSql(com.poesys.db.pk.IPrimaryKey)
-   */
+  @Override
   public String getSql(IPrimaryKey key) {
     StringBuilder builder = new StringBuilder(SQL1);
     builder.append(key.getSqlInsertColumnList());
@@ -48,12 +48,12 @@ public class InsertSqlTestNatural implements IInsertSql<TestNatural> {
     return builder.toString();
   }
 
-  /*
-   * (non-Javadoc)
-   * @see com.poesys.db.dao.insert.IInsertSql#setParams(java.sql.PreparedStatement, int, java.lang.Object)
-   */
-  public void setParams(PreparedStatement stmt, int next, TestNatural dto)
-      throws SQLException {
-    stmt.setBigDecimal(next, dto.getCol1());
+  @Override
+  public void setParams(PreparedStatement stmt, int next, TestNatural dto) {
+    try {
+      stmt.setBigDecimal(next, dto.getCol1());
+    } catch (SQLException e) {
+      throw new DbErrorException("SQL error", e);
+    }
   }
 }

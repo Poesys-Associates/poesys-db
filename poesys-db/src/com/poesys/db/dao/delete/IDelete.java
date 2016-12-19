@@ -18,10 +18,6 @@
 package com.poesys.db.dao.delete;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
-
-import com.poesys.db.BatchException;
 import com.poesys.db.dto.IDbDto;
 
 
@@ -40,14 +36,9 @@ public interface IDelete<T extends IDbDto> {
    * values for the primary key. The DTO must have any setters required to
    * preprocess nested objects that must be handled before deleting the object.
    * 
-   * @param connection the database connection with which to delete the data
    * @param dto the IDto data transfer object containing the primary key
-   * @throws SQLException when there is a SQL error with the delete
-   * @throws BatchException when there is a problem deleting or updating a
-   *           nested collection of linked objects
    */
-  public void delete(Connection connection, T dto) throws SQLException,
-      BatchException;
+  public void delete(T dto);
 
   /**
    * Close any resources allocated by the Command.

@@ -18,6 +18,9 @@
  */
 package com.poesys.db.col;
 
+import com.poesys.db.DbErrorException;
+import com.poesys.db.Message;
+
 /**
  * Implements the IColumnVisitor Visitor pattern interface to do a compareTo
  * operation on two objects of the same type.
@@ -65,16 +68,12 @@ public class CompareColumnVisitor implements IColumnVisitor {
    */
   public int getComparison() {
     if (comparison == null) {
-      throw new RuntimeException(NO_COMP_MSG);
+      throw new DbErrorException(Message.getMessage(NO_COMP_MSG, null));
     }
     return comparison.intValue();
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.col.ICompareColumnVisitor#compare(com.poesys.db.col.BigDecimalColumnValue)
-   */
+  @Override
   public void visit(BigDecimalColumnValue value) {
     // For first visit, save the value for later comparison. For second visit,
     // do the comparison.
@@ -85,11 +84,7 @@ public class CompareColumnVisitor implements IColumnVisitor {
     }
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.col.ICompareColumnVisitor#compare(com.poesys.db.col.BigIntegerColumnValue)
-   */
+  @Override
   public void visit(BigIntegerColumnValue value) {
     // For first visit, save the value for later comparison. For second visit,
     // do the comparison.
@@ -100,11 +95,7 @@ public class CompareColumnVisitor implements IColumnVisitor {
     }
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.col.IColumnVisitor#visit(com.poesys.db.col.IntegerColumnValue)
-   */
+  @Override
   public void visit(IntegerColumnValue value) {
     // For first visit, save the value for later comparison. For second visit,
     // do the comparison.
@@ -115,11 +106,7 @@ public class CompareColumnVisitor implements IColumnVisitor {
     }
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.col.IColumnVisitor#visit(com.poesys.db.col.LongColumnValue)
-   */
+  @Override
   public void visit(LongColumnValue value) {
     // For first visit, save the value for later comparison. For second visit,
     // do the comparison.
@@ -130,11 +117,7 @@ public class CompareColumnVisitor implements IColumnVisitor {
     }
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.col.ICompareColumnVisitor#compare(com.poesys.db.col.DateColumnValue)
-   */
+  @Override
   public void visit(DateColumnValue value) {
     // For first visit, save the value for later comparison. For second visit,
     // do the comparison.
@@ -145,11 +128,7 @@ public class CompareColumnVisitor implements IColumnVisitor {
     }
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.col.ICompareColumnVisitor#compare(com.poesys.db.col.StringColumnValue)
-   */
+  @Override
   public void visit(StringColumnValue value) {
     // For first visit, save the value for later comparison. For second visit,
     // do the comparison.
@@ -160,11 +139,7 @@ public class CompareColumnVisitor implements IColumnVisitor {
     }
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.col.ICompareColumnVisitor#compare(com.poesys.db.col.TimestampColumnValue)
-   */
+  @Override
   public void visit(TimestampColumnValue value) {
     // For first visit, save the value for later comparison. For second visit,
     // do the comparison.
@@ -175,11 +150,7 @@ public class CompareColumnVisitor implements IColumnVisitor {
     }
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.col.ICompareColumnVisitor#compare(com.poesys.db.col.UuidColumnValue)
-   */
+  @Override
   public void visit(UuidColumnValue value) {
     // For first visit, save the value for later comparison. For second visit,
     // do the comparison.
@@ -190,11 +161,7 @@ public class CompareColumnVisitor implements IColumnVisitor {
     }
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.col.IColumnVisitor#visit(com.poesys.db.col.NullColumnValue)
-   */
+  @Override
   public void visit(NullColumnValue value) {
     // Always return 0.
     comparison = 0;

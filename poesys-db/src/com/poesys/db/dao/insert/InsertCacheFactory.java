@@ -39,54 +39,38 @@ import com.poesys.db.dto.IDtoCache;
 public class InsertCacheFactory<T extends IDbDto, C extends Collection<T>> extends InsertFactory<T> {
   /** The cache of objects of type T * */
   private IDtoCache<T> cache;
-
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.InsertFactory#getInsert(com.poesys.db.dao.insert.IInsertSql)
+  
+  /**
+   * Create a InsertCacheFactory object.
+   *
+   * @param subsystem the subsystem of class T
    */
+  public InsertCacheFactory(String subsystem) {
+    super(subsystem);
+  }
+
   @Override
   public IInsert<T> getInsert(IInsertSql<T> sql) {
-    return new InsertCache<T>(sql, cache);
+    return new InsertCache<T>(sql, cache, subsystem);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.InsertFactory#getInsertNoKey(com.poesys.db.dao.insert.IInsertSql)
-   */
   @Override
   public IInsert<T> getInsertNoKey(IInsertSql<T> sql) {
-    return new InsertCacheNoKey<T>(sql, cache);
+    return new InsertCacheNoKey<T>(sql, cache, subsystem);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.InsertFactory#getInsertBatch(com.poesys.db.dao.insert.IInsertSql)
-   */
   @Override
   public IInsertBatch<T> getInsertBatch(IInsertSql<T> sql) {
-    return new InsertCacheBatch<T>(sql, cache);
+    return new InsertCacheBatch<T>(sql, cache, subsystem);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.InsertFactory#getInsertCollection(com.poesys.db.dao.insert.IInsertSql)
-   */
   @Override
   public IInsertCollection<T> getInsertCollection(IInsertSql<T> sql) {
-    return new InsertCacheCollection<T>(sql, cache);
+    return new InsertCacheCollection<T>(sql, cache, subsystem);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.InsertFactory#getInsertNoKeyCollection(com.poesys.db.dao.insert.IInsertSql)
-   */
   @Override
   public IInsertCollection<T> getInsertNoKeyCollection(IInsertSql<T> sql) {
-    return new InsertCacheNoKeyCollection<T>(sql, cache);
+    return new InsertCacheNoKeyCollection<T>(sql, cache, subsystem);
   }
 }

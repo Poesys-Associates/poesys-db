@@ -19,12 +19,9 @@ package com.poesys.db.dto;
 
 
 import java.io.Serializable;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.List;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.dao.insert.IInsert;
 import com.poesys.db.pk.IPrimaryKey;
@@ -207,11 +204,8 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
    * method executes the setter to instantiate the nested object(s).
    * 
    * @see ISet
-   * @throws SQLException when there is a problem with one of the queries
-   * @throws BatchException when there is a problem with one or more updates in
-   *           a batch of updates
    */
-  void queryNestedObjects() throws SQLException, BatchException;
+  void queryNestedObjects();
 
   /**
    * Query nested objects before inserting the parent object. Setting objects
@@ -221,11 +215,8 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
    * pre-existing in the database, and you should add code to the set() method
    * to check whether an object is already present before setting the DTO data
    * member.
-   * 
-   * @throws SQLException when there is a problem with one of the queries
-   * @throws BatchException when there is a problem with one or more batches
    */
-  void queryNestedObjectsForValidation() throws SQLException, BatchException;
+  void queryNestedObjectsForValidation();
 
   /**
    * Insert all the nested objects registered with the DTO. If the factory has
@@ -234,16 +225,9 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
    * objects are either composite children of the DTO parent or association
    * objects with all the associated objects already stored in the database.
    * 
-   * @param connection the database connection for the transaction
-   * 
    * @see ISet
-   * 
-   * @throws SQLException when there is a problem with one of the inserts
-   * @throws BatchException when there is a problem with one or more updates in
-   *           a batch of updates
    */
-  void insertNestedObjects(Connection connection) throws SQLException,
-      BatchException;
+  void insertNestedObjects();
 
   /**
    * Get the list of inserters for the various objects in the class hierarchy of
@@ -260,22 +244,15 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
    * appropriate to their current status. Call this method before executing the
    * main SQL operation.
    * 
-   * @param connection the database connection for the transaction
-   * 
    * @see ISet
-   * 
-   * @throws SQLException when there is a problem with one of the operations
-   * @throws BatchException when there is a problem with one or more operations
-   *           in a batch of operations
    */
-  void preprocessNestedObjects(Connection connection) throws SQLException,
-      BatchException;
+  void preprocessNestedObjects();
 
   /**
    * Process the read-object setters to deserialize all nested objects.
    */
   void deserializeNestedObjects();
-  
+
   /**
    * Post-process all the nested objects registered with the DTO. If the factory
    * has added a setter (ISet) for the nested object or collection, calling this
@@ -283,46 +260,32 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
    * appropriate to their current status. Call this method after executing the
    * main SQL operation.
    * 
-   * @param connection the database connection for the transaction
-   * 
    * @see ISet
-   * 
-   * @throws SQLException when there is a problem with one of the operations
-   * @throws BatchException when there is a problem with one or more operations
-   *           in a batch of operations
    */
-  void postprocessNestedObjects(Connection connection) throws SQLException,
-      BatchException;
+  void postprocessNestedObjects();
 
   /**
    * Validate the DTO for inserting.
    * 
-   * @throws SQLException when there is a problem accessing the database
    * @throws InvalidParametersException when the DTO has no primary key or has
    *           invalid parameters for insert
    */
-  void validateForInsert() throws SQLException;
+  void validateForInsert();
 
   /**
    * Validate the DTO for updating.
-   * 
-   * @throws SQLException when there is a problem accessing the database
    */
-  void validateForUpdate() throws SQLException;
+  void validateForUpdate();
 
   /**
    * Validate the DTO for deleting.
-   * 
-   * @throws SQLException when there is a problem accessing the database
    */
-  void validateForDelete() throws SQLException;
+  void validateForDelete();
 
   /**
    * Validate the DTO for querying.
-   * 
-   * @throws SQLException when there is a problem accessing the database
    */
-  void validateForQuery() throws SQLException;
+  void validateForQuery();
 
   /**
    * Get the primary key of the object. The primary key uniquely identifies the
@@ -338,9 +301,8 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
    * result set.
    * 
    * @param stmt the executed JDBC prepared statement for the INSERT
-   * @throws SQLException when the generated key result set is not found
    */
-  void finalizeInsert(PreparedStatement stmt) throws SQLException;
+  void finalizeInsert(PreparedStatement stmt);
 
   /**
    * Mark the object as deleted if it is EXISTING, CHANGED, or FAILED.
@@ -361,15 +323,6 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
    * action in the database, because the database performs the delete directly.
    */
   void cascadeDelete();
-
-  /**
-   * Get a SQL connection to the persistent subsystem that contains the DTO.
-   * 
-   * @return a SQL connection
-   * @throws java.sql.SQLException when there is a problem getting the
-   *           connection
-   */
-  java.sql.Connection getConnection() throws java.sql.SQLException;
 
   /**
    * Get the fully qualified name of the subsystem of the concrete DTO.

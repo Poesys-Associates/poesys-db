@@ -29,6 +29,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.DbErrorException;
 import com.poesys.db.InvalidParametersException;
+import com.poesys.db.Message;
 import com.poesys.db.col.AbstractColumnValue;
 import com.poesys.db.col.BigIntegerColumnValue;
 import com.poesys.db.col.NullColumnValue;
@@ -50,13 +51,14 @@ import com.poesys.ms.col.IColumnValue;
  * @author Robert J. Muller
  */
 public class IdentityPrimaryKey extends AbstractSingleValuedPrimaryKey {
-  /**
-   * Serial version UID for Serializable class
-   */
-  private static final long serialVersionUID = 3711684893956067362L;
+  /** serial version UID for Serializable class */
+  private static final long serialVersionUID = 1L;
   /** Message for invalid parameter exception */
   private static final String INVALID_PARAMETER =
     "com.poesys.db.pk.msg.invalid_identity_parameter";
+  /** Message for unexpected SQL error */
+  private static final String SQL_ERROR =
+    "com.poesys.db.dto.msg.unexpected_sql_error";
 
   /**
    * Create a primary key with a null column value.
@@ -148,21 +150,13 @@ public class IdentityPrimaryKey extends AbstractSingleValuedPrimaryKey {
    * , int)
    */
   @Override
-  public int setInsertParams(PreparedStatement stmt, int nextIndex)
-      throws SQLException {
+  public int setInsertParams(PreparedStatement stmt, int nextIndex) {
     // The identity column does not have a parameter, so this does nothing.
     return nextIndex;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see
-   * com.poesys.db.pk.AbstractPrimaryKey#finalizeInsert(java.sql.PreparedStatement
-   * )
-   */
   @Override
-  public void finalizeInsert(PreparedStatement stmt) throws SQLException {
+  public void finalizeInsert(PreparedStatement stmt) {
     // Extract the column value to get the name.
     AbstractColumnValue col = list.get(0);
     BigInteger value = null;
@@ -183,20 +177,18 @@ public class IdentityPrimaryKey extends AbstractSingleValuedPrimaryKey {
       }
     } catch (InvalidParametersException e) {
       List<String> list = new ArrayList<String>();
-      DbErrorException d = new DbErrorException(INVALID_PARAMETER);
+      DbErrorException d =
+        new DbErrorException(Message.getMessage(INVALID_PARAMETER, null));
       list.add(col.getName());
       list.add(value.toString());
       e.setParameters(list);
       throw d;
+    } catch (SQLException e) {
+      throw new DbErrorException(Message.getMessage(SQL_ERROR, null));
     }
-    // The caller should close the statement (and the result set).
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.pk.IPrimaryKey#getValueList()
-   */
+  @Override
   public String getValueList() {
     AbstractColumnValue col = list.get(0);
     StringBuilder str = new StringBuilder();
@@ -209,11 +201,7 @@ public class IdentityPrimaryKey extends AbstractSingleValuedPrimaryKey {
     return str.toString();
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.pk.IPrimaryKey#copy()
-   */
+  @Override
   public IPrimaryKey copy() {
     return new IdentityPrimaryKey(super.copyList(), className);
   }

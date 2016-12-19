@@ -25,6 +25,8 @@ import org.apache.log4j.Logger;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.apache.tomcat.jdbc.pool.PoolProperties;
 
+import com.poesys.db.Message;
+
 
 /**
  * A factory for JDBC connections. Each factory is specific to a database and
@@ -87,6 +89,14 @@ public class PooledConnectionFactory implements IConnectionFactory {
 
   /** Constant maximum wait for an available connection in milliseconds */
   private static final int MAX_WAIT = 10000;
+
+  // Error messages
+  /** Error when can't open pooled data source */
+  private static final String NO_POOLED_DATASOURCE_ERROR =
+    "com.poesys.db.connection.msg.no_pooled_datasource";
+  /** Error when pooled connection already closed */
+  private static final String CONN_CLOSED_ERROR =
+    "com.poesys.db.connection.msg.pooled_conn_already_closed";
 
   /**
    * Create a PooledOracleConnectionFactory object. The arguments are those
@@ -174,7 +184,8 @@ public class PooledConnectionFactory implements IConnectionFactory {
   @Override
   public Connection getConnection(String password) throws SQLException {
     if (readWriteDataSource == null) {
-      throw new SQLException("Could not open pooled JDBC data source");
+      throw new SQLException(Message.getMessage(NO_POOLED_DATASOURCE_ERROR,
+                                                null));
     }
 
     // Initialize the singleton default data source, a read-write data source.
@@ -217,17 +228,17 @@ public class PooledConnectionFactory implements IConnectionFactory {
     }
 
     Connection connection = readWriteDataSource.getConnection();
-    logger.debug("Acquired JDBC pooled connection " + connection);
+    logger.debug("Acquired JDBC pooled connection " + connection.hashCode());
 
     int retries = 10;
     if (connection.isClosed() && retries > 0) {
       // closed connection, try another
       logger.debug("Retrying closed connection");
       connection = readWriteDataSource.getConnection();
-      logger.debug("Acquired JDBC pooled connection " + connection);
+      logger.debug("Acquired JDBC pooled connection " + connection.hashCode());
       retries--;
     } else if (connection.isClosed()) {
-      throw new SQLException("JDBC pooled connection already closed after multiple retries");
+      throw new SQLException(Message.getMessage(CONN_CLOSED_ERROR, null));
     }
 
     // Set the autocommit feature off to handle transaction logic in the

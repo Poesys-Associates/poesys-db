@@ -19,8 +19,6 @@ package com.poesys.db.dto;
 
 
 import java.io.Serializable;
-import java.sql.Connection;
-import java.sql.SQLException;
 
 
 /**
@@ -87,13 +85,8 @@ public interface ISet extends Serializable {
    * operations, so the caller must be able to handle the BatchException as well
    * as SQLException.
    * </p>
-   * 
-   * @param connection the connection to use to query data; passing in the
-   *          connection allows for transaction control outside the method.
-   * @throws SQLException when there is a problem executing the query or
-   *           processing the results
    */
-  void set(Connection connection) throws SQLException;
+  void set();
 
   /**
    * Is the field already set? A client may use this method to test the object

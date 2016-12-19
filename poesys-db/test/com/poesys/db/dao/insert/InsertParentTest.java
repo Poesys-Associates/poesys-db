@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dto.Child;
 import com.poesys.db.dto.IDbDto;
@@ -42,7 +43,7 @@ import com.poesys.db.pk.PrimaryKeyFactory;
 /**
  * Test the composite class insertion capability.
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class InsertParentTest extends ConnectionTest {
   private static final String QUERY_PARENT =
@@ -67,11 +68,11 @@ public class InsertParentTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
 
     // Create the insert command (class under test) for the parent.
-    Insert<Parent> cut = new Insert<Parent>(new InsertSqlParent());
+    Insert<Parent> cut = new Insert<Parent>(new InsertSqlParent(), getSubsystem());
 
     // Create the GUID primary key for the parent.
     GuidPrimaryKey key =
@@ -118,8 +119,10 @@ public class InsertParentTest extends ConnectionTest {
       stmt.close();
       stmt = null;
 
+      conn.commit();
+
       // Insert the test row.
-      cut.insert(conn, dto);
+      cut.insert(dto);
 
       // Test the flags.
       assertTrue("Inserted parent does not have status EXISTING",
@@ -138,6 +141,8 @@ public class InsertParentTest extends ConnectionTest {
       assertTrue(queriedCol1 != null);
       assertTrue(COL1_VALUE.equals(queriedCol1));
 
+      conn.commit();
+
       // Query the children of the parent.
       pstmt = conn.prepareStatement(QUERY_CHILDREN);
       key.setParams(pstmt, 1);
@@ -154,6 +159,7 @@ public class InsertParentTest extends ConnectionTest {
         assertTrue(COL1_VALUE.equals(dbCol1));
       }
       assertTrue("count=" + count, count == 3);
+      conn.commit();
     } catch (SQLException e) {
       fail("insert method failed: " + e.getMessage());
     } finally {
@@ -182,11 +188,11 @@ public class InsertParentTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
 
     // Create the insert command (class under test) for the parent.
-    Insert<Parent> cut = new Insert<Parent>(new InsertSqlParent());
+    Insert<Parent> cut = new Insert<Parent>(new InsertSqlParent(), getSubsystem());
 
     // Create the GUID primary key for the parent.
     GuidPrimaryKey key =
@@ -235,9 +241,11 @@ public class InsertParentTest extends ConnectionTest {
       stmt.executeUpdate("DELETE FROM Parent");
       stmt.close();
       stmt = null;
+      
+      conn.commit();
 
       // Insert the test row.
-      cut.insert(conn, dto);
+      cut.insert(dto);
 
       // Test the flags.
       assertTrue("inserted parent not EXISTING",
@@ -256,6 +264,8 @@ public class InsertParentTest extends ConnectionTest {
       assertTrue(queriedCol1 != null);
       assertTrue(COL1_VALUE.equals(queriedCol1));
 
+      conn.commit();
+      
       // Query the children of the parent. Should be only 2.
       pstmt = conn.prepareStatement(QUERY_CHILDREN);
       key.setParams(pstmt, 1);
@@ -272,6 +282,7 @@ public class InsertParentTest extends ConnectionTest {
         assertTrue(COL1_VALUE.equals(dbCol1));
       }
       assertTrue("new count=" + count, count == 2);
+      conn.commit();
     } catch (SQLException e) {
       fail("insert method failed: " + e.getMessage());
     } finally {
@@ -300,11 +311,11 @@ public class InsertParentTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
 
     // Create the insert command (class under test) for the parent.
-    Insert<Parent> cut = new Insert<Parent>(new InsertSqlParent());
+    Insert<Parent> cut = new Insert<Parent>(new InsertSqlParent(), getSubsystem());
 
     // Create the GUID primary key for the parent.
     GuidPrimaryKey key =
@@ -326,8 +337,10 @@ public class InsertParentTest extends ConnectionTest {
       stmt.close();
       stmt = null;
 
+      conn.commit();
+      
       // Insert the test row.
-      cut.insert(conn, dto);
+      cut.insert(dto);
 
       // Test the flags.
       assertTrue("inserted parent not EXISTING",
@@ -345,6 +358,8 @@ public class InsertParentTest extends ConnectionTest {
       pstmt = null;
       assertTrue(queriedCol1 != null);
       assertTrue(COL1_VALUE.equals(queriedCol1));
+      
+      conn.commit();
 
       // Query the children of the parent.
       pstmt = conn.prepareStatement(QUERY_CHILDREN);
@@ -362,6 +377,7 @@ public class InsertParentTest extends ConnectionTest {
         assertTrue(COL1_VALUE.equals(dbCol1));
       }
       assertTrue("count=" + count, count == 0);
+      conn.commit();
     } catch (SQLException e) {
       fail("insert method failed: " + e.getMessage());
     } finally {

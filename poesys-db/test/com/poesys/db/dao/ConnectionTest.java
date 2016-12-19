@@ -63,8 +63,7 @@ public abstract class ConnectionTest extends TestCase {
     Connection connection = null;
     try {
       connection =
-        ConnectionFactoryFactory.getInstance(getSubsystem(),
-                                             DBMS.MYSQL).getConnection(getPassword());
+        ConnectionFactoryFactory.getInstance(getSubsystem(), DBMS.MYSQL).getConnection(getPassword());
     } catch (SQLException e) {
       logger.error(e.getMessage(), e);
       throw e;
@@ -77,7 +76,7 @@ public abstract class ConnectionTest extends TestCase {
     }
     return connection;
   }
-  
+
   protected String getSubsystem() {
     return "com.poesys.db.poesystest.mysql";
   }

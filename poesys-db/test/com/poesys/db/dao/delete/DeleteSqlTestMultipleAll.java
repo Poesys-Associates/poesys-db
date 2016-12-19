@@ -24,7 +24,7 @@ package com.poesys.db.dao.delete;
  * DTO, which contains the parameters for the DELETE statement.
  * </p>
  * 
- * @author Bob Muller (bob@poesys.com)
+ * @author Robert J. Muller
  */
 public class DeleteSqlTestMultipleAll implements IDeleteSqlWithQuery {
   /** SQL statement that deletes a row */

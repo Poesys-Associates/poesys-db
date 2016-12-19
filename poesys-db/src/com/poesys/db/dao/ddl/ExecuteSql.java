@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao.ddl;
 
@@ -22,6 +21,9 @@ package com.poesys.db.dao.ddl;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+
+import com.poesys.db.DbErrorException;
+import com.poesys.db.Message;
 
 
 /**
@@ -31,6 +33,8 @@ import java.sql.Statement;
  * @author Robert J. Muller
  */
 public class ExecuteSql implements IExecuteSql {
+  private static final String SQL_ERROR =
+    "com.poesys.db.dto.msg.unexpected_sql_error";
   /** The SQL statement to execute */
   ISql sql = null;
 
@@ -43,16 +47,16 @@ public class ExecuteSql implements IExecuteSql {
     this.sql = sql;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.ddl.IExecuteSql#execute(java.sql.Connection)
-   */
-  public void execute(Connection connection) throws SQLException {
-    Statement statement = connection.createStatement();
-    if (statement != null) {
-      statement.execute(sql.getSql());
-      statement.close();
+  @Override
+  public void execute(Connection connection) {
+    try {
+      Statement statement = connection.createStatement();
+      if (statement != null) {
+        statement.execute(sql.getSql());
+        statement.close();
+      }
+    } catch (SQLException e) {
+      throw new DbErrorException(Message.getMessage(SQL_ERROR, null));
     }
   }
 }

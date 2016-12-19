@@ -18,11 +18,8 @@
 package com.poesys.db.dao.update;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Collection;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.dto.IDbDto;
 
 
@@ -44,28 +41,10 @@ public interface IUpdateCollection<T extends IDbDto> {
    * set to reflect the complete, desired state for the object in the database,
    * including any composite aggregate parts belonging to the object.
    * 
-   * @param connection the database connection with which to update the data
    * @param dtos the data transfer objects containing the desired state of the
    *          objects
-   * @throws SQLException when there is a SQL error with an update
-   * @throws BatchException when there is some kind of batch processing error
    */
-  public void update(Connection connection, Collection<T> dtos)
-      throws SQLException, BatchException;
-
-  /**
-   * Is this inserter inserting into a leaf class?
-   * 
-   * @return true if leaf, false if superclass of a leaf
-   */
-  public boolean isLeaf();
-
-  /**
-   * Set the inserter to be a leaf inserter.
-   * 
-   * @param isLeaf true for a leaf inserter, false for a superclass inserter
-   */
-  public void setLeaf(boolean isLeaf);
+  public void update(Collection<T> dtos);
 
   /**
    * Close any resources allocated by the Command.

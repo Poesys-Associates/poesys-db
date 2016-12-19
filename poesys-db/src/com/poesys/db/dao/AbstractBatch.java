@@ -22,6 +22,7 @@ import java.sql.PreparedStatement;
 import java.util.List;
 
 import com.poesys.db.InvalidParametersException;
+import com.poesys.db.Message;
 import com.poesys.db.dto.IDbDto;
 
 
@@ -37,6 +38,26 @@ import com.poesys.db.dto.IDbDto;
  * @param <T> the type of IDbDto to process
  */
 public abstract class AbstractBatch<T extends IDbDto> {
+
+  /** the subsystem of the DTO class */
+  protected final String subsystem;
+
+  /** Error message when no subsystem supplied */
+  private static final String NULL_SUBSYSTEM_ERROR =
+    "com.poesys.db.dao.msg.null_subsystem";
+
+  /**
+   * Create a AbstractBatch object.
+   *
+   * @param subsystem the subsystem of the DTO classes processed
+   */
+  public AbstractBatch(String subsystem) {
+    if (subsystem == null) {
+      throw new InvalidParametersException(Message.getMessage(NULL_SUBSYSTEM_ERROR,
+                                                              null));
+    }
+    this.subsystem = subsystem;
+  }
 
   /**
    * Process the error codes from a JDBC batch. Extract the DTO corresponding to
@@ -100,7 +121,8 @@ public abstract class AbstractBatch<T extends IDbDto> {
     dto.setFailed();
     // Mark the DTO as unprocessed as it did not complete processing.
     if (Thread.currentThread() instanceof PoesysTrackingThread) {
-      PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
+      PoesysTrackingThread thread =
+        (PoesysTrackingThread)Thread.currentThread();
       if (thread.getDto(dto.getPrimaryKey().getStringKey()) != null) {
         thread.setProcessed(dto.getPrimaryKey().getStringKey(), false);
       }

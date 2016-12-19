@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.insert.InsertBatch;
 import com.poesys.db.dao.insert.InsertSqlTestNatural;
@@ -58,10 +59,10 @@ public class DeleteBatchTestNaturalTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
     InsertBatch<TestNatural> inserter =
-      new InsertBatch<TestNatural>(new InsertSqlTestNatural());
+      new InsertBatch<TestNatural>(new InsertSqlTestNatural(), getSubsystem());
     List<TestNatural> dtos = new ArrayList<TestNatural>();
     BigDecimal col1 = new BigDecimal("1234.5678");
 
@@ -80,10 +81,12 @@ public class DeleteBatchTestNaturalTest extends ConnectionTest {
       stmt = conn.createStatement();
       stmt.executeUpdate("DELETE FROM TestNatural");
       stmt.close();
+      
+      conn.commit();
 
       // Insert the test batch.
       stmt = conn.createStatement();
-      inserter.insert(conn, dtos, BATCH_SIZE);
+      inserter.insert(dtos, BATCH_SIZE);
 
       // Delete the TestNatural objects.
       for (TestNatural dto : dtos) {
@@ -91,8 +94,8 @@ public class DeleteBatchTestNaturalTest extends ConnectionTest {
       }
 
       DeleteBatchByKey<TestNatural> deleter =
-        new DeleteBatchByKey<TestNatural>(new DeleteSqlTestNatural());
-      deleter.delete(conn, dtos, BATCH_SIZE);
+        new DeleteBatchByKey<TestNatural>(new DeleteSqlTestNatural(), getSubsystem());
+      deleter.delete(dtos, BATCH_SIZE);
 
       query = conn.prepareStatement(QUERY);
 
@@ -107,6 +110,7 @@ public class DeleteBatchTestNaturalTest extends ConnectionTest {
           fail("Found supposedly deleted object from batch");
         }
       }
+      conn.commit();
     } catch (SQLException e) {
       e.printStackTrace();
       fail("delete batch process failed: " + e.getMessage());
@@ -115,7 +119,6 @@ public class DeleteBatchTestNaturalTest extends ConnectionTest {
         stmt.close();
       }
       if (conn != null) {
-        conn.commit();
         conn.close();
       }
     }
@@ -129,31 +132,11 @@ public class DeleteBatchTestNaturalTest extends ConnectionTest {
    * @throws BatchException when a problem occurs during processing
    */
   public void testInsertNull() throws IOException, SQLException, BatchException {
-    Connection conn = null;
-    try {
-      conn = getConnection();
-    } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
-    }
     DeleteBatchByKey<TestNatural> cut =
-      new DeleteBatchByKey<TestNatural>(new DeleteSqlTestNatural());
+      new DeleteBatchByKey<TestNatural>(new DeleteSqlTestNatural(), getSubsystem());
     List<TestNatural> dtos = null;
-    Statement stmt = null;
 
-    try {
-      // Insert the test batch, which is null.
-      stmt = conn.createStatement();
-      cut.delete(conn, dtos, BATCH_SIZE);
-    } catch (SQLException e) {
-      fail("delete batch process with null input failed: " + e.getMessage());
-    } finally {
-      if (stmt != null) {
-        stmt.close();
-      }
-      if (conn != null) {
-        conn.commit();
-        conn.close();
-      }
-    }
+    // Insert the test batch, which is null.
+    cut.delete(dtos, BATCH_SIZE);
   }
 }

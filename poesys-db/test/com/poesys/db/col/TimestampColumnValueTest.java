@@ -30,7 +30,7 @@ import com.poesys.db.dao.ConnectionTest;
 
 /**
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class TimestampColumnValueTest extends ConnectionTest {
   String name1 = "name1";
@@ -89,6 +89,7 @@ public class TimestampColumnValueTest extends ConnectionTest {
         connection.prepareStatement("SELECT * FROM TEST WHERE testTimestamp = ?");
       colValue1.setParam(stmt, 1);
       assertTrue(true);
+      connection.commit();
     } finally {
       if (connection != null) {
         connection.close();

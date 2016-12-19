@@ -22,35 +22,33 @@ package com.poesys.db.dao.query;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dto.Parent;
 import com.poesys.db.pk.IPrimaryKey;
 
 
 /**
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class ParentKeyQuerySql implements IKeyQuerySql<Parent> {
   /** SQL primary key query for TestSequence */
   private static final String SQL = "SELECT col1 FROM Parent WHERE ";
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.query.IKeyQuerySql#getData(java.sql.ResultSet)
-   */
-  public Parent getData(IPrimaryKey key, ResultSet rs) throws SQLException {
-    String col = rs.getString("col1");
+  @Override
+  public Parent getData(IPrimaryKey key, ResultSet rs) {
+    String col;
+    try {
+      col = rs.getString("col1");
+    } catch (SQLException e) {
+      throw new DbErrorException("SQL error", e);
+    }
     // Create the setters.
     Parent dto = new Parent(key, col);
     return dto;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.query.IKeyQuerySql#getSql(com.poesys.db.pk.IPrimaryKey)
-   */
+  @Override
   public String getSql(IPrimaryKey key) {
     return SQL + key.getSqlWhereExpression("");
   }

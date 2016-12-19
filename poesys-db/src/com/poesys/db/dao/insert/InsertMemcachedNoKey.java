@@ -18,10 +18,6 @@
 package com.poesys.db.dao.insert;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
-
-import com.poesys.db.BatchException;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoManager;
 import com.poesys.db.dto.IDbDto;
@@ -36,8 +32,6 @@ import com.poesys.db.dto.IDbDto;
  */
 public class InsertMemcachedNoKey<T extends IDbDto> extends InsertNoKey<T>
     implements IInsert<T> {
-  /** the name of the subsystem containing the T class */
-  private final String subsystem;
   /** the memcached expiration time in milliseconds for T objects */
   private final int expiration;
 
@@ -45,31 +39,25 @@ public class InsertMemcachedNoKey<T extends IDbDto> extends InsertNoKey<T>
    * Create a InsertCacheNoKey object.
    * 
    * @param sql the SQL statement specification for INSERT
-   * @param subsystem the name of the subsystem containing the T class
+   * @param subsystem the subsystem of DTO class T
    * @param expiration the memcached expiration time in milliseconds for T
    *          objects
    */
   public InsertMemcachedNoKey(IInsertSql<T> sql,
                               String subsystem,
                               int expiration) {
-    super(sql);
-    this.subsystem = subsystem;
+    super(sql, subsystem);
     this.expiration = expiration;
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public void insert(Connection connection, IDbDto dto) throws SQLException,
-      BatchException {
-    super.insert(connection, (T)dto);
+  public void insert(IDbDto dto) {
+    super.insert((T)dto);
     DaoManagerFactory.initMemcachedManager(subsystem);
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     manager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
                              expiration,
                              dto);
-  }
-
-  @Override
-  public void close() {
   }
 }

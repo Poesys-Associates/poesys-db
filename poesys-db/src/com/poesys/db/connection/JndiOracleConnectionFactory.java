@@ -14,5 +14,4 @@ public class JndiOracleConnectionFactory extends JndiConnectionFactory {
   public DBMS getDbms() {
     return DBMS.JNDI_ORACLE;
   }
-
 }

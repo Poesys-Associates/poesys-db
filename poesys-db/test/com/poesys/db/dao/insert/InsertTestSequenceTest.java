@@ -26,6 +26,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dto.TestSequence;
 import com.poesys.db.pk.IPrimaryKey;
@@ -59,7 +60,7 @@ public class InsertTestSequenceTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
 
     try {
@@ -72,13 +73,15 @@ public class InsertTestSequenceTest extends ConnectionTest {
         stmt.close();
       }
     }
+    
+    conn.commit();
 
     Insert<TestSequence> cut =
-      new Insert<TestSequence>(new InsertSqlTestSequence());
+      new Insert<TestSequence>(new InsertSqlTestSequence(), getSubsystem());
 
     // Create the primary key.
     IPrimaryKey key =
-      PrimaryKeyFactory.createMySqlSequenceKey(conn, "test", "pkey", CLASS_NAME);
+      PrimaryKeyFactory.createMySqlSequenceKey("test", "pkey", CLASS_NAME, getSubsystem());
 
     // Create the DTO.
     String col1 = "test";
@@ -91,10 +94,11 @@ public class InsertTestSequenceTest extends ConnectionTest {
       // Delete from the TestSequence table.
       Statement del = conn.createStatement();
       del.execute("DELETE FROM TestSequence");
+      
+      conn.commit();
 
       // Insert the test row.
-      stmt = conn.createStatement();
-      cut.insert(conn, dto);
+      cut.insert(dto);
 
       // Set the key value into the query as an argument.
       query = conn.prepareStatement(QUERY);
@@ -108,6 +112,7 @@ public class InsertTestSequenceTest extends ConnectionTest {
       }
       assertTrue(queriedCol1 != null);
       assertTrue(col1.equals(queriedCol1));
+      conn.commit();
     } catch (SQLException e) {
       fail("insert method failed: " + e.getMessage());
     } finally {
@@ -115,7 +120,6 @@ public class InsertTestSequenceTest extends ConnectionTest {
         stmt.close();
       }
       if (conn != null) {
-        conn.commit(); // clear locks
         conn.close();
       }
     }

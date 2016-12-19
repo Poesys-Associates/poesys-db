@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.insert.InsertBatch;
 import com.poesys.db.dao.insert.InsertSqlTestNatural;
@@ -59,10 +60,10 @@ public class UpdateCollectionTestNaturalTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
     InsertBatch<TestNatural> inserter =
-      new InsertBatch<TestNatural>(new InsertSqlTestNatural());
+      new InsertBatch<TestNatural>(new InsertSqlTestNatural(), getSubsystem());
     List<TestNatural> dtos = new CopyOnWriteArrayList<TestNatural>();
     BigDecimal col1 = new BigDecimal("1234.5678");
     BigDecimal col1New = new BigDecimal("5678.5678");
@@ -82,9 +83,10 @@ public class UpdateCollectionTestNaturalTest extends ConnectionTest {
       stmt.executeUpdate("DELETE FROM TestNatural");
       stmt.close();
 
+      conn.commit();
+
       // Insert the test batch.
-      stmt = conn.createStatement();
-      inserter.insert(conn, dtos, BATCH_SIZE);
+      inserter.insert(dtos, BATCH_SIZE);
 
       // Update the col1 values and batch the update.
       for (TestNatural dto : dtos) {
@@ -93,8 +95,9 @@ public class UpdateCollectionTestNaturalTest extends ConnectionTest {
       }
 
       UpdateCollectionByKey<TestNatural> updater =
-        new UpdateCollectionByKey<TestNatural>(new UpdateSqlTestNatural());
-      updater.update(conn, dtos);
+        new UpdateCollectionByKey<TestNatural>(new UpdateSqlTestNatural(),
+                                               getSubsystem());
+      updater.update(dtos);
 
       query = conn.prepareStatement(QUERY);
 
@@ -114,6 +117,7 @@ public class UpdateCollectionTestNaturalTest extends ConnectionTest {
         assertTrue(col1New + " is not " + queriedCol1,
                    col1New.compareTo(queriedCol1) == 0);
       }
+      conn.commit();
     } catch (SQLException e) {
       e.printStackTrace();
       fail("update batch process failed: " + e.getMessage());
@@ -122,7 +126,6 @@ public class UpdateCollectionTestNaturalTest extends ConnectionTest {
         stmt.close();
       }
       if (conn != null) {
-        conn.commit();
         conn.close();
       }
     }
@@ -136,32 +139,12 @@ public class UpdateCollectionTestNaturalTest extends ConnectionTest {
    * @throws BatchException when a problem happens during processing
    */
   public void testInsertNull() throws IOException, SQLException, BatchException {
-    Connection conn;
-    try {
-      conn = getConnection();
-    } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
-    }
     UpdateCollectionByKey<TestNatural> cut =
-      new UpdateCollectionByKey<TestNatural>(new UpdateSqlTestNatural());
+      new UpdateCollectionByKey<TestNatural>(new UpdateSqlTestNatural(),
+                                             getSubsystem());
     Collection<TestNatural> dtos = null;
-    Statement stmt = null;
 
-    try {
-      // Insert the test batch, which is null.
-      stmt = conn.createStatement();
-      cut.update(conn, dtos);
-    } catch (SQLException e) {
-      fail("update batch process with null input failed: " + e.getMessage());
-    } finally {
-      if (stmt != null) {
-        stmt.close();
-      }
-      if (conn != null) {
-        conn.commit();
-        conn.close();
-      }
-    }
+    // Insert the test batch, which is null.
+    cut.update(dtos);
   }
-
 }

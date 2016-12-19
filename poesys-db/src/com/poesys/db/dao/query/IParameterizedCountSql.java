@@ -14,13 +14,11 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao.query;
 
 
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 
 import com.poesys.db.dto.IDbDto;
 
@@ -38,19 +36,19 @@ import com.poesys.db.dto.IDbDto;
  * element.
  * </p>
  * <p>
- * <strong>You should alias the single column in the select list to the
- * name <code>count</code></strong>.
+ * <strong>You should alias the single column in the select list to the name
+ * <code>count</code></strong>.
  * </p>
  * <p>
- * The <code>getSql</code> method should construct the complete SQL statement
- * by concatenating the static SQL with the dynamically generated primary key
- * query expression from the primary key object
- * <code>getSqlWhereExpression</code> method.
+ * The <code>getSql</code> method should construct the complete SQL statement by
+ * concatenating the static SQL with the dynamically generated primary key query
+ * expression from the primary key object <code>getSqlWhereExpression</code>
+ * method.
  * </p>
  * <p>
- * This example represents a parameterized query of the <code>Seq</code>
- * table. The example uses the Seq class for the parameter DTO type as the
- * example parameterizes the SQL query on the col1 column.
+ * This example represents a parameterized query of the <code>Seq</code> table.
+ * The example uses the Seq class for the parameter DTO type as the example
+ * parameterizes the SQL query on the col1 column.
  * </p>
  * 
  * <pre>
@@ -58,8 +56,7 @@ import com.poesys.db.dto.IDbDto;
  *   private static final String SQL =
  *     &quot;SELECT count(*) AS count FROM Seq WHERE col1 = ?&quot;;
  * 
- *   public void bindParameters(PreparedStatement stmt, Seq parameters)
- *       throws SQLException {
+ *   public void bindParameters(PreparedStatement stmt, Seq parameters) {
  *     stmt.setString(1, parameters.getCol1());
  *   }
  * 
@@ -94,7 +91,6 @@ public interface IParameterizedCountSql<P extends IDbDto> {
    * 
    * @param stmt the prepared statement into which to bind the parameter values
    * @param parameters a DTO containing the parameter values
-   * @throws SQLException when there is a bind error
    */
-  void bindParameters(PreparedStatement stmt, P parameters) throws SQLException;
+  void bindParameters(PreparedStatement stmt, P parameters);
 }

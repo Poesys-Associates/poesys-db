@@ -18,8 +18,6 @@
 package com.poesys.db.dto;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.ConstraintViolationException;
@@ -30,7 +28,7 @@ import com.poesys.db.pk.IPrimaryKey;
 /**
  * A test DTO class that provides a many-to-many association class for testing.
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class ManyToManyLink extends AbstractTestDto {
   /** Generated serial version UID for Serializable object */
@@ -49,7 +47,7 @@ public class ManyToManyLink extends AbstractTestDto {
    * linked objects. The validate method must be synchronized as it gets two
    * synchronized values and does a test, a sequence that needs to be atomic.
    * 
-   * @author Bob Muller (muller@computer.org)
+   * @author Robert J. Muller
    */
   private class LinkTargetIsNotNew implements IValidate {
     /**  */
@@ -58,8 +56,7 @@ public class ManyToManyLink extends AbstractTestDto {
       "com.poesys.db.many_to_many_link_is_new";
 
     @Override
-    public void validate(Connection connection)
-        throws SQLException {
+    public void validate() {
       Link1 link1 = ManyToManyLink.this.getLink1();
       Link2 link2 = ManyToManyLink.this.getLink2();
       if (link1.getStatus() == Status.NEW || link2.getStatus() == Status.NEW) {

@@ -25,6 +25,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import com.poesys.db.DbErrorException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dto.TestMultipleParams;
@@ -48,9 +49,11 @@ import com.poesys.db.dto.TestMultipleParams;
  * </code>
  * </pre>
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class UpdateWithParametersTest extends ConnectionTest {
+  /** SQL statement that deletes all rows from TestMultiple */
+  private static final String DELETE = "DELETE FROM TestMultiple";
   /** SQL statement that inserts a test row into TestMultiple */
   private static final String INSERT =
     "INSERT INTO TestMultiple (pkey, col1, colType) VALUES (?, ?, ?)";
@@ -70,35 +73,45 @@ public class UpdateWithParametersTest extends ConnectionTest {
       try {
         conn = getConnection();
       } catch (SQLException e) {
-        throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+        throw new DbErrorException("Connect failed: " + e.getMessage(), e);
       }
 
+      Statement stmt = null;
+      // Delete any rows in the TestMultiple table.
+      stmt = conn.createStatement();
+      stmt.executeUpdate(DELETE);
+      stmt.close();
+
+      conn.commit();
       // Insert test rows that create a set of multiple rows identified by a
       // single value of the colType column, 'b'.
-      PreparedStatement stmt = conn.prepareStatement(INSERT);
+      PreparedStatement pStmt = conn.prepareStatement(INSERT);
       for (long i = 1; i < 10; i++) {
         // insert key, col1, colType a
-        stmt.setLong(1, i);
-        stmt.setString(2, "Col Value " + i);
-        stmt.setString(3, "a");
-        stmt.execute();
+        pStmt.setLong(1, i);
+        pStmt.setString(2, "Col Value " + i);
+        pStmt.setString(3, "a");
+        pStmt.execute();
       }
 
       for (long i = 10; i < 15; i++) {
         // insert key, col1, colType b
-        stmt.setLong(1, i);
-        stmt.setString(2, "Col Value " + i);
-        stmt.setString(3, "b");
-        stmt.execute();
+        pStmt.setLong(1, i);
+        pStmt.setString(2, "Col Value " + i);
+        pStmt.setString(3, "b");
+        pStmt.execute();
       }
 
-      stmt.close();
+      pStmt.close();
+
+      conn.commit();
 
       // Update the "b" test rows with a different col1 value, "new".
       UpdateWithParameters<TestMultipleParams> updater =
-        new UpdateWithParameters<TestMultipleParams>(new UpdateSqlTestMultiple());
+        new UpdateWithParameters<TestMultipleParams>(new UpdateSqlTestMultiple(),
+                                                     getSubsystem());
       TestMultipleParams parameters = new TestMultipleParams(NEW, "b");
-      updater.update(conn, parameters);
+      updater.update(parameters);
 
       // Query the five "b" rows and see if the col1 value is "new".
       Statement query = conn.createStatement();
@@ -109,6 +122,7 @@ public class UpdateWithParametersTest extends ConnectionTest {
         assertTrue("b col1 = " + col1, NEW.compareTo(col1) == 0);
       }
       query.close();
+      conn.commit();
     } catch (InvalidParametersException e) {
       fail("Failed");
     } finally {

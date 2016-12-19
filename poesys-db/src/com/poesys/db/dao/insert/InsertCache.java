@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Poesys Associates. All rights reserved.
+ * Copyright (c) 2008, 2016 Poesys Associates. All rights reserved.
  * 
  * This file is part of Poesys-DB.
  * 
@@ -18,10 +18,6 @@
 package com.poesys.db.dao.insert;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
-
-import com.poesys.db.BatchException;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.dto.IDtoCache;
 
@@ -44,17 +40,17 @@ public class InsertCache<T extends IDbDto> extends Insert<T> implements
    * 
    * @param sql the SQL insert statement object
    * @param cache the DTO cache into which to cache the inserted object
+   * @param subsystem the subsystem of class T
    */
-  public InsertCache(IInsertSql<T> sql, IDtoCache<T> cache) {
-    super(sql);
+  public InsertCache(IInsertSql<T> sql, IDtoCache<T> cache, String subsystem) {
+    super(sql, subsystem);
     this.cache = cache;
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public void insert(Connection connection, IDbDto dto) throws SQLException,
-      BatchException {
-    super.insert(connection, dto);
+  public void insert(IDbDto dto) {
+    super.insert(dto);
     cache.cache((T)dto);
   }
 }

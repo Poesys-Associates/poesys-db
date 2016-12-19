@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2016 Poesys Associates. All rights reserved.
+ * 
+ * This file is part of Poesys-DB.
+ * 
+ * Poesys-DB is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ * 
+ * Poesys-DB is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along with
+ * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
+ */
 package com.poesys.db.dto;
 
 /**
@@ -21,40 +38,5 @@ public abstract class AbstractTestDto extends AbstractDto {
   @Override
   public String getSubsystem() {
     return "com.poesys.db.poesystest.mysql";
-  }
-
-  @Override
-  public java.sql.Connection getConnection() throws java.sql.SQLException {
-    java.sql.Connection connection = null;
-
-    /*
-     * The resource bundle for the DTO's subsystem contains the suffix that
-     * distinguishes multiple versions of the subsystem in the
-     * database.properties file, such as "prod" or "test". Most
-     * database.properties files have only one implementation and use external
-     * facilities to switch between the databases (JNDI, for example, or
-     * producing different database.properties files in different setups). Use
-     * the subsystem resource bundle to get the suffix, then use the full
-     * subsystem name to get a connection factory for the DTO's subsystem, then
-     * use that factory to get a JDBC connection.
-     */
-    java.util.ResourceBundle rb =
-      java.util.ResourceBundle.getBundle("com.poesys.db.poesystest.mysql");
-    String subsystem =
-      "com.poesys.db.poesystest.mysql"
-          + (rb.getString("suffix") == null
-             || rb.getString("suffix").length() == 0 ? ""
-              : "." + rb.getString("suffix"));
-
-    try {
-      connection =
-        com.poesys.db.connection.ConnectionFactoryFactory.getInstance(subsystem).getConnection();
-    } catch (com.poesys.db.InvalidParametersException e) {
-      throw new java.sql.SQLException(e.getMessage());
-    } catch (java.io.IOException e) {
-      throw new java.sql.SQLException(e.getMessage());
-    }
-
-    return connection;
   }
 }

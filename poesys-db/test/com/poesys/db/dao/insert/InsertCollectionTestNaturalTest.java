@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dto.TestNatural;
 
@@ -55,10 +56,10 @@ public class InsertCollectionTestNaturalTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
     InsertCollection<TestNatural> cut =
-      new InsertCollection<TestNatural>(new InsertSqlTestNatural());
+      new InsertCollection<TestNatural>(new InsertSqlTestNatural(), getSubsystem());
     Collection<TestNatural> dtos = new CopyOnWriteArrayList<TestNatural>();
     BigDecimal col1 = new BigDecimal("1234.5678");
 
@@ -77,9 +78,11 @@ public class InsertCollectionTestNaturalTest extends ConnectionTest {
       stmt.executeUpdate("DELETE FROM TestNatural");
       stmt.close();
 
+      conn.commit();
+      
       // Insert the test collection.
       stmt = conn.createStatement();
-      cut.insert(conn, dtos);
+      cut.insert(dtos);
 
       query = conn.prepareStatement(QUERY);
 
@@ -98,6 +101,7 @@ public class InsertCollectionTestNaturalTest extends ConnectionTest {
         // Must use compareTo here, not equals, because of precision difference
         assertTrue(col1.compareTo(queriedCol1) == 0);
       }
+      conn.commit();
     } catch (SQLException e) {
       fail("insert collection method failed: " + e.getMessage());
     } finally {
@@ -105,10 +109,8 @@ public class InsertCollectionTestNaturalTest extends ConnectionTest {
         stmt.close();
       }
       if (conn != null) {
-        conn.commit();
         conn.close();
       }
     }
   }
-
 }

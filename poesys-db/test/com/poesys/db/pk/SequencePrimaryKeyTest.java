@@ -34,7 +34,7 @@ import com.poesys.db.dao.ConnectionTest;
  * Test the sequence primary key class, the abstract single value primary key
  * class, and the abstract primary key class.
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class SequencePrimaryKeyTest extends ConnectionTest {
 

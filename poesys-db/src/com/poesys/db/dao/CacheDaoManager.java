@@ -48,20 +48,29 @@ public class CacheDaoManager implements IDaoManager {
   /** The thread-safe singleton cache map */
   protected static Map<String, IDtoCache<IDbDto>> map = null;
 
+  /** The database subsystem for the DTO */
+  protected final String subsystem;
+
   /**
-   * Create a DAO Manager.
+   * Disable the default constructor.
    */
   CacheDaoManager() {
+    subsystem = null;
+  }
+
+  CacheDaoManager(String subsystem) {
+    this.subsystem = subsystem;
   }
 
   /**
    * Get the DAO Manager singleton implementing a map cache.
    * 
+   * @param subsystem the database subsystem for the DTOs
    * @return the DAO Manager
    */
-  public static IDaoManager getInstance() {
+  public static IDaoManager getInstance(String subsystem) {
     if (manager == null) {
-      manager = new CacheDaoManager();
+      manager = new CacheDaoManager(subsystem);
       map = new ConcurrentHashMap<String, IDtoCache<IDbDto>>();
     }
     return manager;
@@ -118,7 +127,8 @@ public class CacheDaoManager implements IDaoManager {
 
   @SuppressWarnings("unchecked")
   @Override
-  public synchronized <T extends IDbDto> T getCachedObject(IPrimaryKey key) {
+  public synchronized <T extends IDbDto> T getCachedObject(IPrimaryKey key,
+                                                           String subsystem) {
     T object = null;
     // Only proceed if cache name and key are not null
     if (key.getCacheName() != null && key != null) {
@@ -133,9 +143,10 @@ public class CacheDaoManager implements IDaoManager {
   }
 
   @Override
-  public <T extends IDbDto> T getCachedObject(IPrimaryKey key, int expireTime) {
+  public <T extends IDbDto> T getCachedObject(IPrimaryKey key, int expireTime,
+                                              String subsystem) {
     // expire time ignored for Java cache
-    return getCachedObject(key);
+    return getCachedObject(key, subsystem);
   }
 
   @Override
@@ -164,7 +175,8 @@ public class CacheDaoManager implements IDaoManager {
     if (cacheName != null && key != null) {
       IDtoCache<IDbDto> cache = getCache(cacheName);
       cache.remove(key);
-      logger.debug("Removed object from " + cacheName + " cache: " + key.getStringKey());
+      logger.debug("Removed object from " + cacheName + " cache: "
+                   + key.getStringKey());
     }
   }
 

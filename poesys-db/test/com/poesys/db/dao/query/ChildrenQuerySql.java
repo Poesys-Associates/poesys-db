@@ -23,7 +23,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import com.poesys.db.InvalidParametersException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dto.Child;
 import com.poesys.db.dto.Parent;
 import com.poesys.db.pk.CompositePrimaryKey;
@@ -35,7 +35,7 @@ import com.poesys.db.pk.PrimaryKeyFactory;
  * Implementation of the IParameterizedQuerySql interface for a query of all the
  * children of a parent.
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class ChildrenQuerySql implements IParameterizedQuerySql<Child, Parent> {
   private static final String SQL =
@@ -43,8 +43,7 @@ public class ChildrenQuerySql implements IParameterizedQuerySql<Child, Parent> {
   private static final String CLASS_NAME = "com.poesys.test.Child";
 
   @Override
-  public void bindParameters(PreparedStatement stmt, Parent parameters)
-      throws SQLException {
+  public void bindParameters(PreparedStatement stmt, Parent parameters) {
     // Use the Parent primary key to set the parameter of the SQL statement.
     IPrimaryKey key = parameters.getPrimaryKey();
     key.setParams(stmt, 1);
@@ -57,25 +56,37 @@ public class ChildrenQuerySql implements IParameterizedQuerySql<Child, Parent> {
   }
 
   @Override
-  public IPrimaryKey getPrimaryKey(ResultSet rs) throws SQLException,
-      InvalidParametersException {
+  public IPrimaryKey getPrimaryKey(ResultSet rs) {
     // Build the composite key from the queried data.
-    String parentId = rs.getString("parent_id");
-    BigInteger childNumber = rs.getBigDecimal("child_number").toBigInteger();
+    String parentId;
+    BigInteger childNumber;
+    try {
+      parentId = rs.getString("parent_id");
+      childNumber = rs.getBigDecimal("child_number").toBigInteger();
+    } catch (SQLException e) {
+      throw new DbErrorException("SQL error", e);
+    }
     CompositePrimaryKey key =
       PrimaryKeyFactory.createCompositeKey("parent_id",
                                            parentId,
                                            "child_number",
-                                           childNumber, CLASS_NAME);
+                                           childNumber,
+                                           CLASS_NAME);
     return key;
   }
 
   @Override
-  public  Child getData(ResultSet rs) throws SQLException {
+  public Child getData(ResultSet rs) {
 
     // Get the column value and build the output child.
-    String col1 = rs.getString("col1");
-    BigInteger childNumber = rs.getBigDecimal("child_number").toBigInteger();
+    String col1;
+    BigInteger childNumber;
+    try {
+      col1 = rs.getString("col1");
+      childNumber = rs.getBigDecimal("child_number").toBigInteger();
+    } catch (SQLException e) {
+      throw new DbErrorException("SQL error", e);
+    }
     return new Child((CompositePrimaryKey)getPrimaryKey(rs), childNumber, col1);
   }
 

@@ -96,15 +96,15 @@ public class MemcachedService<T extends IDbDto> {
   // error/warning/info messages
   private static final String UNKNOWN_PROTOCOL =
     "com.poesys.db.dao.query.msg.memcached_unknown_protocol";
-  private static final String CLIENT =
+  private static final String CLIENT_ERROR =
     "com.poesys.db.dao.query.msg.memcached_client";
   private static final String SHUTDOWN_CLIENT_ERROR =
     "com.poesys.db.dao.query.msg.memcached_client_shutdown";
-  private static final String INVALID_PORT =
+  private static final String INVALID_PORT_ERROR =
     "com.poesys.db.dao.query.msg.memcached_invalid_port";
-  private static final String QUEUE_FULL =
+  private static final String QUEUE_FULL_ERROR =
     "com.poesys.db.dao.query.msg.memcached_queue_full";
-  private static final String STATS_COMPLETE =
+  private static final String STATS_COMPLETE_ERROR =
     "com.poesys.db.dao.query.msg.memcached_stats_complete";
   private static final String STATS_ERROR =
     "com.poesys.db.dao.query.msg.memcached_stats_error";
@@ -139,7 +139,7 @@ public class MemcachedService<T extends IDbDto> {
             throw new DbErrorException(msg);
           }
         } catch (IOException e) {
-          throw new DbErrorException(CLIENT, e);
+          throw new DbErrorException(CLIENT_ERROR, e);
         }
         return client;
       }
@@ -150,7 +150,7 @@ public class MemcachedService<T extends IDbDto> {
           object.shutdown();
         } catch (Throwable e) {
           // Ignore
-          logger.warn(SHUTDOWN_CLIENT_ERROR, e);
+          logger.warn(Message.getMessage(SHUTDOWN_CLIENT_ERROR, null), e);
         }
       }
     };
@@ -196,7 +196,9 @@ public class MemcachedService<T extends IDbDto> {
         } catch (NumberFormatException e) {
           List<String> errors = new ArrayList<String>(1);
           errors.add(parts[1]);
-          DbErrorException e1 = new DbErrorException(INVALID_PORT, e);
+          DbErrorException e1 =
+            new DbErrorException(Message.getMessage(INVALID_PORT_ERROR, null),
+                                 e);
           e1.setParameters(errors);
           throw e1;
         }
@@ -221,7 +223,8 @@ public class MemcachedService<T extends IDbDto> {
     } catch (IllegalStateException e) {
       List<String> errors = new ArrayList<String>(1);
       errors.add(object.getPrimaryKey().getStringKey());
-      DbErrorException e1 = new DbErrorException(QUEUE_FULL, e);
+      DbErrorException e1 =
+        new DbErrorException(Message.getMessage(QUEUE_FULL_ERROR, null), e);
       e1.setParameters(errors);
       throw e1;
     } catch (IllegalArgumentException e) {
@@ -250,7 +253,7 @@ public class MemcachedService<T extends IDbDto> {
       // log and ignore
       String[] args = new String[1];
       args[0] = key.getStringKey();
-      logger.warn(Message.getMessage(QUEUE_FULL, args));
+      logger.warn(Message.getMessage(QUEUE_FULL_ERROR, args));
     } finally {
       clients.returnObject(client);
     }
@@ -268,7 +271,7 @@ public class MemcachedService<T extends IDbDto> {
         }
         String[] args = new String[1];
         args[0] = new Integer(address.hashCode()).toString();
-        logger.info(Message.getMessage(STATS_COMPLETE, args));
+        logger.info(Message.getMessage(STATS_COMPLETE_ERROR, args));
       }
     } catch (Exception e) {
       // log and ignore

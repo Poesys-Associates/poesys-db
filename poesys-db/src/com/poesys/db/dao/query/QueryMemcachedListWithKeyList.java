@@ -19,13 +19,10 @@ package com.poesys.db.dao.query;
 
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import com.poesys.db.BatchException;
-import com.poesys.db.Message;
 import com.poesys.db.dao.CacheDaoManager;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoManager;
@@ -49,7 +46,7 @@ public class QueryMemcachedListWithKeyList<T extends IDbDto> extends
     QueryListWithKeyList<T> {
   private static final Logger logger =
     Logger.getLogger(QueryMemcachedListWithKeyList.class);
-  /** the name of the subsystem containing the T class */
+  /** the name of the subsystem of class T */
   private final String subsystem;
   /** the memcached expiration time in milliseconds for T objects */
   private final int expiration;
@@ -58,7 +55,7 @@ public class QueryMemcachedListWithKeyList<T extends IDbDto> extends
    * Create a QueryCacheList object.
    * 
    * @param sql the SQL statement specification
-   * @param subsystem the name of the subsystem containing the T class
+   * @param subsystem the name of the subsystem of class T
    * @param expiration the memcached expiration time in milliseconds for T
    *          objects
    * @param rows the number of rows to fetch at once; optimizes the query
@@ -74,12 +71,12 @@ public class QueryMemcachedListWithKeyList<T extends IDbDto> extends
   }
 
   @Override
-  protected T getObject(ResultSet rs) throws SQLException, BatchException {
+  protected T getObject(ResultSet rs) {
     IPrimaryKey key = sql.getPrimaryKey(rs);
     // Look the object up in the cache, create if not there and cache it.
     DaoManagerFactory.initMemcachedManager(subsystem);
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
-    T dto = manager.getCachedObject(key);
+    T dto = manager.getCachedObject(key, subsystem);
     if (dto == null) {
       dto = sql.getData(rs);
       logger.debug("Queried " + key.getStringKey() + " from database for list");
@@ -90,7 +87,7 @@ public class QueryMemcachedListWithKeyList<T extends IDbDto> extends
         dto.setExisting();
         dto.setQueried(true);
         // Cache the object in memory before getting nested objects.
-        IDaoManager cacheManager = CacheDaoManager.getInstance();
+        IDaoManager cacheManager = CacheDaoManager.getInstance(subsystem);
         cacheManager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
                                       0,
                                       dto);
@@ -120,30 +117,15 @@ public class QueryMemcachedListWithKeyList<T extends IDbDto> extends
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     if (list != null) {
       for (T dto : list) {
-        try {
-          dto.queryNestedObjects();
-          // Cache the object to ensure all nested object keys get serialized.
-          if (dto.isQueried()) {
-            manager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
-                                     expiration,
-                                     dto);
-          }
-        } catch (SQLException e) {
-          // Log the message and the SQL statement, then rethrow the exception.
-          Object[] args = { e.getMessage() };
-          String message = Message.getMessage(SQL_ERROR, args);
-          logger.error(message, e);
-          // Log a debugging message for the "already been closed" error
-          if ("PooledConnection has already been closed.".equals(e.getMessage())) {
-            logger.debug("Closed pooled connection while getting nested objects");
-          }
-          logger.debug("SQL statement in class: " + sql.getClass().getName());
-          throw new RuntimeException(message, e);
-        } catch (BatchException e) {
-          Object[] args = { e.getMessage() };
-          String message = Message.getMessage(SQL_ERROR, args);
-          logger.error(message, e);
-        } // object is complete, set it as processed.
+        dto.queryNestedObjects();
+        // Cache the object to ensure all nested object keys get serialized.
+        if (dto.isQueried()) {
+          manager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
+                                   expiration,
+                                   dto);
+        }
+
+        // object is complete, set it as processed.
         thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
         logger.debug("Retrieved all nested objects for "
                      + dto.getPrimaryKey().getStringKey());

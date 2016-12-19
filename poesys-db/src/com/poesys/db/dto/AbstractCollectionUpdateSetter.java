@@ -18,16 +18,14 @@
 package com.poesys.db.dto;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Collection;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoFactory;
 import com.poesys.db.dao.IDaoManager;
+import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dao.update.IUpdateCollection;
 import com.poesys.db.dao.update.IUpdateSql;
 
@@ -60,21 +58,18 @@ abstract public class AbstractCollectionUpdateSetter<T extends IDbDto> extends
   }
 
   @Override
-  public void set(Connection connection) throws SQLException {
+  public void set() {
+    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     IDaoFactory<T> factory =
       manager.getFactory(getClassName(), subsystem, expiration);
     IUpdateCollection<T> dao = factory.getUpdateCollection(getSql());
     Collection<T> links = getDtos();
     try {
-      dao.update(connection, links);
+      dao.update(links);
     } catch (ConstraintViolationException e) {
-      throw new DbErrorException(e.getMessage(), e);
-    } catch (BatchException e) {
-      throw new DbErrorException(e.getMessage(), e);
-    } catch (DtoStatusException e) {
-      throw new DbErrorException(e.getMessage(), e);
-    }
+      throw new DbErrorException(e.getMessage(), thread, e);
+    } 
   }
 
   /**

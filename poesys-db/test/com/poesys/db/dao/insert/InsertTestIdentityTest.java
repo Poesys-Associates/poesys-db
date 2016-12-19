@@ -26,6 +26,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dto.TestIdentity;
 import com.poesys.db.pk.IdentityPrimaryKey;
@@ -54,11 +55,11 @@ public class InsertTestIdentityTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
 
     Insert<TestIdentity> cut =
-      new Insert<TestIdentity>(new InsertSqlTestIdentity());
+      new Insert<TestIdentity>(new InsertSqlTestIdentity(), getSubsystem());
 
     // Create the primary key.
     IdentityPrimaryKey key =
@@ -72,9 +73,8 @@ public class InsertTestIdentityTest extends ConnectionTest {
 
     try {
       // Insert the test row.
-      cut.insert(conn, dto);
-      conn.commit();
-
+      cut.insert(dto);
+ 
       // Set the key value into the query as an argument.
       query = conn.prepareStatement(QUERY, Statement.RETURN_GENERATED_KEYS);
       key.setParams(query, 1);
@@ -88,6 +88,7 @@ public class InsertTestIdentityTest extends ConnectionTest {
       assertTrue("Test row not found", queriedCol1 != null);
       assertTrue("Queried test row does not match insert",
                  col1.equals(queriedCol1));
+      conn.commit();
     } catch (SQLException e) {
       fail("insert method failed: " + e.getMessage());
     } finally {
@@ -113,11 +114,11 @@ public class InsertTestIdentityTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
 
     InsertNoKey<TestIdentity> cut =
-      new InsertNoKey<TestIdentity>(new InsertSqlTestIdentity());
+      new InsertNoKey<TestIdentity>(new InsertSqlTestIdentity(), getSubsystem());
 
     // Create the primary key.
     IdentityPrimaryKey key =
@@ -133,7 +134,7 @@ public class InsertTestIdentityTest extends ConnectionTest {
     try {
       // Insert the test row.
       stmt = conn.createStatement();
-      cut.insert(conn, dto);
+      cut.insert(dto);
       conn.commit();
 
       // Set the key value into the query as an argument.
@@ -149,6 +150,7 @@ public class InsertTestIdentityTest extends ConnectionTest {
       assertTrue("Test row not found", queriedCol1 != null);
       assertTrue("Queried test row does not match insert",
                  col1.equals(queriedCol1));
+      conn.commit();
     } catch (SQLException e) {
       fail("insert method failed: " + e.getMessage());
     } finally {

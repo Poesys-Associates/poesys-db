@@ -18,11 +18,8 @@
 package com.poesys.db.dao.insert;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Collection;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.dto.IDbDto;
 
 
@@ -63,18 +60,13 @@ public interface IInsertBatch<T extends IDbDto> {
    * batches of a specified size. Only DTOs with the isNew() flag set to true
    * get inserted.
    * 
-   * @param connection the database connection with which to insert the data
    * @param dtos a collection or list of DTOs of type T; the key data members
    *          must have values; the method will insert only DTOs with isNew() =
    *          true
    * @param size the batch size; an int because collections cannot exceed
    *          MAX_INT members in size
-   * @throws SQLException when there is a SQL error with the insert
-   * @throws BatchException when one or more objects in the batch had a SQL
-   *           error on insertion
    */
-  public void insert(Connection connection, Collection<T> dtos, int size)
-      throws SQLException, BatchException;
+  public void insert(Collection<T> dtos, int size);
 
   /**
    * Close any resources allocated by the Command.

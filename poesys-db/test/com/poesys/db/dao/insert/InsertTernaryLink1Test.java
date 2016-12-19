@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.Message;
 import com.poesys.db.NoPrimaryKeyException;
@@ -46,7 +47,7 @@ import com.poesys.db.pk.PrimaryKeyFactory;
 /**
  * Test the specialization/inheritance insertion capability.
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class InsertTernaryLink1Test extends ConnectionTest {
   private static final String QUERY_LINK1 =
@@ -76,13 +77,16 @@ public class InsertTernaryLink1Test extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
 
     // Create the insert commands (class under test) for the two linked tables.
-    Insert<Link1> cut1 = new Insert<Link1>(new InsertSqlLink1());
-    Insert<Link2> cut2 = new Insert<Link2>(new InsertSqlLink2());
-    Insert<Link3> cut3 = new Insert<Link3>(new InsertSqlLink3());
+    Insert<Link1> cut1 =
+      new Insert<Link1>(new InsertSqlLink1(), getSubsystem());
+    Insert<Link2> cut2 =
+      new Insert<Link2>(new InsertSqlLink2(), getSubsystem());
+    Insert<Link3> cut3 =
+      new Insert<Link3>(new InsertSqlLink3(), getSubsystem());
 
     // Create the sequence primary keys for the objects.
     AbstractSingleValuedPrimaryKey key1 = null;
@@ -92,30 +96,30 @@ public class InsertTernaryLink1Test extends ConnectionTest {
     AbstractSingleValuedPrimaryKey key3 = null;
     try {
       key1 =
-        PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                                 "link1",
+        PrimaryKeyFactory.createMySqlSequenceKey("link1",
                                                  KEY1_NAME,
-                                                 CLASS_NAME);
+                                                 CLASS_NAME,
+                                                 getSubsystem());
       key21 =
-        PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                                 "link2",
+        PrimaryKeyFactory.createMySqlSequenceKey("link2",
                                                  KEY2_NAME,
-                                                 CLASS_NAME);
+                                                 CLASS_NAME,
+                                                 getSubsystem());
       key22 =
-        PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                                 "link2",
+        PrimaryKeyFactory.createMySqlSequenceKey("link2",
                                                  KEY2_NAME,
-                                                 CLASS_NAME);
+                                                 CLASS_NAME,
+                                                 getSubsystem());
       key23 =
-        PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                                 "link2",
+        PrimaryKeyFactory.createMySqlSequenceKey("link2",
                                                  KEY2_NAME,
-                                                 CLASS_NAME);
+                                                 CLASS_NAME,
+                                                 getSubsystem());
       key3 =
-        PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                                 "link3",
+        PrimaryKeyFactory.createMySqlSequenceKey("link3",
                                                  KEY3_NAME,
-                                                 CLASS_NAME);
+                                                 CLASS_NAME,
+                                                 getSubsystem());
     } catch (InvalidParametersException e1) {
       fail(e1.getMessage());
     } catch (NoPrimaryKeyException e1) {
@@ -202,15 +206,17 @@ public class InsertTernaryLink1Test extends ConnectionTest {
       stmt.close();
       stmt = null;
 
+      conn.commit();
+
       // Insert the Link2 objects. There should be no exceptions from attempts
       // to insert links.
-      cut2.insert(conn, link21Dto);
-      cut2.insert(conn, link22Dto);
-      cut2.insert(conn, link23Dto);
-      cut3.insert(conn, link3Dto);
+      cut2.insert(link21Dto);
+      cut2.insert(link22Dto);
+      cut2.insert(link23Dto);
+      cut3.insert(link3Dto);
 
       // Insert the Link1 object. The links should be inserted.
-      cut1.insert(conn, link1Dto);
+      cut1.insert(link1Dto);
 
       // Test the flags.
       assertTrue("inserted link not EXISTING",
@@ -233,6 +239,8 @@ public class InsertTernaryLink1Test extends ConnectionTest {
       assertTrue(queriedCol != null);
       assertTrue(COL_VALUE.equals(queriedCol));
 
+      conn.commit();
+
       // Query the Link2 rows.
       pstmt = conn.prepareStatement(QUERY_LINK2);
       for (int counter = 0; counter < 3; counter++) {
@@ -250,6 +258,8 @@ public class InsertTernaryLink1Test extends ConnectionTest {
       pstmt.close();
       pstmt = null;
       rs = null;
+
+      conn.commit();
 
       // Query the Link3 rows.
       pstmt = conn.prepareStatement(QUERY_LINK3);
@@ -269,6 +279,8 @@ public class InsertTernaryLink1Test extends ConnectionTest {
       pstmt = null;
       rs = null;
 
+      conn.commit();
+
       // Query the many-to-many linking table rows.
       pstmt = conn.prepareStatement(QUERY_TERNARY_LINK);
       key1.setParams(pstmt, 1); // use Link1 key value for query
@@ -285,7 +297,7 @@ public class InsertTernaryLink1Test extends ConnectionTest {
       pstmt = null;
       rs = null;
       assertTrue(counter == 3);
-
+      conn.commit();
     } catch (SQLException e) {
       fail("insert method failed with SQL error: " + e.getMessage());
     } finally {

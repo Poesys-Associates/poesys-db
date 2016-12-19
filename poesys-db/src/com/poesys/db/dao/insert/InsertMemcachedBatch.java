@@ -18,11 +18,8 @@
 package com.poesys.db.dao.insert;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Collection;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoManager;
 import com.poesys.db.dto.IDbDto;
@@ -37,8 +34,6 @@ import com.poesys.db.dto.IDbDto;
  */
 public class InsertMemcachedBatch<T extends IDbDto> extends InsertBatch<T>
     implements IInsertBatch<T> {
-  /** the name of the subsystem containing the T class */
-  private final String subsystem;
   /** the memcached expiration time in milliseconds for T objects */
   private final int expiration;
 
@@ -53,15 +48,13 @@ public class InsertMemcachedBatch<T extends IDbDto> extends InsertBatch<T>
   public InsertMemcachedBatch(IInsertSql<T> sql,
                               String subsystem,
                               int expiration) {
-    super(sql);
-    this.subsystem = subsystem;
+    super(sql, subsystem);
     this.expiration = expiration;
   }
 
   @Override
-  public void insert(Connection connection, Collection<T> dtos, int size)
-      throws SQLException, BatchException {
-    super.insert(connection, dtos, size);
+  public void insert(Collection<T> dtos, int size) {
+    super.insert(dtos, size);
     // Only cache if list exists and has objects.
     if (dtos != null && dtos.size() > 0) {
       DaoManagerFactory.initMemcachedManager(subsystem);

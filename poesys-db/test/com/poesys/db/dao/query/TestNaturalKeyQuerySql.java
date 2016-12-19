@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao.query;
 
@@ -23,6 +22,7 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dto.TestNatural;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -31,31 +31,29 @@ import com.poesys.db.pk.IPrimaryKey;
  * SQL query class for querying TestNatural objects that have natural primary
  * keys.
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class TestNaturalKeyQuerySql implements IKeyQuerySql<TestNatural> {
   /** SQL primary key query for TestNatural */
   private static final String SQL =
     "SELECT key1, key2, col1 FROM TestNatural WHERE ";
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.query.IKeyQuerySql#getData(java.sql.ResultSet)
-   */
-  public TestNatural getData(IPrimaryKey key, ResultSet rs)
-      throws SQLException {
-    String key1 = rs.getString("key1");
-    String key2 = rs.getString("key2");
-    BigDecimal col = rs.getBigDecimal("col1");
+  @Override
+  public TestNatural getData(IPrimaryKey key, ResultSet rs) {
+    String key1;
+    String key2;
+    BigDecimal col;
+    try {
+      key1 = rs.getString("key1");
+      key2 = rs.getString("key2");
+      col = rs.getBigDecimal("col1");
+    } catch (SQLException e) {
+      throw new DbErrorException("SQL error", e);
+    }
     return new TestNatural(key1, key2, col);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.query.IKeyQuerySql#getSql(com.poesys.db.pk.IPrimaryKey)
-   */
+  @Override
   public String getSql(IPrimaryKey key) {
     return SQL + key.getSqlWhereExpression("");
   }

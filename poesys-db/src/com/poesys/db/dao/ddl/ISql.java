@@ -25,7 +25,7 @@ package com.poesys.db.dao.ddl;
  * retrieves no data.
  * </p>
  * <p>
- * An implemention of this interface should have a static string containing the
+ * An implementation of this interface should have a static string containing the
  * SQL statement. Implementations may create generic statements with parts
  * supplied through the constructor such as table names or column names. This
  * strategy permits you to create generic SQL statements that you can

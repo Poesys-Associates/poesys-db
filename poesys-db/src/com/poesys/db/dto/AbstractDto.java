@@ -20,9 +20,7 @@ package com.poesys.db.dto;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -30,7 +28,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.apache.log4j.Logger;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.Message;
 import com.poesys.db.dao.DataEvent;
@@ -175,13 +172,6 @@ public abstract class AbstractDto implements IDbDto {
     "com.poesys.db.dto.msg.cannot_delete";
 
   /**
-   * Message string when attempting to de-serialize a cached object and there is
-   * some kind of exception
-   */
-  private static final String READ_OBJECT_MSG =
-    "com.poesys.db.dto.msg.read_object";
-
-  /**
    * Create an AbstractDto object. This constructor takes no arguments (the
    * default constructor) and sets the setter, validator, and observer lists to
    * null, so you must set these in the subclass if you need to set or validate.
@@ -320,27 +310,25 @@ public abstract class AbstractDto implements IDbDto {
   }
 
   @Override
-  public void queryNestedObjects() throws SQLException, BatchException {
+  public void queryNestedObjects() {
     if (querySetters != null) {
       for (ISet set : querySetters) {
-        set.set(null);
+        set.set();
       }
     }
   }
 
   @Override
-  public void queryNestedObjectsForValidation() throws SQLException,
-      BatchException {
+  public void queryNestedObjectsForValidation() {
     if (insertQuerySetters != null) {
       for (ISet set : insertQuerySetters) {
-        set.set(null);
+        set.set();
       }
     }
   }
 
   @Override
-  public void insertNestedObjects(Connection connection) throws SQLException,
-      BatchException {
+  public void insertNestedObjects() {
     if (insertSetters != null && !suppressNestedInserts) {
       // As this method runs only for the last concrete class in a class
       // hierarchy, this is the point at which the DTO gets set to EXISTING.
@@ -348,7 +336,7 @@ public abstract class AbstractDto implements IDbDto {
       // objects, cutting any recursive or infinite loop.
       setExisting();
       for (ISet set : insertSetters) {
-        set.set(connection);
+        set.set();
       }
     } else {
       // no setters, or setters suppressed, set main object to EXISTING
@@ -423,22 +411,20 @@ public abstract class AbstractDto implements IDbDto {
   }
 
   @Override
-  public void postprocessNestedObjects(Connection connection)
-      throws SQLException, BatchException {
+  public void postprocessNestedObjects() {
     if (postSetters != null) {
       for (ISet set : postSetters) {
-        set.set(connection);
+        set.set();
       }
     }
   }
 
   @Override
-  public void preprocessNestedObjects(Connection connection)
-      throws SQLException, BatchException {
+  public void preprocessNestedObjects() {
     // Run the setters unless suppression is turned on for subclasses.
     if (preSetters != null && !suppressNestedPreInserts) {
       for (ISet set : preSetters) {
-        set.set(connection);
+        set.set();
       }
     }
   }
@@ -463,31 +449,12 @@ public abstract class AbstractDto implements IDbDto {
 
   @Override
   public void deserializeNestedObjects() {
-    try {
-      if (readObjectSetters != null) {
-        for (ISet set : readObjectSetters) {
-          set.set(null);
-        }
+    if (readObjectSetters != null) {
+      for (ISet set : readObjectSetters) {
+        set.set();
       }
-    } catch (SQLException e) {
-      // Should never happen, log and throw RuntimeException
-      logger.error(READ_OBJECT_MSG, e);
-      throw new RuntimeException(READ_OBJECT_MSG, e);
     }
   }
-
-  /**
-   * Get a SQL connection to the subsystem that owns the DTO. The implementing
-   * DTO must use the subsystem resource bundle and database properties file to
-   * acquire the right connection. The method is public to permit Proxy classes
-   * to use it to load DTOs lazily.
-   * 
-   * @return a SQL connection
-   * @throws java.sql.SQLException when there is a problem getting the
-   *           connection
-   */
-  abstract public java.sql.Connection getConnection()
-      throws java.sql.SQLException;
 
   @Override
   public IPrimaryKey getPrimaryKey() {
@@ -495,44 +462,43 @@ public abstract class AbstractDto implements IDbDto {
   }
 
   @Override
-  public void validateForQuery() throws SQLException,
-      InvalidParametersException {
+  public void validateForQuery() throws InvalidParametersException {
     if (queryValidators != null) {
       for (IValidate validator : queryValidators) {
-        validator.validate(null);
+        validator.validate();
       }
     }
   }
 
   @Override
-  public void validateForInsert() throws SQLException {
+  public void validateForInsert() {
     if (insertValidators != null) {
       for (IValidate validator : insertValidators) {
-        validator.validate(null);
+        validator.validate();
       }
     }
   }
 
   @Override
-  public void validateForUpdate() throws SQLException {
+  public void validateForUpdate() {
     if (updateValidators != null) {
       for (IValidate validator : updateValidators) {
-        validator.validate(null);
+        validator.validate();
       }
     }
   }
 
   @Override
-  public void validateForDelete() throws SQLException {
+  public void validateForDelete() {
     if (deleteValidators != null) {
       for (IValidate validator : deleteValidators) {
-        validator.validate(null);
+        validator.validate();
       }
     }
   }
 
   @Override
-  public void finalizeInsert(PreparedStatement stmt) throws SQLException {
+  public void finalizeInsert(PreparedStatement stmt) {
     // No action required--default implementation
   }
 

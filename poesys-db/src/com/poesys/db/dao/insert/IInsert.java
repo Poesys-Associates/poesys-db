@@ -18,10 +18,6 @@
 package com.poesys.db.dao.insert;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
-
-import com.poesys.db.BatchException;
 import com.poesys.db.dto.IDbDto;
 
 
@@ -62,30 +58,10 @@ public interface IInsert<T extends IDbDto> {
   /**
    * Insert the contents of a new DTO object into the database.
    * 
-   * @param connection the database connection with which to insert the data
    * @param dto the DTO containing the objects to insert into the database; the
    *          key data members must have values; the isNew() flag must be true
-   * @throws SQLException when there is a SQL error with the insert
-   * @throws BatchException when a setter within the class throws a batch
-   *           processing exception, indicating one or more child inserts has a
-   *           SQLException
    */
-  public void insert(Connection connection, IDbDto dto) throws SQLException,
-      BatchException;
-
-  /**
-   * Is this inserter inserting into a leaf class?
-   * 
-   * @return true if leaf, false if superclass of a leaf
-   */
-  public boolean isLeaf();
-
-  /**
-   * Set the inserter to be a leaf inserter.
-   * 
-   * @param isLeaf true for a leaf inserter, false for a superclass inserter
-   */
-  public void setLeaf(boolean isLeaf);
+  public void insert(IDbDto dto);
 
   /**
    * Close any resources allocated by the Command.

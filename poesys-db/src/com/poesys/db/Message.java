@@ -46,34 +46,54 @@ public abstract class Message {
   /** Name of the properties file; app can use this name to open the file */
   public static final String DEFAULT_FILE_NAME = "com.poesys.db.PoesysDbBundle";
   /** Properties from Poesys DB subsystem */
-  private static List<ResourceBundle> properties =
-    new ArrayList<ResourceBundle>();
+  private static List<ResourceBundle> properties = null;
 
   /**
    * Initialize the list of property bundles from the supplied names. The list
    * then contains property bundles in the same order as the input names with
    * the default Poesys/DB bundle last in the list. The application should call
-   * this method once as a static initializer.
+   * this method once as a static initializer. Subsequent calls are logged and
+   * ignored.
    * 
    * @param names the property-file names in package format (for example,
    *          com.poesys.db.PoesysDbBundle)
    */
   public static void initializePropertiesFiles(List<String> names) {
-    if (names != null) {
+    if (properties == null && names != null) {
+      logger.debug("Initializing Poesys/DB messages file");
+      // Initialize the empty array.
+      properties = new ArrayList<ResourceBundle>(names.size() + 1);
       // Add the user-specified files to the list.
       for (String name : names) {
         ResourceBundle bundle;
         try {
           bundle = ResourceBundle.getBundle(name);
           properties.add(bundle);
+          logger.debug("Added user-defined properties file " + name);
         } catch (Exception e) {
           // Log the error and move on to the next bundle.
           logger.error(e.getMessage(), e);
         }
       }
+    } else if (properties == null) {
+      logger.debug("Initializing Poesys/DB messages file with defaults only");
+      // Initialize a single-element array.
+      properties = new ArrayList<ResourceBundle>(1);
+    } else {
+      // Already initialized, log and ignore
+      logger.warn("Message properties file already initialized");
     }
+
     // Add the Poesys DB bundle as the last (or only) file in the list.
     properties.add(ResourceBundle.getBundle(DEFAULT_FILE_NAME));
+  }
+  
+  /**
+   * Reset the properties files to empty to allow reinitialization.
+   */
+  public static void resetPropertiesFiles() {
+    logger.debug("Resetting properties to null");
+    properties = null;
   }
 
   /**
@@ -111,10 +131,11 @@ public abstract class Message {
     String message = null;
     MissingResourceException exception = null;
 
-    if (properties.size() == 0) {
-      // The properties list has not been initialized.
-      // Add the Poesys DB bundle as the default.
-      properties.add(ResourceBundle.getBundle(DEFAULT_FILE_NAME));
+    // Initialize the properties files to the default if not already
+    // initialized or empty.
+    if (properties == null || properties.size() == 0) {
+      logger.debug("Initializing Poesys/DB message file to defaults in getMessage()");
+      initializePropertiesFiles(null);
     }
 
     for (ResourceBundle bundle : properties) {

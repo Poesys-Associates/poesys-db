@@ -18,11 +18,8 @@
 package com.poesys.db.dao.insert;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Collection;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.dto.IDtoCache;
 
@@ -44,22 +41,18 @@ public class InsertCacheCollection<T extends IDbDto> extends
    * 
    * @param sql the SQL insert statement object
    * @param cache the DTO cache
+   * @param subsystem the subsystem of class T
    */
-  public InsertCacheCollection(IInsertSql<T> sql, IDtoCache<T> cache) {
-    super(sql);
+  public InsertCacheCollection(IInsertSql<T> sql,
+                               IDtoCache<T> cache,
+                               String subsystem) {
+    super(sql, subsystem);
     this.cache = cache;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.InsertCollection#insert(java.sql.Connection,
-   * java.util.Collection)
-   */
   @Override
-  public void insert(Connection connection, Collection<T> dtos)
-      throws SQLException, BatchException {
-    super.insert(connection, dtos);
+  public void insert(Collection<T> dtos) {
+    super.insert(dtos);
     for (T dto : dtos) {
       if (dto.getStatus() == IDbDto.Status.NEW
           || dto.getStatus() == IDbDto.Status.EXISTING) {

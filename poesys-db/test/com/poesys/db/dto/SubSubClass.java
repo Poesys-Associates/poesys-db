@@ -26,7 +26,7 @@ import com.poesys.db.pk.AbstractSingleValuedPrimaryKey;
  * testing operations on an inheritance hierarchy; the sub-sub class specializes
  * the sub-class, which specializes the root class.
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class SubSubClass extends SubClass {
   /** Generated serial version UID for Serializable object */

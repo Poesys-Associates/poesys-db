@@ -96,11 +96,11 @@ public class DaoCacheFactory<T extends IDbDto> implements IDaoFactory<T> {
    * @param name the cache name (usually the fully qualified class name of the
    *          cached objects)
    * @param manager the DAO manager that created this factory
-   * @param subsystem the subsystem containing the DTO classes
+   * @param subsystem the subsystem of the DTO classes
    */
   @SuppressWarnings("unchecked")
   public DaoCacheFactory(String name, CacheDaoManager manager, String subsystem) {
-    if (!CacheDaoManager.getInstance().isCached(name)) {
+    if (!CacheDaoManager.getInstance(subsystem).isCached(name)) {
       // Not cached, tell the manager to create a cache for the class.
       cache = (IDtoCache<T>)manager.createCache(name);
     } else {
@@ -146,7 +146,7 @@ public class DaoCacheFactory<T extends IDbDto> implements IDaoFactory<T> {
   public IDelete<T> getDelete(IDeleteSql<T> sql) {
     DeleteCacheByKey<T> deleter = null;
     if (sql != null) {
-      deleter = new DeleteCacheByKey<T>(sql, cache);
+      deleter = new DeleteCacheByKey<T>(sql, cache, subsystem);
     }
     return deleter;
   }
@@ -155,7 +155,7 @@ public class DaoCacheFactory<T extends IDbDto> implements IDaoFactory<T> {
   public IDeleteBatch<T> getDeleteBatch(IDeleteSql<T> sql) {
     DeleteCacheBatchByKey<T> deleter = null;
     if (sql != null) {
-      deleter = new DeleteCacheBatchByKey<T>(sql, cache);
+      deleter = new DeleteCacheBatchByKey<T>(sql, cache, subsystem);
     }
     return deleter;
   }
@@ -164,7 +164,7 @@ public class DaoCacheFactory<T extends IDbDto> implements IDaoFactory<T> {
   public IDeleteCollection<T> getDeleteCollection(IDeleteSql<T> sql) {
     DeleteCacheCollectionByKey<T> deleter = null;
     if (sql != null) {
-      deleter = new DeleteCacheCollectionByKey<T>(sql, cache);
+      deleter = new DeleteCacheCollectionByKey<T>(sql, cache, subsystem);
     }
     return deleter;
   }
@@ -174,33 +174,33 @@ public class DaoCacheFactory<T extends IDbDto> implements IDaoFactory<T> {
     // No cache involved with this delete--not related to DTOs
     DeleteWithParameters<T, P> deleter = null;
     if (sql != null) {
-      deleter = new DeleteWithParameters<T, P>(sql);
+      deleter = new DeleteWithParameters<T, P>(sql, subsystem);
     }
     return deleter;
   }
 
   @Override
   public IInsert<T> getInsert(IInsertSql<T> sql, Boolean key) {
-    return key ? new InsertCache<T>(sql, cache)
-        : new InsertCacheNoKey<T>(sql, cache);
+    return key ? new InsertCache<T>(sql, cache, subsystem)
+        : new InsertCacheNoKey<T>(sql, cache, subsystem);
   }
 
   @Override
   public IInsertBatch<T> getInsertBatch(IInsertSql<T> sql) {
-    return new InsertCacheBatch<T>(sql, cache);
+    return new InsertCacheBatch<T>(sql, cache, subsystem);
   }
 
   @Override
   public IInsertCollection<T> getInsertCollection(IInsertSql<T> sql, Boolean key) {
-    return key ? new InsertCacheCollection<T>(sql, cache)
-        : new InsertCacheNoKeyCollection<T>(sql, cache);
+    return key ? new InsertCacheCollection<T>(sql, cache, subsystem)
+        : new InsertCacheNoKeyCollection<T>(sql, cache, subsystem);
   }
 
   @Override
   public IUpdate<T> getUpdate(IUpdateSql<T> sql) {
     UpdateCacheByKey<T> updater = null;
     if (sql != null) {
-      updater = new UpdateCacheByKey<T>(sql, cache);
+      updater = new UpdateCacheByKey<T>(sql, cache, subsystem);
     }
     return updater;
   }
@@ -209,7 +209,7 @@ public class DaoCacheFactory<T extends IDbDto> implements IDaoFactory<T> {
   public IUpdateBatch<T> getUpdateBatch(IUpdateSql<T> sql) {
     UpdateCacheBatchByKey<T> updater = null;
     if (sql != null) {
-      updater = new UpdateCacheBatchByKey<T>(sql, cache);
+      updater = new UpdateCacheBatchByKey<T>(sql, cache, subsystem);
     }
     return updater;
   }
@@ -218,7 +218,7 @@ public class DaoCacheFactory<T extends IDbDto> implements IDaoFactory<T> {
   public IUpdateCollection<T> getUpdateCollection(IUpdateSql<T> sql) {
     UpdateCacheCollectionByKey<T> updater = null;
     if (sql != null) {
-      updater = new UpdateCacheCollectionByKey<T>(sql, cache);
+      updater = new UpdateCacheCollectionByKey<T>(sql, cache, subsystem);
     }
     return updater;
   }
@@ -228,7 +228,7 @@ public class DaoCacheFactory<T extends IDbDto> implements IDaoFactory<T> {
     // Does nothing with the cache as no DTOs are involved in this update
     UpdateWithParameters<T> updater = null;
     if (sql != null) {
-      updater = new UpdateWithParameters<T>(sql);
+      updater = new UpdateWithParameters<T>(sql, subsystem);
     }
     return updater;
   }

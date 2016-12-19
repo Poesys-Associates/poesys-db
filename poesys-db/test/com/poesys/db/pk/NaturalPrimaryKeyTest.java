@@ -37,7 +37,7 @@ import com.poesys.db.dao.ConnectionTest;
 /**
  * Test the NaturalPrimaryKey class.
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class NaturalPrimaryKeyTest extends ConnectionTest {
   private String col1Name = "col1";

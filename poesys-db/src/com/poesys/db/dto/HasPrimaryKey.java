@@ -18,9 +18,6 @@
 package com.poesys.db.dto;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
-
 import com.poesys.db.NoPrimaryKeyException;
 
 
@@ -52,11 +49,9 @@ public class HasPrimaryKey<T extends IDbDto> implements IValidate {
   }
 
   @Override
-  public void validate(Connection connection)
-      throws SQLException {
+  public void validate() {
     if (dto == null || dto.getPrimaryKey() == null) {
       throw new NoPrimaryKeyException(NO_KEY_MSG);
     }
   }
-
 }

@@ -18,13 +18,10 @@
 package com.poesys.db.dto;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.DataEvent;
 import com.poesys.db.dao.IDaoFactory;
@@ -161,25 +158,22 @@ public class Parent extends AbstractTestDto {
     }
 
     @Override
-    protected void doNew(Connection connection, List<Child> dtos)
-        throws SQLException, BatchException {
+    protected void doNew(List<Child> dtos) {
       // Do nothing.
     }
 
     @Override
-    protected void doChanged(Connection connection, List<Child> dtos)
-        throws SQLException, BatchException {
+    protected void doChanged(List<Child> dtos) {
       // Do nothing.
     }
 
     @Override
-    protected void doDeleted(Connection connection, List<Child> dtos)
-        throws SQLException, BatchException {
+    protected void doDeleted(List<Child> dtos) {
       IDaoManager manager = DaoManagerFactory.getManager(getSubsystem());
       IDaoFactory<Child> factory =
         manager.getFactory(getClassName(), getSubsystem(), expiration);
       IDeleteBatch<Child> dao = factory.getDeleteBatch(new DeleteSqlChild());
-      dao.delete(connection, dtos, 2);
+      dao.delete(dtos, 2);
     }
 
     @Override
@@ -208,55 +202,34 @@ public class Parent extends AbstractTestDto {
       super(getSubsystem(), Integer.MAX_VALUE);
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * com.poesys.db.dto.AbstractPreprocessNestedObjects#doDeleted(java.sql.
-     * Connection, java.util.Collection)
-     */
     @Override
-    protected void doDeleted(Connection connection, List<Child> dtos) {
+    protected void doDeleted(List<Child> dtos) {
       // Do nothing, children already deleted
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.poesys.db.dto.AbstractProcessNestedObjects#getDtos()
-     */
     @Override
     protected List<Child> getDtos() {
       return getChildren();
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * com.poesys.db.dto.AbstractPreprocessNestedObjects#doNew(java.sql.Connection
-     * , java.util.Collection)
-     */
     @Override
-    protected void doNew(Connection connection, List<Child> dtos)
-        throws SQLException, BatchException {
+    protected void doNew(List<Child> dtos) {
       // Insert the children.
       IDaoManager manager = DaoManagerFactory.getManager(getSubsystem());
       IDaoFactory<Child> factory =
         manager.getFactory(getClassName(), subsystem, expiration);
       IInsertBatch<Child> dao = factory.getInsertBatch(new InsertSqlChild());
-      dao.insert(connection, dtos, CHILD_BATCH_SIZE);
+      dao.insert(dtos, CHILD_BATCH_SIZE);
     }
 
     @Override
-    protected void doChanged(Connection connection, List<Child> dtos)
-        throws SQLException, BatchException {
+    protected void doChanged(List<Child> dtos) {
       IDaoManager manager = DaoManagerFactory.getManager(getSubsystem());
       IDaoFactory<Child> factory =
         manager.getFactory(getClassName(), subsystem, expiration);
       // Update the children.
       IUpdateBatch<Child> dao = factory.getUpdateBatch(new UpdateSqlChild());
-      dao.update(connection, dtos, CHILD_BATCH_SIZE);
+      dao.update(dtos, CHILD_BATCH_SIZE);
     }
 
     @Override

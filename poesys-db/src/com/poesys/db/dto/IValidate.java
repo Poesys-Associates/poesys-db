@@ -19,8 +19,6 @@ package com.poesys.db.dto;
 
 
 import java.io.Serializable;
-import java.sql.Connection;
-import java.sql.SQLException;
 
 
 /**
@@ -71,7 +69,7 @@ import java.sql.SQLException;
  *     this.dto = dto;
  *   }
  * 
- *   public void validate(Connection connection) throws SQLException {
+ *   public void validate(Connection connection) {
  *     if (dto.getPrimaryKey() == null) {
  *       throw new NoPrimaryKeyException(NO_KEY_MSG);
  *     }
@@ -85,13 +83,7 @@ import java.sql.SQLException;
  */
 public interface IValidate extends Serializable {
   /**
-   * Is the DTO valid in the current context? The method may or may not use the
-   * supplied transaction connection to access information in the database to
-   * validate the DTO.
-   * 
-   * @param connection the optional SQL connection for the current transaction
-   * @throws SQLException when there is a problem querying data from the
-   *           database
+   * Is the DTO valid in the current context?
    */
-  public void validate(Connection connection) throws SQLException;
+  public void validate();
 }

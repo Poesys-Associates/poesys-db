@@ -18,8 +18,10 @@
 package com.poesys.db.pool;
 
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,6 +33,7 @@ import org.junit.Test;
  * @author Robert J. Muller
  */
 public class ObjectPoolTest {
+  private static final Logger logger = Logger.getLogger(ObjectPoolTest.class);
 
   private ObjectPool<TestObject> pool;
 
@@ -142,6 +145,10 @@ public class ObjectPoolTest {
       fail("Pool did not throw exception on shutdown as expected");
     } catch (PoolShutdownException e) {
       // success
+    } catch (RuntimeException e) {
+      if (!e.getMessage().equals("Exception closing test object")) {
+        fail("Failed with wrong error: " + e.getMessage());
+      }
     }
   }
 
@@ -186,12 +193,15 @@ public class ObjectPoolTest {
    */
   @Test
   public void testMinSizeMaint() throws InterruptedException {
+    logger.debug("Testing min size maintenace with sleep for "
+                 + (1000 * (INTERVAL + 2)) + " milliseconds");
     assertTrue("Initial pool not set to min", pool.size() == MIN);
     pool.getObject();
     pool.getObject();
     assertTrue("Revised pool not set to min -2 2", pool.size() == MIN - 2);
     Thread.sleep(1000 * (INTERVAL + 2));
     assertTrue("Maintained pool not set to min", pool.size() == MIN);
+    logger.debug("Completed min size maintenance test");
   }
 
   /**
@@ -201,6 +211,8 @@ public class ObjectPoolTest {
    */
   @Test
   public void testMaxSizeMaint() throws InterruptedException {
+    logger.debug("Testing max size maintenace with sleep for "
+                 + (1000 * (INTERVAL + 2)) + " milliseconds");
     assertTrue("Initial pool not set to min", pool.size() == MIN);
     for (int i = MIN; i < MAX + 2; i++) {
       pool.returnObject(new TestObject(VALUE));
@@ -208,5 +220,6 @@ public class ObjectPoolTest {
     Thread.sleep(1000 * (INTERVAL + 2));
     assertTrue("Revised pool not set to max: " + pool.size(),
                pool.size() == MAX);
+    logger.debug("Completed max size maintenance test");
   }
 }

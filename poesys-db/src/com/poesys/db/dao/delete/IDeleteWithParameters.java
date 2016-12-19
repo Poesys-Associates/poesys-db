@@ -18,9 +18,6 @@
 package com.poesys.db.dao.delete;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
-
 import com.poesys.db.dto.IDbDto;
 
 
@@ -40,18 +37,15 @@ public interface IDeleteWithParameters<T extends IDbDto, P extends IDbDto> {
    * Delete objects based on the contents of the input Data Transfer Object
    * containing the selection parameters.
    * 
-   * @param connection the database connection with which to delete the data
    * @param parameters the IDto data transfer object containing the parameters
-   * @throws SQLException when there is a SQL error with the update
    */
-  public void delete(Connection connection, P parameters)
-      throws SQLException;
+  public void delete(P parameters);
 
   /**
    * Close any resources allocated by the Command. Note that parameter-based
-   * delete does not affect caches at all, as the SQL doesn't search the 
-   * cache, just the database, for the objects to delete. This method will
-   * usually do nothing.
+   * delete does not affect caches at all, as the SQL doesn't search the cache,
+   * just the database, for the objects to delete. This method will usually do
+   * nothing.
    */
   public void close();
 }

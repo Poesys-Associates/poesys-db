@@ -19,12 +19,12 @@ package com.poesys.db.dao.query;
 
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.Collection;
 
 import org.apache.log4j.Logger;
 
-import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
+import com.poesys.db.Message;
 import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.dto.IDtoCache;
@@ -52,6 +52,9 @@ public class QueryCacheListWithParameters<T extends IDbDto, S extends IDbDto, C 
   /** The cache of data transfer objects (DTOs) */
   private IDtoCache<T> cache;
 
+  private static final String NO_PRIMARY_KEY_ERROR =
+    "com.poesys.db.dto.msg.no_primary_key";
+
   /**
    * Create a QueryCacheList object.
    * 
@@ -69,15 +72,12 @@ public class QueryCacheListWithParameters<T extends IDbDto, S extends IDbDto, C 
   }
 
   @Override
-  protected T getObject(ResultSet rs,
-                        PoesysTrackingThread thread) throws SQLException,
-      BatchException {
+  protected T getObject(ResultSet rs, PoesysTrackingThread thread) {
     IPrimaryKey key = sql.getPrimaryKey(rs);
     if (key == null) {
-      String msg = "Null primary key from result set";
-      logger.error(msg);
-      key = sql.getPrimaryKey(rs);
-      throw new SQLException(msg);
+      String message = Message.getMessage(NO_PRIMARY_KEY_ERROR, null);
+      logger.error(message);
+      throw new DbErrorException(message);
     }
     // Look the object up in the cache, create if not there and cache it.
     T dto = cache.get(key);

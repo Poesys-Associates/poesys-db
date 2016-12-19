@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.insert.Insert;
 import com.poesys.db.dao.insert.InsertSqlParent;
@@ -65,11 +66,11 @@ public class DeleteParentTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
 
     // Create the insert command for the parent.
-    Insert<Parent> inserter = new Insert<Parent>(new InsertSqlParent());
+    Insert<Parent> inserter = new Insert<Parent>(new InsertSqlParent(), getSubsystem());
 
     // Create the GUID primary key for the parent.
     GuidPrimaryKey key =
@@ -119,9 +120,11 @@ public class DeleteParentTest extends ConnectionTest {
       stmt.executeUpdate("DELETE FROM Parent");
       stmt.close();
       stmt = null;
+      
+      conn.commit();
 
       // Insert the test row.
-      inserter.insert(conn, dto);
+      inserter.insert(dto);
 
     } catch (SQLException e) {
       fail("insert method failed: " + e.getMessage());
@@ -138,12 +141,12 @@ public class DeleteParentTest extends ConnectionTest {
 
     // Create the Deleter.
     DeleteByKey<Parent> deleter =
-      new DeleteByKey<Parent>(new DeleteSqlParent());
+      new DeleteByKey<Parent>(new DeleteSqlParent(), getSubsystem());
 
     try {
       // Delete the test Parent and its children.
       dto.delete();
-      deleter.delete(conn, dto);
+      deleter.delete(dto);
 
       // Query the row again for comparison.
       pstmt = conn.prepareStatement(QUERY_PARENT);
@@ -154,7 +157,7 @@ public class DeleteParentTest extends ConnectionTest {
       }
       pstmt.close();
       pstmt = null;
-
+      conn.commit();
     } catch (SQLException e) {
       fail("delete process failed: " + e.getMessage());
     } finally {

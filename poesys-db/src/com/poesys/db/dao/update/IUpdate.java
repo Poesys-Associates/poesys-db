@@ -18,10 +18,6 @@
 package com.poesys.db.dao.update;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
-
-import com.poesys.db.BatchException;
 import com.poesys.db.dto.IDbDto;
 
 
@@ -45,29 +41,10 @@ public interface IUpdate<T extends IDbDto> {
    * The implementation must pre-process and post-process all composite parts
    * regardless of the update status of the top-level DTO.
    * 
-   * @param connection the database connection with which to insert the data
    * @param dto the data transfer object containing the desired state of the
    *          object
-   * @throws SQLException when there is a SQL error with the update
-   * @throws BatchException when there is a problem updating a nested collection
-   *           of linked objects
    */
-  public void update(Connection connection, T dto) throws SQLException,
-      BatchException;
-
-  /**
-   * Is this inserter inserting into a leaf class?
-   * 
-   * @return true if leaf, false if superclass of a leaf
-   */
-  public boolean isLeaf();
-
-  /**
-   * Set the inserter to be a leaf inserter.
-   * 
-   * @param isLeaf true for a leaf inserter, false for a superclass inserter
-   */
-  public void setLeaf(boolean isLeaf);
+  public void update(T dto);
 
   /**
    * Close any resources allocated by the Command.

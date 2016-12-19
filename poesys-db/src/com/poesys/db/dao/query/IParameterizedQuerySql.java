@@ -20,7 +20,6 @@ package com.poesys.db.dao.query;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.dto.IDbDto;
@@ -65,20 +64,19 @@ import com.poesys.db.pk.IPrimaryKey;
  * public class SequenceQueryWithParametersSql implements IParameterizedQuerySql {
  *   private static final String SQL = &quot;SELECT pkey, col1 FROM Seq WHERE col1 = ?&quot;;
  * 
- *   public void bindParameters(PreparedStatement stmt, IDto parameters)
- *       throws SQLException {
+ *   public void bindParameters(PreparedStatement stmt, IDto parameters) {
  *     Sequence params = (Sequence)parameters;
  *     stmt.setString(1, params.getCol1());
  *   }
  * 
- *   public IPrimaryKey getPrimaryKey(ResultSet rs) throws SQLException,
+ *   public IPrimaryKey getPrimaryKey(ResultSet rs),
  *       InvalidParametersException {
  *     BigInteger pkey = rs.getBigDecimal(&quot;pkey&quot;).toBigInteger();
  *     IPrimaryKey key = PrimaryKeyFactory.createSequenceKey(&quot;pkey&quot;, pkey);
  *     return key;
  *   }
  * 
- *   public Sequence getData(ResultSet rs) throws SQLException {
+ *   public Sequence getData(ResultSet rs) {
  *     String col1 = rs.getString(&quot;col1&quot;);
  *     Sequence dto = new Sequence(getPrimaryKey(rs), col1);
  *     return dto;
@@ -117,9 +115,8 @@ public interface IParameterizedQuerySql<T extends IDbDto, P extends IDbDto> {
    * 
    * @param stmt the prepared statement into which to bind the parameter values
    * @param parameters a DTO containing the parameter values
-   * @throws SQLException when there is a bind error
    */
-  void bindParameters(PreparedStatement stmt, P parameters) throws SQLException;
+  void bindParameters(PreparedStatement stmt, P parameters);
 
   /**
    * Get the parameter values for display.
@@ -136,9 +133,8 @@ public interface IParameterizedQuerySql<T extends IDbDto, P extends IDbDto> {
    * 
    * @param rs the result set from the query execution
    * @return the DTO
-   * @throws SQLException when the parameter setting fails with a SQL error
    */
-  T getData(ResultSet rs) throws SQLException;
+  T getData(ResultSet rs);
 
   /**
    * Create a primary key object of the appropriate implementation for the DTO
@@ -149,10 +145,8 @@ public interface IParameterizedQuerySql<T extends IDbDto, P extends IDbDto> {
    * 
    * @param rs the result set from the query execution
    * @return the primary key
-   * @throws SQLException when the parameter setting fails with a SQL error
    * @throws InvalidParametersException when key generation fails due to a null
    *           key name or value
    */
-  IPrimaryKey getPrimaryKey(ResultSet rs) throws SQLException,
-      InvalidParametersException;
+  IPrimaryKey getPrimaryKey(ResultSet rs) throws InvalidParametersException;
 }

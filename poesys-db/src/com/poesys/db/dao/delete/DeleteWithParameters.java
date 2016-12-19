@@ -18,13 +18,15 @@
 package com.poesys.db.dao.delete;
 
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 import org.apache.log4j.Logger;
 
+import com.poesys.db.DbErrorException;
 import com.poesys.db.InvalidParametersException;
+import com.poesys.db.Message;
+import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -60,50 +62,112 @@ public class DeleteWithParameters<T extends IDbDto, P extends IDbDto>
     implements IDeleteWithParameters<T, P> {
   private static final Logger logger =
     Logger.getLogger(DeleteWithParameters.class);
-  /** The Strategy-pattern object for the SQL statement */
-  IDeleteSqlWithParameters<T, P> sql;
+  /** The strategy-pattern object for the SQL statement */
+  private final IDeleteSqlWithParameters<T, P> sql;
+  /** the subsystem of the objects to delete */
+  private final String subsystem;
+  /** timeout for the cache thread */
+  private static final int TIMEOUT = 1000 * 60;
+
   /** Error message when no DTO supplied */
-  private static final String NO_DTO_MSG =
+  private static final String NO_DTO_ERROR =
     "com.poesys.db.dao.delete.msg.no_dto";
+  /** Error message when delete throws exception */
+  private static final String DELETE_ERROR =
+    "com.poesys.db.dao.delete.msg.delete";
+  /** Error message when thread is interrupted or timed out */
+  private static final String THREAD_ERROR = "com.poesys.db.dao.msg.thread";
 
   /**
    * Create a DeleteWithParameters object by supplying the concrete
    * implementation of the SQL-statement generator and JDBC setter.
    * 
    * @param sql the SQL DELETE statement generator object
+   * @param subsystem the subsystem of the T DTO class
    */
-  public DeleteWithParameters(IDeleteSqlWithParameters<T, P> sql) {
+  public DeleteWithParameters(IDeleteSqlWithParameters<T, P> sql,
+                              String subsystem) {
     this.sql = sql;
+    this.subsystem = subsystem;
   }
 
   @Override
-  public void delete(Connection connection, P parameters) throws SQLException {
+  public void delete(P parameters) {
+    if (parameters == null) {
+      throw new InvalidParametersException(NO_DTO_ERROR);
+    } else if (sql != null) {
+      // If the current thread is a PoesysTrackingThread, just process in that
+      // thread; if not, start a new thread.
+      if (Thread.currentThread() instanceof PoesysTrackingThread) {
+        doDelete(parameters);
+      } else {
+        Runnable process = new Runnable() {
+          public void run() {
+            PoesysTrackingThread thread =
+              (PoesysTrackingThread)Thread.currentThread();
+            try {
+              doDelete(parameters);
+            } catch (Exception e) {
+              Object[] args =
+                { "delete", parameters.getPrimaryKey().getStringKey() };
+              String message = Message.getMessage(THREAD_ERROR, args);
+              logger.error(message, e);
+              throw e;
+            } finally {
+              thread.closeConnection();
+            }
+          }
+        };
+        PoesysTrackingThread thread =
+          new PoesysTrackingThread(process, subsystem);
+        thread.start();
+
+        // Join the thread, blocking until the thread completes or
+        // until the query times out.
+        try {
+          thread.join(TIMEOUT);
+        } catch (InterruptedException e) {
+          Object[] args =
+            { "delete", parameters.getPrimaryKey().getStringKey() };
+          String message = Message.getMessage(THREAD_ERROR, args);
+          logger.error(message, e);
+        }
+      }
+    }
+  }
+
+  public void doDelete(P parameters) {
     PreparedStatement stmt = null;
+    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
 
     if (parameters == null) {
-      throw new InvalidParametersException(NO_DTO_MSG);
+      throw new InvalidParametersException(Message.getMessage(NO_DTO_ERROR, null));
     } else {
       parameters.validateForDelete();
     }
 
     String sqlText = null;
-    
+
     try {
       IPrimaryKey key = parameters.getPrimaryKey();
       sqlText = sql.getSql(key);
-      stmt = connection.prepareStatement(sqlText);
+      stmt = thread.getConnection().prepareStatement(sqlText);
       logger.debug("Deleting with parameters: " + sqlText);
+      logger.debug(sql.getParamString(parameters));
       sql.setParams(stmt, 1, parameters);
       stmt.executeUpdate();
     } catch (SQLException e) {
-      parameters.setFailed();
-      throw e;
-    } catch (RuntimeException e) {
-      parameters.setFailed();
-      throw e;
+      Object[] args = { parameters.getPrimaryKey().getStringKey() };
+      String message = Message.getMessage(DELETE_ERROR, args);
+      logger.error(message, e);
+      throw new DbErrorException(message, thread, e);
     } finally {
       if (stmt != null) {
-        stmt.close();
+        try {
+          stmt.close();
+        } catch (SQLException e) {
+          // ignore
+        }
       }
     }
   }

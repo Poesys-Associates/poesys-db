@@ -23,15 +23,16 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import com.poesys.db.InvalidParametersException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dto.TestSequence;
 import com.poesys.db.pk.IPrimaryKey;
 import com.poesys.db.pk.PrimaryKeyFactory;
 
 
 /**
+ * SQL statement with parameters.
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class TestSequenceQueryWithParametersSql implements
     IParameterizedQuerySql<TestSequence, TestSequence> {
@@ -39,54 +40,45 @@ public class TestSequenceQueryWithParametersSql implements
     "SELECT pkey, col1 FROM TestSequence WHERE col1 = ?";
   private static final String CLASS_NAME = "com.poesys.test.TestSequence";
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see
-   * com.poesys.db.dao.query.IParameterizedQuerySql#bindParameters(java.sql.
-   * PreparedStatement, com.poesys.db.dto.IDbDto)
-   */
-  public void bindParameters(PreparedStatement stmt, TestSequence parameters)
-      throws SQLException {
-    stmt.setString(1, parameters.getCol1());
+  @Override
+  public void bindParameters(PreparedStatement stmt, TestSequence parameters) {
+    try {
+      stmt.setString(1, parameters.getCol1());
+    } catch (SQLException e) {
+      throw new DbErrorException("SQL error", e);
+    }
   }
 
   public String getParameterValues(TestSequence parameters) {
     return "[col1=" + parameters.getCol1() + "]";
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see
-   * com.poesys.db.dao.query.IParameterizedQuerySql#getPrimaryKey(java.sql.ResultSet
-   * )
-   */
-  public IPrimaryKey getPrimaryKey(ResultSet rs) throws SQLException,
-      InvalidParametersException {
-    BigInteger pkey = rs.getBigDecimal("pkey").toBigInteger();
+  @Override
+  public IPrimaryKey getPrimaryKey(ResultSet rs) {
+    BigInteger pkey;
+    try {
+      pkey = rs.getBigDecimal("pkey").toBigInteger();
+    } catch (SQLException e) {
+      throw new DbErrorException("SQL error", e);
+    }
     IPrimaryKey key =
       PrimaryKeyFactory.createSequenceKey("pkey", pkey, CLASS_NAME);
     return key;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see
-   * com.poesys.db.dao.query.IParameterizedQuerySql#getData(java.sql.ResultSet)
-   */
-  public TestSequence getData(ResultSet rs) throws SQLException {
-    String col1 = rs.getString("col1");
+  @Override
+  public TestSequence getData(ResultSet rs) {
+    String col1;
+    try {
+      col1 = rs.getString("col1");
+    } catch (SQLException e) {
+      throw new DbErrorException("SQL error", e);
+    }
     TestSequence dto = new TestSequence(getPrimaryKey(rs), col1);
     return dto;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.query.IParameterizedQuerySql#getSql()
-   */
+  @Override
   public String getSql() {
     return SQL;
   }

@@ -20,14 +20,11 @@ package com.poesys.db.dto;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.dao.DataEvent;
 import com.poesys.db.dao.insert.IInsert;
 import com.poesys.db.pk.IPrimaryKey;
@@ -76,13 +73,6 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
   protected List<ISet> connectionCacheUnsetters = null;
 
   /**
-   * Message string when attempting to de-serialize a cached object and there is
-   * some kind of exception
-   */
-  private static final String READ_OBJECT_MSG =
-    "com.poesys.db.dto.msg.read_object";
-
-  /**
    * Create a AbstractLazyLoadingDtoProxy object.
    * 
    * @param dto the proxied database data transfer object
@@ -126,16 +116,10 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
 
   @Override
   public void deserializeNestedObjects() {
-    try {
-      if (readObjectSetters != null) {
-        for (ISet set : readObjectSetters) {
-          set.set(null);
-        }
+    if (readObjectSetters != null) {
+      for (ISet set : readObjectSetters) {
+        set.set();
       }
-    } catch (SQLException e) {
-      // Should never happen, log and throw RuntimeException
-      logger.error(READ_OBJECT_MSG, e);
-      throw new RuntimeException(READ_OBJECT_MSG, e);
     }
   }
 
@@ -160,19 +144,13 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
   }
 
   @Override
-  public Connection getConnection() throws SQLException {
-    return dto.getConnection();
-  }
-
-  @Override
   public Status getStatus() {
     return dto.getStatus();
   }
 
   @Override
-  public void insertNestedObjects(Connection connection) throws SQLException,
-      BatchException {
-    dto.insertNestedObjects(connection);
+  public void insertNestedObjects() {
+    dto.insertNestedObjects();
   }
 
   @Override
@@ -181,32 +159,29 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
   }
 
   @Override
-  public void postprocessNestedObjects(Connection connection)
-      throws SQLException, BatchException {
-    dto.postprocessNestedObjects(connection);
+  public void postprocessNestedObjects() {
+    dto.postprocessNestedObjects();
   }
 
   @Override
-  public void preprocessNestedObjects(Connection connection)
-      throws SQLException, BatchException {
-    dto.preprocessNestedObjects(connection);
+  public void preprocessNestedObjects() {
+    dto.preprocessNestedObjects();
   }
 
   @Override
-  public void queryNestedObjects() throws SQLException, BatchException {
+  public void queryNestedObjects() {
     dto.queryNestedObjects();
     if (readObjectSetters != null) {
       for (ISet set : readObjectSetters) {
         if (!set.isSet()) {
-          set.set(null);
+          set.set();
         }
       }
     }
   }
 
   @Override
-  public void queryNestedObjectsForValidation() throws SQLException,
-      BatchException {
+  public void queryNestedObjectsForValidation() {
     dto.queryNestedObjectsForValidation();
   }
 
@@ -246,22 +221,22 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
   }
 
   @Override
-  public void validateForDelete() throws SQLException {
+  public void validateForDelete() {
     dto.validateForDelete();
   }
 
   @Override
-  public void validateForInsert() throws SQLException {
+  public void validateForInsert() {
     dto.validateForInsert();
   }
 
   @Override
-  public void validateForQuery() throws SQLException {
+  public void validateForQuery() {
     dto.validateForQuery();
   }
 
   @Override
-  public void validateForUpdate() throws SQLException {
+  public void validateForUpdate() {
     dto.validateForUpdate();
   }
 
@@ -271,7 +246,7 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
   }
 
   @Override
-  public void finalizeInsert(PreparedStatement stmt) throws SQLException {
+  public void finalizeInsert(PreparedStatement stmt) {
     // No action required--default implementation
   }
 

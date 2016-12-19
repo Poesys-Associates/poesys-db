@@ -18,22 +18,36 @@
 package com.poesys.db.dao;
 
 
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import com.poesys.db.DbErrorException;
 import com.poesys.db.InvalidParametersException;
+import com.poesys.db.Message;
+import com.poesys.db.connection.ConnectionFactoryFactory;
+import com.poesys.db.connection.IConnectionFactory;
 import com.poesys.db.dto.IDbDto;
 
 
 /**
+ * <p>
  * A Thread object that contains the retrieval and processing state of a
  * Poesys/DB object tree retrieval. The class tracks the set of retrieved
  * objects as a history of objects retrieved. Each object is in a container
  * object that has attributes related to Poesys/DB processing. The Thread
  * subclass thus provides a container for operations involving multiple objects
- * and provides a place outside the objects to track processing.
+ * and provides a place outside the objects to track processing. The thread
+ * class also contains a SQL exception that objects running in the thread can
+ * use to query the database through Poesys/DB DAOs.
+ * </p>
+ * <p>
+ * Note: the Runnable you pass in must have a finally block in the run() method
+ * that calls the closeConnection() method on the thread.
  * 
  * @author Robert J. Muller
  */
@@ -42,9 +56,6 @@ public class PoesysTrackingThread extends Thread {
   private static final Logger logger =
     Logger.getLogger(PoesysTrackingThread.class);
 
-  private static final String NO_DTO_FOR_KEY_ERR =
-    "No retrieved DTO with this key: ";
-
   /**
    * map of DTOs indexed by global primary key (string version of DTO primary
    * key)
@@ -52,33 +63,48 @@ public class PoesysTrackingThread extends Thread {
   private final Map<String, DtoTrackingObject> history =
     new HashMap<String, DtoTrackingObject>();
 
-  // Error messages
-  private static final String NO_DTO_ERR =
-    "com.poesys.db.dao.query.msg.no_cached_dto_error";
+  /** the database connection */
+  private final Connection connection;
 
-  /**
-   * Create a PoesysTrackingThread object.
-   *
-   */
-  public PoesysTrackingThread() {
-  }
+  // Error messages
+
+  /** No cached DTO error */
+  private static final String NO_DTO_ERROR =
+    "com.poesys.db.dao.query.msg.no_cached_dto_error";
+  /** SQL exception initializing connection */
+  private static final String SQL_EXCEPTION_ERROR =
+    "com.poesys.db.dao.msg.connection_sql";
+  /** IO exception initializing connection */
+  private static final String IO_ERROR_ERROR =
+    "com.poesys.db.dao.msg.connection_io";
+  /** SQL error for operation */
+  private static final String SQL_ERROR =
+    "com.poesys.db.dto.msg.unexpected_sql_error";
+  /** Invalid parameters to the connection factory */
+  private static final String INVALID_PARAMETERS_ERROR =
+    "com.poesys.db.dao.msg.connection_invalid_parameters";
 
   /**
    * Create a PoesysTrackingThread object with a task.
    *
    * @param target the Runnable task
+   * @param subsystem the database subsystem for the DTO being processed
    */
-  public PoesysTrackingThread(Runnable target) {
+  public PoesysTrackingThread(Runnable target, String subsystem) {
     super(target);
+    logger.debug("Starting new tracking thread " + getId());
+    connection = initConnection(subsystem);
   }
 
   /**
    * Create a CachedThread object with a name.
    *
    * @param name the thread name
+   * @param subsystem the database subsystem for the DTO being processed
    */
-  public PoesysTrackingThread(String name) {
+  public PoesysTrackingThread(String name, String subsystem) {
     super(name);
+    connection = initConnection(subsystem);
   }
 
   /**
@@ -86,9 +112,13 @@ public class PoesysTrackingThread extends Thread {
    *
    * @param group the group of threads
    * @param target the Runnable task
+   * @param subsystem the database subsystem for the DTO being processed
    */
-  public PoesysTrackingThread(ThreadGroup group, Runnable target) {
+  public PoesysTrackingThread(ThreadGroup group,
+                              Runnable target,
+                              String subsystem) {
     super(group, target);
+    connection = initConnection(subsystem);
   }
 
   /**
@@ -96,9 +126,11 @@ public class PoesysTrackingThread extends Thread {
    *
    * @param group a group of threads
    * @param name the thread name
+   * @param subsystem the database subsystem for the DTO being processed
    */
-  public PoesysTrackingThread(ThreadGroup group, String name) {
+  public PoesysTrackingThread(ThreadGroup group, String name, String subsystem) {
     super(group, name);
+    connection = initConnection(subsystem);
   }
 
   /**
@@ -106,9 +138,11 @@ public class PoesysTrackingThread extends Thread {
    *
    * @param target the task
    * @param name the thread name
+   * @param subsystem the database subsystem for the DTO being processed
    */
-  public PoesysTrackingThread(Runnable target, String name) {
+  public PoesysTrackingThread(Runnable target, String name, String subsystem) {
     super(target, name);
+    connection = initConnection(subsystem);
   }
 
   /**
@@ -117,9 +151,14 @@ public class PoesysTrackingThread extends Thread {
    * @param group the thread group
    * @param target the task
    * @param name the thread name
+   * @param subsystem the database subsystem for the DTO being processed
    */
-  public PoesysTrackingThread(ThreadGroup group, Runnable target, String name) {
+  public PoesysTrackingThread(ThreadGroup group,
+                              Runnable target,
+                              String name,
+                              String subsystem) {
     super(group, target, name);
+    connection = initConnection(subsystem);
   }
 
   /**
@@ -130,12 +169,15 @@ public class PoesysTrackingThread extends Thread {
    * @param target the task
    * @param name the thread name
    * @param stackSize integer, size of the thread stack
+   * @param subsystem the database subsystem for the DTO being processed
    */
   public PoesysTrackingThread(ThreadGroup group,
                               Runnable target,
                               String name,
-                              long stackSize) {
+                              long stackSize,
+                              String subsystem) {
     super(group, target, name, stackSize);
+    connection = initConnection(subsystem);
   }
 
   /**
@@ -155,13 +197,42 @@ public class PoesysTrackingThread extends Thread {
   }
 
   /**
+   * Initialize a database connection to a Poesys/DB subsystem
+   * 
+   * @param subsystem the subsystem name
+   * @return the connection
+   */
+  private Connection initConnection(String subsystem) {
+    Connection connection = null;
+    try {
+      IConnectionFactory factory =
+        ConnectionFactoryFactory.getInstance(subsystem);
+      connection = factory.getConnection();
+    } catch (InvalidParametersException e) {
+      String message = Message.getMessage(INVALID_PARAMETERS_ERROR, null);
+      logger.error(message, e);
+      throw new DbErrorException(message, e);
+    } catch (IOException e) {
+      String message = Message.getMessage(IO_ERROR_ERROR, null);
+      logger.error(message, e);
+      throw new DbErrorException(message, e);
+    } catch (SQLException e) {
+      String message = Message.getMessage(SQL_EXCEPTION_ERROR, null);
+      logger.error(message, e);
+      throw new DbErrorException(message, e);
+    }
+    return connection;
+  }
+
+  /**
    * Add a DTO to the cached DTO retrieval history for this thread.
    * 
    * @param dto the DTO to add
    */
   public void addDto(IDbDto dto) {
     if (dto == null) {
-      throw new InvalidParametersException(NO_DTO_ERR);
+      throw new InvalidParametersException(Message.getMessage(NO_DTO_ERROR,
+                                                              null));
     }
     DtoTrackingObject obj = new DtoTrackingObject(dto);
     try {
@@ -197,7 +268,8 @@ public class PoesysTrackingThread extends Thread {
   }
 
   /**
-   * Mark a DTO in the retrieval history as processed.
+   * Mark a DTO in the retrieval history as processed; ignore the request if the
+   * DTO is not in the retrieval history.
    * 
    * @param key the key identifying the DTO to mark
    * @param processed true for processed, false for not processed
@@ -206,8 +278,55 @@ public class PoesysTrackingThread extends Thread {
     DtoTrackingObject obj = history.get(key);
     if (obj != null) {
       obj.setProcessed(processed);
-    } else {
-      throw new RuntimeException(NO_DTO_FOR_KEY_ERR + key);
+    }
+  }
+
+  /**
+   * Get the thread's SQL connection.
+   * 
+   * @return a connection
+   */
+  public Connection getConnection() {
+    return connection;
+  }
+
+  /**
+   * Close the SQL connection. You should call this method as the last method
+   * call for the thread object, usually in a finally clause in the run()
+   * method. The method commits the transaction, then closes the database. You
+   * should roll back the transaction in the error handling code before calling
+   * this method, as appropriate.
+   */
+  public void closeConnection() {
+    if (connection != null) {
+      try {
+        logger.debug("Committing transaction and closing connection "
+                     + connection.hashCode());
+        connection.commit();
+        connection.close();
+      } catch (SQLException e) {
+        // log and ignore
+        logger.error(SQL_ERROR + " committing and closing connection "
+                     + connection.hashCode(), e);
+      }
+    }
+  }
+
+  /**
+   * Roll back the current transaction in the thread.
+   */
+  public void rollback() {
+    if (connection != null) {
+      try {
+        logger.debug("Rolling back transaction and closing connection "
+                     + connection.hashCode());
+        connection.rollback();
+      } catch (SQLException e) {
+        // log and ignore
+        logger.error(SQL_ERROR + " rolling back connection "
+                         + connection.hashCode(),
+                     e);
+      }
     }
   }
 }

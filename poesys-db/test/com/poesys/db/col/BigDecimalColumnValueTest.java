@@ -32,7 +32,7 @@ import com.poesys.db.dao.ConnectionTest;
 /**
  * Test the BigDecimalColumnValue class.
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class BigDecimalColumnValueTest extends ConnectionTest {
   private static final String NAME = "name1";
@@ -97,6 +97,7 @@ public class BigDecimalColumnValueTest extends ConnectionTest {
         connection.prepareStatement("SELECT * FROM TEST WHERE testBigDecimal = ?");
       colValue1.setParam(stmt, 1);
       assertTrue(true);
+      connection.commit();
     } finally {
       if (connection != null) {
         connection.close();

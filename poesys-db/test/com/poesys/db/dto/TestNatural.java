@@ -41,7 +41,7 @@ import com.poesys.db.pk.NaturalPrimaryKey;
  * </code>
  * </pre>
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class TestNatural extends AbstractTestDto {
   /** Generated serial version UID for Serializable object */

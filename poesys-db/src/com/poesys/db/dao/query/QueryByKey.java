@@ -18,7 +18,6 @@
 package com.poesys.db.dao.query;
 
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -26,12 +25,11 @@ import java.sql.SQLException;
 
 import org.apache.log4j.Logger;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
+import com.poesys.db.Message;
 import com.poesys.db.NoPrimaryKeyException;
-import com.poesys.db.connection.ConnectionFactoryFactory;
-import com.poesys.db.connection.IConnectionFactory;
+import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -66,12 +64,20 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
   protected final IKeyQuerySql<T> sql;
   /** the client subsystem owning the queried object */
   protected final String subsystem;
+
+  /** timeout for the query thread */
+  private static final int TIMEOUT = 1000 * 60;
+
+  /** Error on executing SQL query */
+  private static final String SQL_ERROR =
+    "com.poesys.db.dto.msg.unexpected_sql_error";
+  /** Error message when thread is interrupted or timed out */
+  private static final String THREAD_ERROR = "com.poesys.db.dao.msg.thread";
+  /** Error message when thread can't get the DTO specified by the key */
+  private static final String GET_DTO_ERROR = "com.poesys.db.dao.query.msg.get";
   /** Error message about not having a primary key with which to query */
-  protected static final String NO_PRIMARY_KEY_MSG =
+  protected static final String NO_PRIMARY_KEY_ERROR =
     "com.poesys.db.dao.query.msg.no_primary_key";
-  /** Error getting resource bundle, can't resolve to bundle text so a constant */
-  private static final String RESOURCE_BUNDLE_ERROR =
-    "Problem getting Poesys/DB resource bundle";
 
   /**
    * Create a QueryByKey object.
@@ -84,75 +90,153 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
     this.subsystem = subsystem;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
-  public T queryByKey(IPrimaryKey key) throws SQLException, BatchException {
+  public T queryByKey(IPrimaryKey key) {
+    // Make sure the key is there.
+    if (key == null) {
+      throw new NoPrimaryKeyException(Message.getMessage(NO_PRIMARY_KEY_ERROR,
+                                                         null));
+    }
+
+    PoesysTrackingThread thread = null;
+
+    // If the current thread is a PoesysTrackingThread, just run the query in
+    // that thread; if not, start a new thread to get the objects and its
+    // dependents.
+    if (Thread.currentThread() instanceof PoesysTrackingThread) {
+      thread = (PoesysTrackingThread)Thread.currentThread();
+      IDbDto dto = thread.getDto(key.getStringKey());
+      // Only query if DTO not already queried in this thread.
+      if (dto == null) {
+        getDto(key, thread);
+      }
+    } else {
+      Runnable query = getRunnableQuery(key);
+      thread = new PoesysTrackingThread(query, subsystem);
+      thread.start();
+      // Join the thread, blocking until the thread completes or
+      // until the query times out.
+      try {
+        thread.join(TIMEOUT);
+      } catch (InterruptedException e) {
+        Object[] args = { "update", key.getStringKey() };
+        String message = Message.getMessage(THREAD_ERROR, args);
+        logger.error(message, e);
+      }
+    }
+
+    return (T)thread.getDto(key.getStringKey());
+  }
+
+  /**
+   * Create a runnable query object that runs within a PoesysTrackingThread. The
+   * run method checks the cache for the DTO. If it is cached, it gets it from
+   * the cache; if not, it queries the object from the database. The method then
+   * queries nested objects. All these activities happen in a single run of the
+   * query in the tracking thread.
+   * 
+   * @param key the primary key of the DTO
+   * @return the runnable query
+   */
+  protected Runnable getRunnableQuery(IPrimaryKey key) {
+    // Create a runnable query object that does the query.
+    Runnable query = new Runnable() {
+      public void run() {
+        PoesysTrackingThread thread = null;
+        try {
+          // Get the current tracking thread in which this is running.
+          thread = (PoesysTrackingThread)Thread.currentThread();
+          // Get the DTO, storing it in the tracking thread; this is the top
+          // level of a possible nested-object tree, so the tracking thread is
+          // empty at this point. No need to check it for DTO existence.
+          getDto(key, thread);
+        } catch (Exception e) {
+          Object[] args = { key.getStringKey() };
+          String message = Message.getMessage(GET_DTO_ERROR, args);
+          logger.error(message, e);
+          throw new DbErrorException(message, thread, e);
+        } finally {
+          if (thread != null) {
+            thread.closeConnection();
+          }
+        }
+      }
+    };
+    return query;
+  }
+
+  /**
+   * Get a DTO based on a primary key value using the current tracking thread.
+   * 
+   * @param key the key to look up
+   * @param thread the tracking thread
+   * @return the DTO corresponding to the primary key
+   */
+  protected T getDto(IPrimaryKey key, PoesysTrackingThread thread) {
     PreparedStatement stmt = null;
-    ResultSet rs = null;
-    T object = null;
+    T dto = null;
 
     // Make sure the key is there.
     if (key == null) {
-      throw new NoPrimaryKeyException(NO_PRIMARY_KEY_MSG);
+      throw new NoPrimaryKeyException(Message.getMessage(NO_PRIMARY_KEY_ERROR,
+                                                         null));
     }
 
-    Connection connection = null;
-
     try {
-      IConnectionFactory factory =
-        ConnectionFactoryFactory.getInstance(subsystem);
-      connection = factory.getConnection();
+      Connection connection = thread.getConnection();
       stmt = connection.prepareStatement(sql.getSql(key));
       key.setParams(stmt, 1);
+
       logger.debug("Querying by key: " + sql.getSql(key));
       logger.debug("Setting key value: " + key.getValueList());
-      rs = stmt.executeQuery();
 
-      // Get a single result from the ResultSet and create the IDto.
+      ResultSet rs = stmt.executeQuery();
+
+      // Get a single result from the ResultSet and create the DTO.
       if (rs.next()) {
-        object = sql.getData(key, rs);
-        // Only proceed if object retrieved.
-        if (object != null) {
-          // Query any nested objects.
-          object.queryNestedObjects();
-          // Set the new and changed flags to show this object exists and is
-          // unchanged from the version in the database.
+        dto = sql.getData(key, rs);
+        // Only proceed if DTO retrieved.
+        if (dto != null) {
+          // Add the DTO to the tracking thread.
+          thread.addDto(dto);
         }
         logger.debug("Queried object by key: "
-                     + object.getPrimaryKey().getValueList());
+                     + dto.getPrimaryKey().getValueList());
       }
     } catch (ConstraintViolationException e) {
-      throw new DbErrorException(e.getMessage(), e);
+      throw new DbErrorException(e.getMessage(), thread, e);
     } catch (SQLException e) {
       // Log the message and the SQL statement, then rethrow the exception.
       logger.error("Query by key error: " + e.getMessage());
       logger.error("Query by key sql: " + sql.getSql(key) + "\n");
       logger.debug("SQL statement in class: " + sql.getClass().getName());
-      throw e;
-    } catch (IOException e) {
-      // Problem with resource bundle, rethrow as SQLException
-      throw new SQLException(RESOURCE_BUNDLE_ERROR);
+      String message = Message.getMessage(SQL_ERROR, null);
+      throw new DbErrorException(message, thread, e);
     } finally {
       if (stmt != null) {
-        stmt.close();
-      }
-      if (rs != null) {
-        rs.close();
-      }
-      if (connection != null) {
-        String connectionString = connection.toString();
-        connection.close();
-        logger.debug("Closed connection " + connectionString);
+        try {
+          stmt.close();
+        } catch (SQLException e) {
+          // ignore
+        }
       }
     }
 
     // Query any nested objects. This is outside the fetch above to make sure
     // that the statement and result set are closed before recursing.
-    if (object != null) {
-      object.queryNestedObjects();
-      object.setExisting();
+    if (dto != null) {
+      // Only query nested objects if the thread hasn't already processed this
+      // DTO, and thus already queried them.
+      if (!thread.isProcessed(key.getStringKey())) {
+        dto.queryNestedObjects();
+        // Mark the DTO fully processed.
+        thread.setProcessed(key.getStringKey(), true);
+      }
+      dto.setExisting();
     }
 
-    return object;
+    return dto;
   }
 
   @Override

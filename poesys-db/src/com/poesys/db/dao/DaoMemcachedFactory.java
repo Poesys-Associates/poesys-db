@@ -179,7 +179,7 @@ public class DaoMemcachedFactory<T extends IDbDto> implements IDaoFactory<T> {
     // No cache involved with this delete--not related to DTOs
     DeleteWithParameters<T, P> deleter = null;
     if (sql != null) {
-      deleter = new DeleteWithParameters<T, P>(sql);
+      deleter = new DeleteWithParameters<T, P>(sql, subsystem);
     }
     return deleter;
   }
@@ -233,7 +233,7 @@ public class DaoMemcachedFactory<T extends IDbDto> implements IDaoFactory<T> {
     // Does nothing with the cache as no DTOs are involved in this update
     UpdateWithParameters<T> updater = null;
     if (sql != null) {
-      updater = new UpdateWithParameters<T>(sql);
+      updater = new UpdateWithParameters<T>(sql, subsystem);
     }
     return updater;
   }

@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao.insert;
 
@@ -22,6 +21,7 @@ package com.poesys.db.dao.insert;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dto.TestSequence;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -35,17 +35,13 @@ import com.poesys.db.pk.IPrimaryKey;
  * 
  * @see com.poesys.db.dto.TestSequence
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class InsertSqlTestSequence implements IInsertSql<TestSequence> {
   private static final String SQL1 = "INSERT INTO TestSequence (";
   private static final String SQL2 = ", col1) VALUES (?, ?)";
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.IInsertSql#getSql(com.poesys.db.pk.IPrimaryKey)
-   */
+  @Override
   public String getSql(IPrimaryKey key) {
     StringBuilder builder = new StringBuilder(SQL1);
     builder.append(key.getSqlInsertColumnList());
@@ -53,13 +49,12 @@ public class InsertSqlTestSequence implements IInsertSql<TestSequence> {
     return builder.toString();
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.IInsertSql#setParams(java.sql.PreparedStatement,
-   *      int, java.lang.Object)
-   */public void setParams(PreparedStatement stmt, int next, TestSequence dto)
-      throws SQLException {
-    stmt.setString(next, dto.getCol1());
+  @Override
+  public void setParams(PreparedStatement stmt, int next, TestSequence dto) {
+    try {
+      stmt.setString(next, dto.getCol1());
+    } catch (SQLException e) {
+      throw new DbErrorException("SQL error", e);
+    }
   }
 }

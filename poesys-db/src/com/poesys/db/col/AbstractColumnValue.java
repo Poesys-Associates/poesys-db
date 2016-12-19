@@ -24,7 +24,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.poesys.db.DbErrorException;
 import com.poesys.db.InvalidParametersException;
+import com.poesys.db.Message;
 
 
 /**
@@ -49,20 +51,22 @@ public abstract class AbstractColumnValue implements
     Comparable<AbstractColumnValue>, Serializable {
 
   /**
-   * Generated serial version UID for Serializable object
+   * serial version UID for Serializable object
    */
-  private static final long serialVersionUID = -359907735683360263L;
+  private static final long serialVersionUID = 1L;
 
   /** The column name */
   protected String name;
 
   /** Message stating two columns are not comparable */
-  private static final String NOT_COMPARABLE_MSG =
+  private static final String NOT_COMPARABLE_ERROR =
     "com.poesys.db.col.msg.not_comparable";
   /** Message stating that the name or value is null */
-  private static final String NULL_NAME_OR_VALUE =
+  private static final String NULL_NAME_OR_VALUE_ERROR =
     "com.poesys.db.col.msg.null_name_or_value";
-
+  /** Message stating there was an unexpected SQL exception */
+  protected static final String SQL_ERROR = "com.poesys.db.dto.msg.unexpected_sql_error";
+  
   /**
    * Create an AbstractColumnValue object with a required name.
    * 
@@ -174,7 +178,8 @@ public abstract class AbstractColumnValue implements
       list.add(name);
       list.add(col.name);
       InvalidParametersException e =
-        new InvalidParametersException(NOT_COMPARABLE_MSG);
+        new InvalidParametersException(Message.getMessage(NOT_COMPARABLE_ERROR,
+                                                          null));
       e.setParameters(list);
       throw e;
     }
@@ -230,10 +235,8 @@ public abstract class AbstractColumnValue implements
    * @param stmt the JDBC statement with parameters to set
    * @param nextIndex the index of the parameter to set with the column value
    * @return the next index value after the current one set
-   * @throws SQLException when there is a problem setting the value
    */
-  public abstract int setParam(PreparedStatement stmt, int nextIndex)
-      throws SQLException;
+  public abstract int setParam(PreparedStatement stmt, int nextIndex);
 
   /**
    * Create an invalid-parameter exception based on a null name or value. This
@@ -248,17 +251,22 @@ public abstract class AbstractColumnValue implements
     list.add(name);
     list.add(value);
     InvalidParametersException e =
-      new InvalidParametersException(NULL_NAME_OR_VALUE);
+      new InvalidParametersException(Message.getMessage(NULL_NAME_OR_VALUE_ERROR,
+                                                        null));
     e.setParameters(list);
     return e;
   }
 
   /**
-   * Get a Poesys/MS message object corresponding to a column value of uknown
+   * Get a Poesys/MS message object corresponding to a column value of unknown
    * type. Each concrete subclass implements the method to return a column value
    * with the appropriate data.
    * 
    * @return a column value
    */
   public abstract com.poesys.ms.col.IColumnValue<?> getMessageObject();
+  
+  protected void throwDbError(SQLException e) {
+    throw new DbErrorException(Message.getMessage(SQL_ERROR, null));
+  }
 }

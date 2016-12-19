@@ -35,7 +35,7 @@ import com.poesys.db.pk.IPrimaryKey;
  * in associations. This class supports tests for a many-to-many association and
  * for an n-ary (ternary) association.
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class Link1 extends AbstractTestDto {
   /** Generated serial version UID for Serializable object */
@@ -51,7 +51,7 @@ public class Link1 extends AbstractTestDto {
    * Private implementation of ISet for inserting the ManyToManyLink objects
    * associated with the Link1.
    * 
-   * @author Bob Muller (muller@computer.org)
+   * @author Robert J. Muller
    */
   private class InsertManyToManyLinks extends
       AbstractBatchInsertSetter<ManyToManyLink, List<ManyToManyLink>> {
@@ -89,7 +89,7 @@ public class Link1 extends AbstractTestDto {
   /**
    * Private implementation of ISet interface that inserts ternary link objects.
    * 
-   * @author Bob Muller (muller@computer.org)
+   * @author Robert J. Muller
    */
   private class InsertTernaryLinks extends
       AbstractBatchInsertSetter<TernaryLink, List<TernaryLink>> {

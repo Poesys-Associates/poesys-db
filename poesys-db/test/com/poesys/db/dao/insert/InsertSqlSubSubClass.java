@@ -14,50 +14,46 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao.insert;
+
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dto.SubSubClass;
 import com.poesys.db.pk.IPrimaryKey;
 
+
 /**
  * <p>
- * An implementation of IInsertSql for the SubClass table that provides an INSERT
- * statement and parameter setting for a SubClass object.
+ * An implementation of IInsertSql for the SubClass table that provides an
+ * INSERT statement and parameter setting for a SubClass object.
  * </p>
  * 
  * @see com.poesys.db.dto.TestNatural
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class InsertSqlSubSubClass implements IInsertSql<SubSubClass> {
-	private static final String SQL1 = "INSERT INTO SubSubClass (";
-	private static final String SQL2 = ", sub_sub_col) VALUES (?, ?)";
+  private static final String SQL1 = "INSERT INTO SubSubClass (";
+  private static final String SQL2 = ", sub_sub_col) VALUES (?, ?)";
 
-	  /*
-	   * (non-Javadoc)
-	   * 
-	   * @see com.poesys.db.dao.insert.IInsertSql#getSql(com.poesys.db.pk.IPrimaryKey)
-	   */
-	  public String getSql(IPrimaryKey key) {
-	    StringBuilder builder = new StringBuilder(SQL1);
-	    builder.append(key.getSqlInsertColumnList());
-	    builder.append(SQL2);
-	    return builder.toString();
-	  }
-	  
-	  /*
-	   * (non-Javadoc)
-	   * 
-	   * @see com.poesys.db.dao.insert.IInsertSql#setParams(java.sql.PreparedStatement,
-	   *      int, java.lang.Object)
-	   */
-	  public void setParams(PreparedStatement stmt, int next, SubSubClass dto)
-	      throws SQLException {
-	    stmt.setString(next, dto.getSubSubCol());
-	  }
+  @Override
+  public String getSql(IPrimaryKey key) {
+    StringBuilder builder = new StringBuilder(SQL1);
+    builder.append(key.getSqlInsertColumnList());
+    builder.append(SQL2);
+    return builder.toString();
+  }
+
+  @Override
+  public void setParams(PreparedStatement stmt, int next, SubSubClass dto) {
+    try {
+      stmt.setString(next, dto.getSubSubCol());
+    } catch (SQLException e) {
+      throw new DbErrorException("SQL error", e);
+    }
+  }
 }

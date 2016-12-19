@@ -33,7 +33,7 @@ import com.poesys.db.dao.ConnectionTest;
  * Requires an Oracle user test, password test, with a table Test with a
  * stringTest column defined as VARCHAR2.
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class StringColumnValueTest extends ConnectionTest {
   String name1 = "name1";
@@ -95,6 +95,7 @@ public class StringColumnValueTest extends ConnectionTest {
         connection.prepareStatement("SELECT * FROM TEST WHERE testString = ?");
       colValue1.setParam(stmt, 1);
       assertTrue(true);
+      connection.commit();
     } finally {
       if (connection != null) {
         connection.close();

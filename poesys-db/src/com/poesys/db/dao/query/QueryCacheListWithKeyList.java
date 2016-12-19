@@ -19,9 +19,7 @@ package com.poesys.db.dao.query;
 
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.dto.IDtoCache;
 import com.poesys.db.pk.IPrimaryKey;
@@ -61,7 +59,7 @@ public class QueryCacheListWithKeyList<T extends IDbDto> extends
   }
 
   @Override
-  protected T getObject(ResultSet rs) throws SQLException, BatchException {
+  protected T getObject(ResultSet rs) {
     IPrimaryKey key = sql.getPrimaryKey(rs);
     // Look the object up in the cache, create if not there and cache it.
     T object = cache.get(key);

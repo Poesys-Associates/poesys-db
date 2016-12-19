@@ -14,13 +14,11 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao.ddl;
 
 
 import java.sql.Connection;
-import java.sql.SQLException;
 
 
 /**
@@ -31,10 +29,10 @@ import java.sql.SQLException;
  */
 public interface IExecuteSql {
   /**
-   * Execute the registered SQL DDL statement. 
+   * Execute the registered SQL DDL statement.
    * 
-   * @param connection the database connection with which to execute the statement
-   * @throws SQLException when there is a problem with the query
+   * @param connection the database connection with which to execute the
+   *          statement
    */
-  public void execute(Connection connection) throws SQLException;
+  public void execute(Connection connection);
 }

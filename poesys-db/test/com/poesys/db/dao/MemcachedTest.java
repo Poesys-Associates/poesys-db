@@ -33,6 +33,8 @@ import org.apache.log4j.Logger;
 
 import com.poesys.db.DbErrorException;
 import com.poesys.db.Message;
+import com.poesys.db.dto.IDbDto;
+import com.poesys.db.pk.IPrimaryKey;
 import com.poesys.db.pool.ObjectPool;
 
 
@@ -53,25 +55,23 @@ public abstract class MemcachedTest extends ConnectionTest {
   protected static ObjectPool<MemcachedClient> clients = null;
   /** Name of the memcached properties resource bundle */
   protected static final String BUNDLE = "com.poesys.db.memcached";
+
   /** The resource bundle containing the memcached properties. */
   protected static final ResourceBundle properties =
     ResourceBundle.getBundle(BUNDLE);
+
+  // Memcached options from property file
+
   /** Memcached configuration property servers */
   private static final String MEMCACHED_PROP_SERVERS = "servers";
   /** Memcached configuration property protocol */
-  protected static final String MEMCACHED_PROP_PROTOCOL = "protocol";
+  private static final String MEMCACHED_PROP_PROTOCOL = "protocol";
+  /** Memcached configuration property for retries after client get timeout */
+  private static final String MEMCACHED_PROP_RETRIES = "client_retries";
   /** Memcached configuration property for min number of clients in pool */
   private static final String MEMCACHED_PROP_POOL_MIN = "min_clients";
   /** Memcached configuration property for max number of clients in pool */
   private static final String MEMCACHED_PROP_POOL_MAX = "max_clients";
-  private static final String INVALID_PORT =
-    "com.poesys.db.dao.query.msg.memcached_invalid_port";
-  protected static final String MEMCACHED_CLIENT =
-    "com.poesys.db.dao.query.msg.memcached_client";
-  protected static final String SHUTDOWN_CLIENT_ERROR =
-    "com.poesys.db.dao.query.msg.memcached_client_shutdown";
-  protected static final String MEMCACHED_UNKNOWN_PROTOCOL =
-    "com.poesys.db.dao.query.msg.memcached_unknown_protocol";
   /**
    * Memcached configuration property for time interval in seconds for client
    * pool maintenance
@@ -79,15 +79,37 @@ public abstract class MemcachedTest extends ConnectionTest {
   private static final String MEMCACHED_PROP_POOL_INTERVAL =
     "pool_maintenance_interval";
   /** Memcached configuration value binary protocol */
-  protected static final String BINARY = "binary";
+  private static final String BINARY = "binary";
   /** Memcached configuration value text protocol */
-  protected static final String TEXT = "text";
-  protected static final int MIN =
+  private static final String TEXT = "text";
+
+  /* Memcached configuration value for 5-second timeout retries */
+  private static final int TIMEOUT_RETRIES =
+    new Integer(properties.getString(MEMCACHED_PROP_RETRIES));
+  private static final int MIN =
     new Integer(properties.getString(MEMCACHED_PROP_POOL_MIN));
-  protected static final int MAX =
+  private static final int MAX =
     new Integer(properties.getString(MEMCACHED_PROP_POOL_MAX));
-  protected static final int INTERVAL =
+  private static final int INTERVAL =
     new Integer(properties.getString(MEMCACHED_PROP_POOL_INTERVAL));
+
+  // Error messages from the Poesys resource bundle.
+
+  private static final String INVALID_PORT =
+    "com.poesys.db.dao.query.msg.memcached_invalid_port";
+  private static final String MEMCACHED_CLIENT =
+    "com.poesys.db.dao.query.msg.memcached_client";
+  private static final String SHUTDOWN_CLIENT_ERROR =
+    "com.poesys.db.dao.query.msg.memcached_client_shutdown";
+  private static final String MEMCACHED_UNKNOWN_PROTOCOL =
+    "com.poesys.db.dao.query.msg.memcached_unknown_protocol";
+  private static final String MEMCACHED_GET_ERROR =
+    "com.poesys.db.dao.query.msg.memcached_get";
+  private static final String MEMCACHED_RETRY_WARNING =
+    "com.poesys.db.dao.query.msg.memcached_retry";
+
+  /** Period in milliseconds to sleep before re-trying memcached get */
+  private static final long RETRY_SLEEP_PERIOD = 5L * 1000L;
 
   public MemcachedTest() {
     super();
@@ -167,5 +189,84 @@ public abstract class MemcachedTest extends ConnectionTest {
       }
     }
     return addresses;
+  }
+
+  /**
+   * Get the object from memcached. This always runs in a PoesysTrackingThread
+   * container.
+   * 
+   * @param key the primary key to look up in memcached
+   * @return the DTO object
+   */
+  protected IDbDto getFromMemcached(IPrimaryKey key) {
+    MemcachedClient client = clients.getObject();
+    IDbDto dto = null;
+
+    try {
+      // Not previously de-serialized, get it from the cache.
+      logger.debug("Getting object " + key.getStringKey() + " from the cache");
+
+      // Get the object synchronously but check for exceptions and retry to
+      // allow for memcached server being unavailable for a short period.
+
+      int retries = TIMEOUT_RETRIES;
+      while (retries > 0) {
+        logger.debug("Getting object from cache, retries left " + retries);
+        try {
+          dto = (IDbDto)client.get(key.getStringKey());
+          // Break out of loop after no-exception get
+            break;
+        } catch (Exception e) {
+          retries--;
+          if (retries == 0) {
+            // InterruptedException, ExecutionException, or RuntimeException
+            // Retries exhausted, fail with exception
+            Object[] args = new Object[1];
+            args[0] = key.getStringKey();
+            logger.error(Message.getMessage(MEMCACHED_GET_ERROR, args), e);
+            throw new DbErrorException(Message.getMessage(MEMCACHED_GET_ERROR,
+                                                          args));
+          } else {
+            // More retries, sleep for a short time and try again.
+
+            // First warn in log so as not to lose the exception sequence.
+            Object[] args1 = new Object[2];
+            args1[0] = key.getStringKey(); // object key
+            args1[1] = e.getMessage(); // exception message
+            logger.warn(Message.getMessage(MEMCACHED_RETRY_WARNING, args1), e);
+            sleep(key);
+          }
+        }
+      }
+
+      if (dto != null) {
+        logger.debug("Retrieved object " + key.getStringKey()
+                     + " from the cache");
+        // Iterate through the setters to process nested objects.
+        dto.deserializeNestedObjects();
+      } else {
+        logger.debug("No object " + key.getStringKey() + " in the cache");
+      }
+    } finally {
+      clients.returnObject(client);
+    }
+    return dto;
+  }
+
+  /**
+   * Sleep for the retry sleep period.
+   * 
+   * @param key the DTO key, for error reporting
+   */
+  private void sleep(IPrimaryKey key) {
+    try {
+      Thread.sleep(RETRY_SLEEP_PERIOD);
+    } catch (InterruptedException e1) {
+      // Externally interrupted sleep, something's wrong
+      Object[] args2 = new Object[1];
+      args2[0] = key.getStringKey();
+      logger.error(Message.getMessage(MEMCACHED_GET_ERROR, args2), e1);
+      throw new DbErrorException(Message.getMessage(MEMCACHED_GET_ERROR, args2));
+    }
   }
 }

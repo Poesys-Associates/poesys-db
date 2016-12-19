@@ -18,17 +18,15 @@
 package com.poesys.db.dto;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoFactory;
 import com.poesys.db.dao.IDaoManager;
+import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dao.query.IQueryListWithParameters;
 
 
@@ -63,7 +61,8 @@ abstract public class AbstractLazyListSetter<T extends IDbDto, P extends IDbDto,
 
   @SuppressWarnings("unchecked")
   @Override
-  public void set(Connection connection) throws SQLException {
+  public void set() {
+    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
     IDaoManager manager = null;
 
     try {
@@ -79,11 +78,7 @@ abstract public class AbstractLazyListSetter<T extends IDbDto, P extends IDbDto,
       }
       set(list);
     } catch (ConstraintViolationException e) {
-      throw new DbErrorException(e.getMessage(), e);
-    } catch (BatchException e) {
-      throw new DbErrorException(e.getMessage(), e);
-    } catch (DtoStatusException e) {
-      throw new DbErrorException(e.getMessage(), e);
+      throw new DbErrorException(e.getMessage(), thread, e);
     }
   }
 }

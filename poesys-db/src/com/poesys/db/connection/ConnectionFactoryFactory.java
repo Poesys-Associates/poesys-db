@@ -29,6 +29,7 @@ import javax.naming.NamingException;
 import javax.sql.DataSource;
 
 import com.poesys.db.InvalidParametersException;
+import com.poesys.db.Message;
 
 
 /**
@@ -133,7 +134,7 @@ public class ConnectionFactoryFactory {
 
     // Check for null subsystem.
     if (subsystem == null || subsystem.equals("")) {
-      throw new InvalidParametersException(NO_SUBSYSTEM);
+      throw new InvalidParametersException(Message.getMessage(NO_SUBSYSTEM, null));
     }
 
     // If the DBMS is null, get it from the cache or the properties file.
@@ -226,7 +227,7 @@ public class ConnectionFactoryFactory {
         break;
       default:
         InvalidParametersException e =
-          new InvalidParametersException(DBMS_NOT_SUPPORTED);
+          new InvalidParametersException(Message.getMessage(DBMS_NOT_SUPPORTED, null));
         List<String> list = e.getParameters();
         list.add(getDbmsString(dbms));
         throw e;
@@ -433,7 +434,7 @@ public class ConnectionFactoryFactory {
           factory.setPort(port);
         } catch (NumberFormatException e) {
           InvalidParametersException e2 =
-            new InvalidParametersException(NON_INTEGER_PORT, e);
+            new InvalidParametersException(Message.getMessage(NON_INTEGER_PORT, null), e);
           List<String> list = e2.getParameters();
           list.add(port.toString());
           throw e2;

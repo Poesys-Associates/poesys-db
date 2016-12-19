@@ -20,7 +20,6 @@ package com.poesys.db.dao.query;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.List;
 
 import com.poesys.db.InvalidParametersException;
@@ -92,9 +91,8 @@ public interface IKeyListQuerySql<T extends IDbDto> {
    * Bind the key values into the SQL statement.
    * 
    * @param stmt the prepared statement into which to bind the parameter values
-   * @throws SQLException when there is a bind error
    */
-  void bindKeys(PreparedStatement stmt) throws SQLException;
+  void bindKeys(PreparedStatement stmt);
 
   /**
    * Create a primary key object of the appropriate implementation for the DTO
@@ -105,12 +103,10 @@ public interface IKeyListQuerySql<T extends IDbDto> {
    * 
    * @param rs the result set from the query execution
    * @return the primary key
-   * @throws SQLException when the parameter setting fails with a SQL error
    * @throws InvalidParametersException when key generation fails due to a null
    *           key name or value
    */
-  IPrimaryKey getPrimaryKey(ResultSet rs) throws SQLException,
-      InvalidParametersException;
+  IPrimaryKey getPrimaryKey(ResultSet rs) throws InvalidParametersException;
 
   /**
    * Get the key values for display.
@@ -126,7 +122,6 @@ public interface IKeyListQuerySql<T extends IDbDto> {
    * 
    * @param rs the result set from the query execution
    * @return the DTO
-   * @throws SQLException when the parameter setting fails with a SQL error
    */
-  T getData(ResultSet rs) throws SQLException;
+  T getData(ResultSet rs);
 }

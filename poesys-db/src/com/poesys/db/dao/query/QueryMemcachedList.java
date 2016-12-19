@@ -18,14 +18,11 @@
 package com.poesys.db.dao.query;
 
 
-import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoManager;
 import com.poesys.db.dao.PoesysTrackingThread;
@@ -72,13 +69,12 @@ public class QueryMemcachedList<T extends IDbDto> extends QueryList<T> {
   }
 
   @Override
-  protected T getObject(Connection connection, ResultSet rs)
-      throws SQLException, BatchException {
+  protected T getObject(ResultSet rs) {
     IPrimaryKey key = sql.getPrimaryKey(rs);
     // Look the object up in the cache, create if not there and cache it.
     DaoManagerFactory.initMemcachedManager(subsystem);
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
-    T object = manager.getCachedObject(key);
+    T object = manager.getCachedObject(key, subsystem);
     if (object == null) {
       object = sql.getData(rs);
       logger.debug("Queried " + key.getStringKey() + " from database for list");
@@ -94,18 +90,19 @@ public class QueryMemcachedList<T extends IDbDto> extends QueryList<T> {
       logger.debug("Retrieved " + key.getStringKey() + " from cache for list");
     }
 
-    if (object != null && Thread.currentThread() instanceof PoesysTrackingThread) {
+    if (object != null
+        && Thread.currentThread() instanceof PoesysTrackingThread) {
       PoesysTrackingThread thread =
         (PoesysTrackingThread)Thread.currentThread();
       thread.addDto(object);
     }
-    
+
     return object;
   }
 
   @Override
-  protected void queryNestedObjectsForList(List<T> list) throws SQLException,
-      BatchException {
+  protected void queryNestedObjectsForList(List<T> list,
+                                           PoesysTrackingThread thread) {
     DaoManagerFactory.initMemcachedManager(subsystem);
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     // Query any nested objects using the current memcached session. This is
@@ -113,26 +110,14 @@ public class QueryMemcachedList<T extends IDbDto> extends QueryList<T> {
     // are closed before recursing.
     for (T object : list) {
       object.queryNestedObjects();
+
       // Cache the object to ensure all nested object keys get serialized.
       if (object.isQueried()) {
         manager.putObjectInCache(object.getPrimaryKey().getCacheName(),
                                  expiration,
                                  object);
-        if (Thread.currentThread() instanceof PoesysTrackingThread) {
-          PoesysTrackingThread thread =
-            (PoesysTrackingThread)Thread.currentThread();
-          thread.setProcessed(object.getPrimaryKey().getStringKey(), true);
-        }
+        thread.setProcessed(object.getPrimaryKey().getStringKey(), true);
       }
     }
-  }
-
-  @Override
-  public void close() {
-  }
-
-  @Override
-  public void setExpiration(int expiration) {
-    // Do nothing, expiration is final for memcached implementation
   }
 }

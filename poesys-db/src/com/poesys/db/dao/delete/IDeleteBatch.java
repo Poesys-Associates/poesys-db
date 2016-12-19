@@ -18,11 +18,8 @@
 package com.poesys.db.dao.delete;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Collection;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.dto.IDbDto;
 
 
@@ -40,14 +37,10 @@ public interface IDeleteBatch<T extends IDbDto> {
    * Delete the contents of a collection of objects in the database. The DTOs
    * must contain values for the primary key.
    * 
-   * @param connection the database connection with which to delete the data
    * @param dtos the data transfer objects containing the primary keys to delete
    * @param size the size of the batches
-   * @throws SQLException when there is a SQL error with an update
-   * @throws BatchException when there is some kind of batch processing error
    */
-  public void delete(Connection connection, Collection<T> dtos, int size)
-      throws SQLException, BatchException;
+  public void delete(Collection<T> dtos, int size);
 
   /**
    * Close any resources allocated by the Command.

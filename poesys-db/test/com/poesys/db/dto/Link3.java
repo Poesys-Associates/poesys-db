@@ -34,7 +34,7 @@ import com.poesys.db.pk.IPrimaryKey;
  * in associations. This class supports tests for an n-ary (ternary)
  * association.
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class Link3 extends AbstractTestDto {
   /** Generated serial version UID */
@@ -49,7 +49,7 @@ public class Link3 extends AbstractTestDto {
   /**
    * Private implementation of ISet interface that inserts ternary link objects.
    * 
-   * @author Bob Muller (muller@computer.org)
+   * @author Robert J. Muller
    */
   private class InsertTernaryLinks extends
       AbstractBatchInsertSetter<TernaryLink, List<TernaryLink>> {

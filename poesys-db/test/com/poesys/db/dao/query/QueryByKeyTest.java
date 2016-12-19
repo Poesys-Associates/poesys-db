@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.insert.Insert;
 import com.poesys.db.dao.insert.InsertSqlParent;
@@ -63,55 +64,34 @@ public class QueryByKeyTest extends ConnectionTest {
    */
   public void testQueryByKeySequenceTest() throws IOException, SQLException,
       BatchException {
-    Connection conn = null;
     SequencePrimaryKey key = null;
     TestSequence dto = null;
 
-    try {
-      try {
-        conn = getConnection();
-      } catch (SQLException e) {
-        throw new RuntimeException("Connect failed: " + e.getMessage(), e);
-      }
+    // Create the sequence key and the object to insert.
+    Insert<TestSequence> inserter =
+      new Insert<TestSequence>(new InsertSqlTestSequence(), getSubsystem());
+    key =
+      PrimaryKeyFactory.createMySqlSequenceKey("test",
+                                               "pkey",
+                                               CLASS_NAME,
+                                               getSubsystem());
+    String col1 = "test";
+    dto = new TestSequence(key, col1);
 
-      // Create the sequence key and the object to insert.
-      Insert<TestSequence> inserter =
-        new Insert<TestSequence>(new InsertSqlTestSequence());
-      key =
-        PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                                 "test",
-                                                 "pkey",
-                                                 CLASS_NAME);
-      String col1 = "test";
-      dto = new TestSequence(key, col1);
+    // Insert the object.
+    inserter.insert(dto);
+    assertTrue(true);
 
-      // Insert the object.
-      inserter.insert(conn, dto);
-      assertTrue(true);
-    } catch (SQLException e) {
-      fail("Insert test object failed: " + e.getMessage());
-    } finally {
-      if (conn != null) {
-        conn.commit();
-        conn.close();
-      }
-    }
-
-    // Query the object and test against the original.
-    try {
-      IKeyQuerySql<TestSequence> sql = new TestSequenceKeyQuerySql();
-      QueryByKey<TestSequence> query =
-        new QueryByKey<TestSequence>(sql, getSubsystem());
-      IDbDto queriedDto = query.queryByKey(key);
-      assertTrue("no object found", queriedDto != null);
-      assertTrue("data not equal", dto.compareTo(queriedDto) == 0);
-      assertTrue("queried dto set to NEW",
-                 queriedDto.getStatus() != IDbDto.Status.NEW);
-      assertTrue("queried dto set to CHANGED",
-                 queriedDto.getStatus() != IDbDto.Status.CHANGED);
-    } catch (SQLException e) {
-      fail("Query by key exception: " + e.getMessage());
-    }
+    IKeyQuerySql<TestSequence> sql = new TestSequenceKeyQuerySql();
+    QueryByKey<TestSequence> query =
+      new QueryByKey<TestSequence>(sql, getSubsystem());
+    IDbDto queriedDto = query.queryByKey(key);
+    assertTrue("no object found", queriedDto != null);
+    assertTrue("data not equal", dto.compareTo(queriedDto) == 0);
+    assertTrue("queried dto set to NEW",
+               queriedDto.getStatus() != IDbDto.Status.NEW);
+    assertTrue("queried dto set to CHANGED",
+               queriedDto.getStatus() != IDbDto.Status.CHANGED);
   }
 
   /**
@@ -127,11 +107,12 @@ public class QueryByKeyTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
 
     // Create the insert command for the parent.
-    Insert<Parent> inserter = new Insert<Parent>(new InsertSqlParent());
+    Insert<Parent> inserter =
+      new Insert<Parent>(new InsertSqlParent(), getSubsystem());
 
     // Create the GUID primary key for the parent.
     GuidPrimaryKey key =
@@ -178,36 +159,33 @@ public class QueryByKeyTest extends ConnectionTest {
       stmt.close();
       stmt = null;
 
+      conn.commit();
+
       // Insert the test row.
-      inserter.insert(conn, dto);
+      inserter.insert(dto);
     } catch (SQLException e) {
       fail("insert method failed: " + e.getMessage());
     } finally {
-      conn.commit();
       if (stmt != null) {
         stmt.close();
       }
       if (pstmt != null) {
         pstmt.close();
       }
-    }
-    // Query the object and test against the original.
-    try {
-      IKeyQuerySql<Parent> sql = new ParentKeyQuerySql();
-      QueryByKey<Parent> dao = new QueryByKey<Parent>(sql, getSubsystem());
-      IDbDto queriedDto = dao.queryByKey(key);
-      assertTrue(queriedDto != null);
-      assertTrue("data not equal", dto.compareTo(queriedDto) == 0);
-      assertTrue("queried dto set to NEW",
-                 queriedDto.getStatus() != IDbDto.Status.NEW);
-      assertTrue("queried dto set to CHANGED",
-                 queriedDto.getStatus() != IDbDto.Status.CHANGED);
-    } catch (SQLException e) {
-      fail("Query by key exception: " + e.getMessage());
-    } finally {
       if (conn != null) {
         conn.close();
       }
     }
+
+    // Query the object and test against the original.
+    IKeyQuerySql<Parent> sql = new ParentKeyQuerySql();
+    QueryByKey<Parent> dao = new QueryByKey<Parent>(sql, getSubsystem());
+    IDbDto queriedDto = dao.queryByKey(key);
+    assertTrue(queriedDto != null);
+    assertTrue("data not equal", dto.compareTo(queriedDto) == 0);
+    assertTrue("queried dto set to NEW",
+               queriedDto.getStatus() != IDbDto.Status.NEW);
+    assertTrue("queried dto set to CHANGED",
+               queriedDto.getStatus() != IDbDto.Status.CHANGED);
   }
 }

@@ -34,9 +34,9 @@ import com.poesys.ms.col.IColumnValue;
  */
 public class TimestampColumnValue extends AbstractColumnValue {
   /**
-   * Generated serial version UID for Serializable object
+   * serial version UID for Serializable object
    */
-  private static final long serialVersionUID = 258866656334124959L;
+  private static final long serialVersionUID = 1L;
 
   /** The Timestamp value */
   private Timestamp value = null;
@@ -90,10 +90,13 @@ public class TimestampColumnValue extends AbstractColumnValue {
    * int)
    */
   @Override
-  public int setParam(PreparedStatement stmt, int nextIndex)
-      throws SQLException {
+  public int setParam(PreparedStatement stmt, int nextIndex) {
     // Use the Timestamp setter for the value.
-    stmt.setTimestamp(nextIndex, value);
+    try {
+      stmt.setTimestamp(nextIndex, value);
+    } catch (SQLException e) {
+      throwDbError(e);
+    }
     return ++nextIndex;
   }
 

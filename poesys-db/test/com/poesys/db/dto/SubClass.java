@@ -26,7 +26,7 @@ import com.poesys.db.pk.AbstractSingleValuedPrimaryKey;
  * on an inheritance hierarchy; the sub class is a specialization of the root
  * class.
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class SubClass extends RootClass {
   /** Generated serial version UID for Serializable object */

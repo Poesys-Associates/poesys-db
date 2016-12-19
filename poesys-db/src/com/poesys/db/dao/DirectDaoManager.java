@@ -37,6 +37,7 @@ public final class DirectDaoManager implements IDaoManager {
   /** Logger for debugging */
   private static final Logger logger = Logger.getLogger(DirectDaoManager.class);
 
+  /** The singleton manager */
   private static IDaoManager manager = null;
 
   /**
@@ -61,7 +62,7 @@ public final class DirectDaoManager implements IDaoManager {
   public <T extends IDbDto, C extends Collection<T>> IDaoFactory<T> getFactory(String name,
                                                                                String subsystem,
                                                                                Integer expiration) {
-    return new DaoDirectFactory<T>();
+    return new DaoDirectFactory<T>(subsystem);
   }
 
   @Override
@@ -93,13 +94,15 @@ public final class DirectDaoManager implements IDaoManager {
   }
 
   @Override
-  public <T extends IDbDto> T getCachedObject(IPrimaryKey key, int expireTime) {
+  public <T extends IDbDto> T getCachedObject(IPrimaryKey key, int expireTime,
+                                              String subsystem) {
     // no caching
     return null;
   }
 
   @Override
-  public synchronized <T extends IDbDto> T getCachedObject(IPrimaryKey key) {
+  public synchronized <T extends IDbDto> T getCachedObject(IPrimaryKey key,
+                                                           String subsystem) {
     return null; // no caching
   }
 

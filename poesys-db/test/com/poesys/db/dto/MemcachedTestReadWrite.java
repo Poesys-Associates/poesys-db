@@ -44,7 +44,7 @@ import com.poesys.db.pool.ObjectPool;
  * 
  * @author Robert J. Muller
  */
-public class MemcachedTest {
+public class MemcachedTestReadWrite {
   private static final String TEST_VALUE = "test";
   private static final String TESTKEY = "testkey";
   /** Logger for debugging */

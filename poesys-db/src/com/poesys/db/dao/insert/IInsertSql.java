@@ -14,13 +14,11 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao.insert;
 
 
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.pk.IPrimaryKey;
@@ -36,13 +34,14 @@ import com.poesys.db.pk.IPrimaryKey;
  * <p>
  * The implementation must generate the INSERT statement's list of column names
  * as well as its list of supplied value parameters. You get the column list by
- * calling the primary key's <code>getSqlInsertColumnList</code> method, and
- * you code the appropriate number of parameters directly into the string. This
+ * calling the primary key's <code>getSqlInsertColumnList</code> method, and you
+ * code the appropriate number of parameters directly into the string. This
  * necessitates coding the SQL statement in two parts, as the following example
  * shows:
  * </p>
  * 
- * <pre><code>
+ * <pre>
+ * <code>
  * public class InsertSqlSeq implements IInsertSql {
  *   private static final String SQL1 = &quot;INSERT INTO Seq (&quot;;
  *   private static final String SQL2 = &quot;, col1) VALUES (?, ?)&quot;;
@@ -54,12 +53,12 @@ import com.poesys.db.pk.IPrimaryKey;
  *     return builder.toString();
  *   }
  * 
- *   public void setParams(PreparedStatement stmt, int next, Seq dto)
- *       throws SQLException {
+ *   public void setParams(PreparedStatement stmt, int next, Seq dto) {
  *     stmt.setString(next, dto.getCol1());
  *   }
  * }
- * </code></pre>
+ * </code>
+ * </pre>
  * 
  * @see com.poesys.db.dto.IDbDto
  * 
@@ -73,9 +72,11 @@ public interface IInsertSql<T extends IDbDto> {
    * hard-coded set of columns.
    * </p>
    * 
-   * <pre><code>
+   * <pre>
+   * <code>
    * INSERT INTO Table ([column[,column]...]) VALUES (?[,?]...)
-   * </code></pre>
+   * </code>
+   * </pre>
    * 
    * <p>
    * where the first n columns are the primary key columns from the IPrimaryKey
@@ -95,9 +96,7 @@ public interface IInsertSql<T extends IDbDto> {
    * @param stmt the prepared SQL statement
    * @param next the next parameter index after the last parameter index set
    * @param dto the data transfer object of type T containing the values to set
-   *            into the statement
-   * @throws SQLException when the parameter setting fails with a SQL error
+   *          into the statement
    */
-  void setParams(PreparedStatement stmt, int next, T dto)
-      throws SQLException;
+  void setParams(PreparedStatement stmt, int next, T dto);
 }

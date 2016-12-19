@@ -64,12 +64,12 @@ public class DaoManagerFactory {
   /**
    * Initialize a cache-map DAO manager.
    * 
-   * @param subsystem the name of the subsystem, a fully qualified package name
+   * @param subsystem the subsystem of the DTO classes, a fully-qualified package name
    * @return the DAO Manager
    */
   public static IDaoManager initCacheManager(String subsystem) {
     if (managers.get(subsystem) == null) {
-      managers.put(subsystem, CacheDaoManager.getInstance());
+      managers.put(subsystem, CacheDaoManager.getInstance(subsystem));
     }
     return getManager(subsystem);
   }
@@ -77,7 +77,7 @@ public class DaoManagerFactory {
   /**
    * Initialize a messaging, cache-map DAO manager.
    * 
-   * @param subsystem the name of the subsystem, a fully qualified package name
+   * @param subsystem the subsystem of the DTO classes, a fully-qualified package name
    * @return the DAO manager
    */
   public static IDaoManager initMessagingManager(String subsystem) {
@@ -90,7 +90,7 @@ public class DaoManagerFactory {
   /**
    * Initialize a memcached DAO manager.
    * 
-   * @param subsystem the name of the subsystem, a fully qualified package name
+   * @param subsystem the subsystem of the DTO classes, a fully-qualified package name
    * @return the DAO manager
    */
   public static IDaoManager initMemcachedManager(String subsystem) {
@@ -103,7 +103,7 @@ public class DaoManagerFactory {
   /**
    * Get the manager, defaulting to initializing a cache-map manager if no
    * manager yet exists.
-   * @param subsystem the name of the subsystem, a fully qualified package name
+   * @param subsystem the subsystem of the DTO classes, a fully-qualified package name
    * 
    * @return the singleton manager instance for the subsystem
    */

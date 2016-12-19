@@ -27,6 +27,7 @@ import java.util.List;
 import org.junit.Test;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.insert.Insert;
 import com.poesys.db.dao.insert.InsertSqlTestSequence;
@@ -38,7 +39,7 @@ import com.poesys.db.pk.PrimaryKeyFactory;
 
 /**
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class QueryListTest extends ConnectionTest {
   private static final String CLASS_NAME = "com.poesys.test.TestSequence";
@@ -59,78 +60,72 @@ public class QueryListTest extends ConnectionTest {
       try {
         conn = getConnection();
       } catch (SQLException e) {
-        throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+        throw new DbErrorException("Connect failed: " + e.getMessage(), e);
       }
 
       // Delete all the rows from TestSequence
       try {
         stmt = conn.createStatement();
         stmt.execute("DELETE FROM TestSequence");
+        conn.commit();
       } catch (RuntimeException e1) {
         fail("Couldn't delete rows from TestSequence");
       } finally {
         if (stmt != null) {
           stmt.close();
         }
+        if (conn != null) {
+          conn.close();
+        }
       }
 
       // Create the sequence key and the objects to insert.
       Insert<TestSequence> inserter =
-        new Insert<TestSequence>(new InsertSqlTestSequence());
+        new Insert<TestSequence>(new InsertSqlTestSequence(), getSubsystem());
       AbstractSingleValuedPrimaryKey key1 =
-        PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                                 "test",
+        PrimaryKeyFactory.createMySqlSequenceKey("test",
                                                  "pkey",
-                                                 CLASS_NAME);
+                                                 CLASS_NAME,
+                                                 getSubsystem());
       String col1 = "test";
       TestSequence dto1 = new TestSequence(key1, col1);
       AbstractSingleValuedPrimaryKey key2 =
-        PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                                 "test",
+        PrimaryKeyFactory.createMySqlSequenceKey("test",
                                                  "pkey",
-                                                 CLASS_NAME);
+                                                 CLASS_NAME,
+                                                 getSubsystem());
       TestSequence dto2 = new TestSequence(key2, col1);
       AbstractSingleValuedPrimaryKey key3 =
-        PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                                 "test",
+        PrimaryKeyFactory.createMySqlSequenceKey("test",
                                                  "pkey",
-                                                 CLASS_NAME);
+                                                 CLASS_NAME,
+                                                 getSubsystem());
       TestSequence dto3 = new TestSequence(key3, col1);
 
       // Insert the objects.
-      inserter.insert(conn, dto1);
-      inserter.insert(conn, dto2);
-      inserter.insert(conn, dto3);
+      inserter.insert(dto1);
+      inserter.insert(dto2);
+      inserter.insert(dto3);
       assertTrue(true);
     } catch (SQLException e) {
       fail("Insert test objects failed: " + e.getMessage());
-    } finally {
-      if (conn != null) {
-        conn.commit();
-        conn.close();
-      }
     }
 
     // Query the list of objects and test against the original.
-    try {
-      IQuerySql<TestSequence> sql = new TestSequenceQuerySql();
-      QueryList<TestSequence> dao =
-        new QueryList<TestSequence>(sql, getSubsystem(), 2);
-      List<TestSequence> queriedDtos = dao.query();
-      assertTrue("null list queried", queriedDtos != null);
-      assertTrue("wrong number of DTOs: " + queriedDtos.size(),
-                 queriedDtos.size() == 3);
-      for (IDbDto dto : queriedDtos) {
-        assertTrue("queried dto set to new, pk:"
-                       + dto.getPrimaryKey().getValueList(),
-                   dto.getStatus() != IDbDto.Status.NEW);
-        assertTrue("queried dto set to changed, pk :"
-                       + dto.getPrimaryKey().getValueList(),
-                   dto.getStatus() != IDbDto.Status.CHANGED);
-      }
-    } catch (SQLException e) {
-      fail("Query List exception: " + e.getMessage());
+    IQuerySql<TestSequence> sql = new TestSequenceQuerySql();
+    QueryList<TestSequence> dao =
+      new QueryList<TestSequence>(sql, getSubsystem(), 2);
+    List<TestSequence> queriedDtos = dao.query();
+    assertTrue("null list queried", queriedDtos != null);
+    assertTrue("wrong number of DTOs: " + queriedDtos.size(),
+               queriedDtos.size() == 3);
+    for (IDbDto dto : queriedDtos) {
+      assertTrue("queried dto set to new, pk:"
+                     + dto.getPrimaryKey().getValueList(),
+                 dto.getStatus() != IDbDto.Status.NEW);
+      assertTrue("queried dto set to changed, pk :"
+                     + dto.getPrimaryKey().getValueList(),
+                 dto.getStatus() != IDbDto.Status.CHANGED);
     }
   }
-
 }

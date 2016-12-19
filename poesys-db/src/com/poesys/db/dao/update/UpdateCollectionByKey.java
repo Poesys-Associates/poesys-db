@@ -18,11 +18,8 @@
 package com.poesys.db.dao.update;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Collection;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.dto.IDbDto;
 
 
@@ -57,45 +54,36 @@ public class UpdateCollectionByKey<T extends IDbDto> implements
     IUpdateCollection<T> {
   /** Internal Strategy-pattern object containing the SQL query */
   private IUpdateSql<T> sql;
-  
-  /** Indicates whether this is a leaf update */
-  private boolean leaf = false;
+
+  /** the subsystem of class T */
+  protected final String subsystem;
 
   /**
    * Create an UpdateCollectionByKey object by supplying the concrete
    * implementation of the SQL-statement generator and JDBC setter.
    * 
    * @param sql the SQL UPDATE statement specification
+   * @param subsystem the subsystem of class T
    */
-  public UpdateCollectionByKey(IUpdateSql<T> sql) {
+  public UpdateCollectionByKey(IUpdateSql<T> sql, String subsystem) {
+    this.subsystem = subsystem;
     this.sql = sql;
   }
 
   @Override
-  public void update(Connection connection, Collection<T> dtos)
-      throws SQLException, BatchException {
-    UpdateByKey<T> updater = new UpdateByKey<T>(sql);
+  public void update(Collection<T> dtos) {
+    UpdateByKey<T> updater = new UpdateByKey<T>(sql, subsystem);
 
     // Iterate only if there are DTOs to iterate over.
     if (dtos != null) {
       for (T dto : dtos) {
-        updater.update(connection, dto);
+        updater.update(dto);
       }
     }
   }
 
   @Override
-  public boolean isLeaf() {
-    return leaf;
-  }
-
-  @Override
-  public void setLeaf(boolean isLeaf) {
-    leaf = isLeaf;
-  }
-
-  @Override
   public void close() {
-    // Nothing to do    
+    // Nothing to do
   }
 }

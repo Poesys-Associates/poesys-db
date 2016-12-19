@@ -14,5 +14,4 @@ public class JndiMysqlConnectionFactory extends JndiConnectionFactory {
   public DBMS getDbms() {
     return DBMS.JNDI_MYSQL;
   }
-
 }

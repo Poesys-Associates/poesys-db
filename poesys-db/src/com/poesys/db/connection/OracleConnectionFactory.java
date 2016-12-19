@@ -127,7 +127,7 @@ public class OracleConnectionFactory implements IConnectionFactory {
     Connection connection = ods.getConnection();
 
     if (connection != null) {
-      logger.debug("Acquired direct Oracle JDBC connection " + connection);
+      logger.debug("Acquired direct Oracle JDBC connection " + connection.hashCode());
       // Set the autocommit feature off to handle transaction logic in the
       // business delegates or remote interfaces.
       connection.setAutoCommit(false);

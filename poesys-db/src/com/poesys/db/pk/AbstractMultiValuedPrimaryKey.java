@@ -19,7 +19,6 @@ package com.poesys.db.pk;
 
 
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -53,7 +52,7 @@ public abstract class AbstractMultiValuedPrimaryKey extends AbstractPrimaryKey {
 
   /** Error message for no primary keys supplied */
   private static final String NO_KEYS_MSG = "com.poesys.db.pk.msg.no_key";
-  
+
   private static final String EQUALS = " = ";
 
   /**
@@ -84,13 +83,13 @@ public abstract class AbstractMultiValuedPrimaryKey extends AbstractPrimaryKey {
     if (list == null || list.size() == 0) {
       throw new InvalidParametersException(NO_KEYS_MSG);
     }
-    
+
     // Set the internal list, ensuring alphabetical order and thread safety.
     setList(list);
     // Test the set of column names for duplication.
     getColumnNames();
   }
-  
+
   /**
    * Set the multi-valued column list, ensuring it is in alphabetical order and
    * is thread safe.
@@ -154,8 +153,7 @@ public abstract class AbstractMultiValuedPrimaryKey extends AbstractPrimaryKey {
   }
 
   @Override
-  public int setParams(PreparedStatement stmt, int nextIndex)
-      throws SQLException {
+  public int setParams(PreparedStatement stmt, int nextIndex) {
     int next = nextIndex;
     // Iterate through the multiple key values, setting them into the statement.
     for (AbstractColumnValue col : this) {
@@ -169,8 +167,7 @@ public abstract class AbstractMultiValuedPrimaryKey extends AbstractPrimaryKey {
   public boolean equals(IPrimaryKey key) {
     boolean ret = false;
     if (key instanceof AbstractMultiValuedPrimaryKey) {
-      AbstractMultiValuedPrimaryKey other =
-        (AbstractMultiValuedPrimaryKey)key;
+      AbstractMultiValuedPrimaryKey other = (AbstractMultiValuedPrimaryKey)key;
       // If the keys have the same number of elements, compare them.
       if (this.list.size() == other.list.size()) {
         int index = 0;

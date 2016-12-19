@@ -19,7 +19,6 @@ package com.poesys.db.dao.delete;
 
 
 import java.sql.BatchUpdateException;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -28,10 +27,11 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.Message;
 import com.poesys.db.NoPrimaryKeyException;
 import com.poesys.db.dao.AbstractBatch;
+import com.poesys.db.dao.DataEvent;
 import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.pk.IPrimaryKey;
@@ -69,11 +69,11 @@ public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
   /** The Strategy-pattern object for the SQL statement */
   IDeleteSql<T> sql;
   /** Error message when no primary key supplied */
-  private static final String NO_KEY_MSG =
+  private static final String NO_KEY_ERROR =
     "com.poesys.db.dao.delete.msg.no_delete_key";
-  /** Error message when post-processing throws an exception */
-  private static final String POST_PROCESSING_ERROR =
-    "com.poesys.db.dao.delete.msg.postprocessing";
+  /** Error message when delete throws exception */
+  private static final String DELETE_ERROR =
+    "com.poesys.db.dao.delete.msg.delete";
   /** Error message when thread is interrupted or timed out */
   private static final String THREAD_ERROR = "com.poesys.db.dao.msg.thread";
   /** Builder for error string built in batch processing */
@@ -88,179 +88,203 @@ public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
    * of the SQL-statement generator and JDBC setter.
    * 
    * @param sql the SQL DELETE statement generator object
+   * @param subsystem the subsystem of class T
    */
-  public DeleteBatchByKey(IDeleteSql<T> sql) {
+  public DeleteBatchByKey(IDeleteSql<T> sql, String subsystem) {
+    super(subsystem);
     this.sql = sql;
   }
 
   @Override
-  public void delete(Connection connection, Collection<T> dtos, int size)
-      throws SQLException, BatchException {
-    PreparedStatement stmt = null;
-    // array of return codes from JDBC batch processing
-    int[] codes = null;
-    // Current DTOs for error processing
-    List<T> list = new ArrayList<T>();
-    int count = 0; // counter for number of objects processed in batch
-
+  public void delete(Collection<T> dtos, int size) {
     // Iterate only if there are DTOs to iterate over.
     if (dtos != null) {
-      try {
-        for (T dto : dtos) {
-          if (dto.getPrimaryKey() == null) {
-            // Something's very wrong, so abort the whole delete.
-            throw new NoPrimaryKeyException(NO_KEY_MSG);
-          }
-
-          // Validate and preprocess children for either DELETED or
-          // CASCADE-DELETED objects.
-          if (dto.getStatus() == IDbDto.Status.DELETED
-              || dto.getStatus() == IDbDto.Status.CASCADE_DELETED) {
-            dto.validateForDelete();
-            dto.preprocessNestedObjects(connection);
-          }
-
-          // Only proceed to an actual delete if the dto is DELETED.
-          if (dto.getStatus() == IDbDto.Status.DELETED) {
-
-            count++;
-
-            IPrimaryKey key = dto.getPrimaryKey();
-            /*
-             * The first time through the loop, build the batched SQL statement
-             * and prepare it. The statement will track the batch and send it to
-             * the database when the size is reached.
-             */
-            String sqlStmt = sql.getSql(key).toString();
-            if (stmt == null) {
-              stmt = connection.prepareStatement(sqlStmt);
+      // If the current thread is a PoesysTrackingThread, just postprocess in
+      // that thread; if not, start a new thread for the postprocessing.
+      if (Thread.currentThread() instanceof PoesysTrackingThread) {
+        doDelete(dtos, size);
+        notifySubscribers(dtos);
+        postprocessDtos(dtos);
+      } else {
+        Runnable process = new Runnable() {
+          public void run() {
+            PoesysTrackingThread thread =
+              (PoesysTrackingThread)Thread.currentThread();
+            try {
+              doDelete(dtos, size);
+              notifySubscribers(dtos);
+              postprocessDtos(dtos);
+            } catch (Exception e) {
+              Object[] args = { "delete", "collection of DTOs" };
+              String message = Message.getMessage(THREAD_ERROR, args);
+              logger.error(message, e);
+              throw e;
+            } finally {
+              thread.closeConnection();
             }
-            // Set the updating fields first, then the key in the WHERE clause.
-            sql.setParams(stmt, 1, dto);
-            stmt.addBatch();
-            // Add the DTO to the current batch list for error processing.
-            list.add(dto);
-            logger.debug("Adding delete to batch with key " + key);
-            logger.debug("SQL: " + sqlStmt);
-            if (count == size) {
-              // end of batch, execute
-              try {
-                stmt.executeBatch();
-              } catch (BatchUpdateException e) {
-                codes = e.getUpdateCounts();
-                builder.append(e.getMessage() + ": ");
-                hasErrors = processErrors(codes, list, builder);
-              }
-
-              // Reset the batch variables for the next batch.
-              count = 0;
-              list.clear();
-            }
-          } else if (dto.getStatus() == IDbDto.Status.CASCADE_DELETED) {
-            logger.debug("Object marked as cascade-deleted, clearing cache but no database delete: "
-                         + dto.getPrimaryKey().getValueList());
           }
+        };
+        PoesysTrackingThread thread =
+          new PoesysTrackingThread(process, subsystem);
+        thread.start();
 
-        }
-      } finally {
-        // Execute the last batch, if any.
-        if (count > 0 && stmt != null) {
-          try {
-            codes = stmt.executeBatch();
-          } catch (BatchUpdateException e) {
-            codes = e.getUpdateCounts();
-            builder.append(e.getMessage() + ": ");
-            hasErrors = processErrors(codes, list, builder);
-          }
-        }
-        // Close the statement as required.
-        if (stmt != null) {
-          stmt.close();
-        }
-      }
-
-      /*
-       * Post-process any nested objects for successfully processed DTOs. In
-       * batch processing, you must first process ALL the deleted parent DTOs so
-       * that the database reflects the changes for the nested operations, hence
-       * the child processing must be in a completely separate loop after the
-       * first loop that processes the parents. Only process DELETED DTOs here;
-       * don't process FAILED, NEW, or CHANGED DTOs. Also notify parent
-       * observers of the delete for both DELETED and CASCADE_DELETED DTOs. The
-       * separate thread is required to track processing history, to prevent
-       * infinite processing loops.
-       */
-      for (IDbDto dto : dtos) {
-        PoesysTrackingThread thread = null;
-
-        // If the current thread is a PoesysTrackingThread, just postprocess in
-        // that
-        // thread; if not, start a new thread for the postprocessing.
-        if (Thread.currentThread() instanceof PoesysTrackingThread) {
-          thread = (PoesysTrackingThread)Thread.currentThread();
-          if (thread.getDto(dto.getPrimaryKey().getStringKey()) == null) {
-            // DTO not in history, add it so we can track processing.
-            thread.addDto(dto);
-          }
-          thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
-          postprocess(connection, dto);
-        } else {
-          Runnable process = new Runnable() {
-            public void run() {
-              try {
-                postprocess(connection, dto);
-              } catch (SQLException e) {
-                // Log and let the thread complete immediately
-                Object[] args = { dto.getPrimaryKey().getStringKey() };
-                String message =
-                  Message.getMessage(POST_PROCESSING_ERROR, args);
-                logger.error(message, e);
-                throw new RuntimeException(message, e);
-              } catch (BatchException e) {
-                // Log and let the thread complete immediately
-                Object[] args = { dto.getPrimaryKey().getStringKey() };
-                String message =
-                  Message.getMessage(POST_PROCESSING_ERROR, args);
-                logger.error(message, e);
-                throw new RuntimeException(message, e);
-              }
-            }
-          };
-          thread = new PoesysTrackingThread(process);
-          thread.addDto(dto);
-          thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
-          thread.start();
-
-          // Join the thread, blocking until the thread completes or
-          // until the query times out.
-          try {
-            thread.join(TIMEOUT);
-          } catch (InterruptedException e) {
-            Object[] args = {"insert", dto.getPrimaryKey().getStringKey()};
-            String message = Message.getMessage(THREAD_ERROR, args);
-            logger.error(message, e);
-          }
+        // Join the thread, blocking until the thread completes or
+        // until the query times out.
+        try {
+          thread.join(TIMEOUT);
+        } catch (InterruptedException e) {
+          Object[] args = { "delete", "collection of DTOs" };
+          String message = Message.getMessage(THREAD_ERROR, args);
+          logger.error(message, e);
         }
       }
     }
     // If there are errors, throw a batch exception.
     if (hasErrors) {
-      throw new BatchException(builder.toString());
+      throw new RuntimeException(builder.toString());
     }
   }
 
   /**
-   * Post-process the nested objects of the DTO. Override this method to add
-   * things to post processing, such as a memcached session ID.
+   * Delete a collection of DTOs.
    * 
-   * @param connection the connection with which to process
-   * @param dto the DTO containing the nested objects
-   * @throws SQLException when there is a database problem
-   * @throws BatchException when there is a batch processing problem
+   * @param dtos the collection of DTOs
+   * @param size the batch size
    */
-  protected void postprocess(Connection connection, IDbDto dto)
-      throws SQLException, BatchException {
-    dto.postprocessNestedObjects(connection);
+  private void doDelete(Collection<T> dtos, int size) {
+    PreparedStatement stmt = null;
+    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
+
+    // array of return codes from JDBC batch processing
+    int[] codes = null;
+    // list of DTOs having errors
+    List<T> list = new ArrayList<T>();
+    // error count
+    int count = 0;
+
+    try {
+      for (T dto : dtos) {
+        if (dto.getPrimaryKey() == null) {
+          // Something's very wrong, so abort the whole delete.
+          throw new NoPrimaryKeyException(Message.getMessage(NO_KEY_ERROR, null));
+        }
+
+        // Validate and preprocess children for either DELETED or
+        // CASCADE-DELETED objects.
+        if (dto.getStatus() == IDbDto.Status.DELETED
+            || dto.getStatus() == IDbDto.Status.CASCADE_DELETED) {
+          dto.validateForDelete();
+          dto.preprocessNestedObjects();
+        }
+
+        // Only proceed to an actual delete if the dto is DELETED.
+        if (dto.getStatus() == IDbDto.Status.DELETED) {
+
+          count++;
+
+          IPrimaryKey key = dto.getPrimaryKey();
+          /*
+           * The first time through the loop, build the batched SQL statement
+           * and prepare it. The statement will track the batch and send it to
+           * the database when the size is reached.
+           */
+          String sqlStmt = sql.getSql(key).toString();
+          if (stmt == null) {
+            stmt = thread.getConnection().prepareStatement(sqlStmt);
+          }
+          // Set the updating fields first, then the key in the WHERE clause.
+          sql.setParams(stmt, 1, dto);
+          stmt.addBatch();
+          // Add the DTO to the current batch list for error processing.
+          list.add(dto);
+          logger.debug("Adding delete to batch with key " + key);
+          logger.debug("SQL: " + sqlStmt);
+          if (count == size) {
+            // end of batch, execute
+            try {
+              stmt.executeBatch();
+            } catch (BatchUpdateException e) {
+              codes = e.getUpdateCounts();
+              builder.append(e.getMessage() + ": ");
+              hasErrors = processErrors(codes, list, builder);
+            }
+
+            // Reset the batch variables for the next batch.
+            count = 0;
+            list.clear();
+          }
+        } else if (dto.getStatus() == IDbDto.Status.CASCADE_DELETED) {
+          logger.debug("Object marked as cascade-deleted, clearing cache but no database delete: "
+                       + dto.getPrimaryKey().getValueList());
+        }
+
+      }
+    } catch (SQLException e) {
+      // Log and let the thread complete immediately
+      Object[] args = { "Batch of deletes" };
+      String message = Message.getMessage(DELETE_ERROR, args);
+      logger.error(message, e);
+      throw new DbErrorException(message, thread, e);
+    } finally {
+      // Execute the last batch, if any.
+      if (count > 0 && stmt != null) {
+        try {
+          codes = stmt.executeBatch();
+        } catch (BatchUpdateException e) {
+          codes = e.getUpdateCounts();
+          builder.append(e.getMessage() + ": ");
+          hasErrors = processErrors(codes, list, builder);
+        } catch (SQLException e) {
+          Object[] args = { "Batch of deletes" };
+          String message = Message.getMessage(DELETE_ERROR, args);
+          logger.error(message, e);
+          throw new DbErrorException(message, thread, e);
+        }
+      }
+      // Close the statement as required.
+      if (stmt != null) {
+        try {
+          stmt.close();
+        } catch (SQLException e) {
+          // ignore
+        }
+      }
+    }
+  }
+
+  /**
+   * Notify message subscribers of the delete event.
+   * 
+   * @param dtos the collection of DTOs being deleted
+   */
+  private void notifySubscribers(Collection<T> dtos) {
+    for (T dto : dtos) {
+      dto.notify(DataEvent.DELETE);
+    }
+  }
+
+  /**
+   * Post-process any nested objects for successfully processed DTOs. In batch
+   * processing, you must first process ALL the deleted parent DTOs so that the
+   * database reflects the changes for the nested operations, hence the child
+   * processing must be in a completely separate loop after the first loop that
+   * processes the parents. Only process DELETED DTOs here; don't process
+   * FAILED, NEW, or CHANGED DTOs. Also notify parent observers of the delete
+   * for both DELETED and CASCADE_DELETED DTOs. The separate thread is required
+   * to track processing history, to prevent infinite processing loops.
+   * 
+   * @param dtos the collection of DTOs
+   */
+  private void postprocessDtos(Collection<T> dtos) {
+    for (IDbDto dto : dtos) {
+      PoesysTrackingThread thread =
+        (PoesysTrackingThread)Thread.currentThread();
+
+      if (!thread.isProcessed(dto.getPrimaryKey().getStringKey())
+          && dto.getStatus() == IDbDto.Status.DELETED) {
+        dto.postprocessNestedObjects();
+      }
+    }
   }
 
   @Override

@@ -37,8 +37,8 @@ import java.util.List;
  * @author Robert J. Muller
  */
 public class ConnectionException extends Throwable {
-  /** The unique UID for this serializable object */
-  private static final long serialVersionUID = 3475874859567465849L;
+  /** serial version UID for this class */
+  private static final long serialVersionUID = 1L;
 
   /** List of String parameters for the message */
   private List<String> parameters = new ArrayList<String>(1);

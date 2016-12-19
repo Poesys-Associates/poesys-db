@@ -14,5 +14,4 @@ public class JndiSybaseConnectionFactory extends JndiConnectionFactory {
   public DBMS getDbms() {
     return DBMS.JNDI_SYBASE;
   }
-
 }

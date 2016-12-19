@@ -40,6 +40,7 @@ import com.poesys.db.Message;
  * @author Robert J. Muller
  */
 public class JndiConnectionFactory implements IConnectionFactory {
+  /** Logger for this class */
   private static final Logger logger =
     Logger.getLogger(JndiConnectionFactory.class);
   /**
@@ -69,7 +70,7 @@ public class JndiConnectionFactory implements IConnectionFactory {
       connection = ds.getConnection();
     } finally {
       if (connection != null) {
-        logger.debug("Acquired connection " + connection);
+        logger.debug("Acquired connection " + connection.hashCode());
       }
     }
 

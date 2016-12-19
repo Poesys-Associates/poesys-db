@@ -144,14 +144,16 @@ public class PrimaryKeyFactoryTest extends ConnectionTest {
         stmt.close();
       }
     }
+    
+    conn.commit();
 
     // Create the sequence key.
     try {
       key =
-        (AbstractSingleValuedPrimaryKey)PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                                                                 "test",
+        (AbstractSingleValuedPrimaryKey)PrimaryKeyFactory.createMySqlSequenceKey("test",
                                                                                  "test_id",
-                                                                                 CLASS_NAME);
+                                                                                 CLASS_NAME,
+                                                                                 getSubsystem());
     } catch (ClassCastException e) {
       fail("Did not create MySQL sequence key");
     } finally {

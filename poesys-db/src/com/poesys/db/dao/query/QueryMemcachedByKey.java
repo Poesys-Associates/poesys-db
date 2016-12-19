@@ -18,7 +18,6 @@
 package com.poesys.db.dao.query;
 
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -26,17 +25,13 @@ import java.sql.SQLException;
 
 import org.apache.log4j.Logger;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
-import com.poesys.db.Message;
 import com.poesys.db.NoPrimaryKeyException;
-import com.poesys.db.connection.ConnectionFactoryFactory;
-import com.poesys.db.connection.IConnectionFactory;
-import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoManager;
 import com.poesys.db.dao.MemcachedService;
+import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -63,18 +58,6 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
   /** expiration time in milliseconds for cached objects */
   private final Integer expiration;
 
-  /** timeout for the query thread */
-  private static final int TIMEOUT = 1000 * 60;
-
-  /** error getting resource bundle, can't resolve to bundle text so a constant */
-  private static final String RESOURCE_BUNDLE_ERROR =
-    "Problem getting Poesys/DB resource bundle";
-  /** Error message when thread is interrupted or timed out */
-  private static final String THREAD_ERROR = "com.poesys.db.dao.msg.thread";
-  /** Error message when thread gets SQL error */
-  private static final String SQL_ERROR =
-    "com.poesys.db.dto.msg.unexpected_sql_error";
-
   /**
    * Create a QueryMemcachedByKey object with the appropriate SQL class, the
    * subsystem that contains the T class, and the memcached expiration time for
@@ -94,65 +77,6 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
     this.expiration = expiration;
   }
 
-  @SuppressWarnings("unchecked")
-  @Override
-  public T queryByKey(IPrimaryKey key) throws SQLException, BatchException {
-    // Make sure the key is there.
-    if (key == null) {
-      throw new NoPrimaryKeyException(NO_PRIMARY_KEY_MSG);
-    }
-
-    Runnable query = getRunnableQuery(key);
-    PoesysTrackingThread thread = null;
-
-    // If the current thread is a PoesysTrackingThread, just run the query in
-    // that thread; if not, start a new thread to get the objects and its
-    // dependents.
-    if (Thread.currentThread() instanceof PoesysTrackingThread) {
-      thread = (PoesysTrackingThread)Thread.currentThread();
-      logger.debug("Using existing tracking thread " + thread.getId());
-      getDto(key, thread);
-    } else {
-      thread = new PoesysTrackingThread(query);
-      logger.debug("Starting new tracking thread " + thread.getId());
-      thread.start();
-      // Join the thread, blocking until the thread completes or
-      // until the query times out.
-      try {
-        thread.join(TIMEOUT);
-      } catch (InterruptedException e) {
-        Object[] args = { "update", key.getStringKey() };
-        String message = Message.getMessage(THREAD_ERROR, args);
-        logger.error(message, e);
-      }
-    }
-
-    return (T)thread.getDto(key.getStringKey());
-  }
-
-  /**
-   * Create a runnable query object that runs within a PoesysTrackingThread. The
-   * run method checks the cache for the DTO. If it is cached, it gets it from
-   * the cache; if not, it queries the object from the database. The method then
-   * queries nested objects. All these activities happen in a single run of the
-   * query in the tracking thread.
-   * 
-   * @param key the primary key of the DTO
-   * @return the runnable query
-   */
-  protected Runnable getRunnableQuery(IPrimaryKey key) {
-    // Create a runnable query object that does the query.
-    Runnable query = new Runnable() {
-      public void run() {
-        // Get the current tracking thread in which this is running.
-        PoesysTrackingThread thread =
-          (PoesysTrackingThread)Thread.currentThread();
-        getDto(key, thread);
-      }
-    };
-    return query;
-  }
-
   /**
    * Get the DTO identified by a primary key either from memcached or by
    * querying it from the database. Update the tracking thread with the DTO.
@@ -161,22 +85,21 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
    * @param thread the tracking thread
    */
   @SuppressWarnings("unchecked")
-  private void getDto(IPrimaryKey key, PoesysTrackingThread thread) {
-    // Initialize DTO to null to make function reentrant
+  @Override
+  protected T getDto(IPrimaryKey key, PoesysTrackingThread thread) {
+    // Make sure the key is there.
+    if (key == null) {
+      throw new NoPrimaryKeyException(NO_PRIMARY_KEY_ERROR);
+    }
+
+    // First check tracking thread for DTO.
     T dto = (T)thread.getDto(key.getStringKey());
     if (dto == null) {
+      // Next check memcached for DTO.
       dto = getObjectByKeyFromCache(key);
       // Only proceed if the DTO object was not in the tracking thread or cache.
       if (dto == null) {
-        try {
-          dto = queryDtoFromDatabase(key);
-          if (dto != null) {
-            thread.addDto(dto);
-          }
-        } catch (SQLException e) {
-          logger.error(SQL_ERROR, e);
-          throw new RuntimeException(SQL_ERROR, e);
-        }
+        dto = queryDtoFromDatabase(key, thread);
       } else {
         dto.setQueried(false);
         logger.debug("Found object " + key.getCacheName() + " with key "
@@ -194,17 +117,11 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
       // retrieval processes nested objects regardless of whether the
       // object comes from the cache or the database.
       if (dto != null) {
-        try {
+        if (!thread.isProcessed(key.getStringKey())) {
           dto.queryNestedObjects();
           thread.setProcessed(key.getStringKey(), true);
-          dto.setExisting();
-        } catch (SQLException e) {
-          logger.error(SQL_ERROR, e);
-          throw new RuntimeException(SQL_ERROR, e);
-        } catch (BatchException e) {
-          logger.error(SQL_ERROR, e);
-          throw new RuntimeException(SQL_ERROR, e);
         }
+        dto.setExisting();
         // Get the memcached cache manager.
         DaoManagerFactory.initMemcachedManager(subsystem);
         IDaoManager memcachedManager = DaoManagerFactory.getManager(subsystem);
@@ -213,6 +130,7 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
                                           dto);
       }
     }
+    return dto;
   }
 
   /**
@@ -220,24 +138,22 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
    * object and setting it into the thread history.
    * 
    * @param key the primary key of the DTO to query
-   * @throws SQLException if there is a problem querying the database
+   * @param thread the tracking thread with the SQL connection
    * @return the DTO
    */
-  protected T queryDtoFromDatabase(IPrimaryKey key) throws SQLException {
-    Connection connection = null;
+  protected T queryDtoFromDatabase(IPrimaryKey key, PoesysTrackingThread thread) {
     PreparedStatement stmt = null;
     ResultSet rs = null;
     T dto = null;
 
     try {
-      IConnectionFactory factory =
-        ConnectionFactoryFactory.getInstance(subsystem);
-      connection = factory.getConnection();
+      Connection connection = thread.getConnection();
       logger.debug("Object not found in memcached: " + key.getStringKey()
                    + ", querying with connection " + connection);
-      stmt = connection.prepareStatement(sql.getSql(key));
+      String sqlStatement = sql.getSql(key);
+      stmt = connection.prepareStatement(sqlStatement);
       key.setParams(stmt, 1);
-      logger.debug("Querying uncached object by key: " + sql.getSql(key));
+      logger.debug("Querying uncached object by key: " + sqlStatement);
       logger.debug("Setting key value: " + key.getValueList());
       rs = stmt.executeQuery();
 
@@ -255,7 +171,7 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
         logger.debug("Object " + key.getStringKey() + " not found in database");
       }
     } catch (ConstraintViolationException e) {
-      throw new DbErrorException(e.getMessage(), e);
+      throw new DbErrorException(e.getMessage(), thread, e);
     } catch (SQLException e) {
       // Log the message, the SQL statement, the key value parameters, and
       // the SQL statement class, then rethrow the exception.
@@ -264,18 +180,14 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
       logger.error("Memcached query by key parameter values: "
                    + key.getValueList());
       logger.debug("SQL statement in class: " + sql.getClass().getName());
-      throw e;
-    } catch (IOException e) {
-      // Problem with resource bundle, rethrow as SQLException
-      throw new SQLException(RESOURCE_BUNDLE_ERROR);
+      throw new DbErrorException(e.getMessage(), thread, e);
     } finally {
       if (stmt != null) {
-        stmt.close();
-      }
-      if (connection != null) {
-        String connectionString = connection.toString();
-        connection.close();
-        logger.debug("Closed connection " + connectionString);
+        try {
+          stmt.close();
+        } catch (SQLException e) {
+          // ignore
+        }
       }
     }
     return dto;
@@ -296,7 +208,7 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
     // Make sure the key is there.
     String keyString = null;
     if (key == null) {
-      throw new NoPrimaryKeyException(NO_PRIMARY_KEY_MSG);
+      throw new NoPrimaryKeyException(NO_PRIMARY_KEY_ERROR);
     } else {
       keyString = key.getStringKey();
     }

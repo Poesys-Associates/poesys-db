@@ -18,10 +18,6 @@
 package com.poesys.db.dao.insert;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
-
-import com.poesys.db.BatchException;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.dto.IDtoCache;
 
@@ -45,17 +41,19 @@ public class InsertCacheNoKey<T extends IDbDto> extends InsertNoKey<T>
    * 
    * @param sql the SQL statement specification for INSERT
    * @param cache the object cache
+   * @param subsystem the subsystem of the DTO class T
    */
-  public InsertCacheNoKey(IInsertSql<T> sql, IDtoCache<T> cache) {
-    super(sql);
+  public InsertCacheNoKey(IInsertSql<T> sql,
+                          IDtoCache<T> cache,
+                          String subsystem) {
+    super(sql, subsystem);
     this.cache = cache;
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public void insert(Connection connection, IDbDto dto) throws SQLException,
-      BatchException {
-    super.insert(connection, (T)dto);
+  public void insert(IDbDto dto) {
+    super.insert((T)dto);
     cache.cache((T)dto);
   }
 

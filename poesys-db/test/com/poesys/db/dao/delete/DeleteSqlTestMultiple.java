@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao.delete;
 
@@ -22,44 +21,50 @@ package com.poesys.db.dao.delete;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dto.TestMultipleParams;
 import com.poesys.db.pk.IPrimaryKey;
 
 
 /**
  * <p>
- * A DELETE command that deletes multiple rows in the TestMultipleDelete table, a
- * table with a sequence key. This IDeleteSql class uses the TestMultipleParams
- * DTO, which contains the parameters for the DELETE statement.
+ * A DELETE command that deletes multiple rows in the TestMultipleDelete table,
+ * a table with a sequence key. This IDeleteSql class uses the
+ * TestMultipleParams DTO, which contains the parameters for the DELETE
+ * statement.
  * </p>
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
-public class DeleteSqlTestMultiple implements IDeleteSqlWithParameters<TestMultipleParams, TestMultipleParams> {
+public class DeleteSqlTestMultiple implements
+    IDeleteSqlWithParameters<TestMultipleParams, TestMultipleParams> {
   /** SQL statement that deletes a row */
   private static final String SQL =
     "DELETE FROM TestMultipleDelete WHERE colType = ?";
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.IInsertSql#getSql(com.poesys.db.pk.IPrimaryKey)
-   */
+  @Override
   public String getSql(IPrimaryKey ignored) {
     StringBuilder builder = new StringBuilder(SQL);
     return builder.toString();
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.IInsertSql#setParams(java.sql.PreparedStatement,
-   *      int, java.lang.Object)
-   */
-  public int setParams(PreparedStatement stmt, int ignored, TestMultipleParams dto)
-      throws SQLException {
+  @Override
+  public int setParams(PreparedStatement stmt, int ignored,
+                       TestMultipleParams dto) {
     TestMultipleParams test = dto;
-    stmt.setString(1, test.getColType());
+    try {
+      stmt.setString(1, test.getColType());
+    } catch (SQLException e) {
+      throw new DbErrorException("SQL Exception: " + e.getMessage(), e);
+    }
     return 2;
+  }
+
+  @Override
+  public String getParamString(TestMultipleParams dto) {
+    StringBuilder builder = new StringBuilder("Parameters: \"");
+    builder.append(dto.getColType());
+    builder.append("\"");
+    return builder.toString();
   }
 }

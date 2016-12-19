@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao.query;
 
@@ -22,10 +21,12 @@ package com.poesys.db.dao.query;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dto.TestSequence;
 
 
 /**
+ * Test SQL implementation for parameterized count
  * 
  * @author Robert J. Muller
  */
@@ -33,24 +34,18 @@ public class TestSequenceParameterizedCountSql implements
     IParameterizedCountSql<TestSequence> {
   /** SQL statement that counts TestSequence objects based on col1 value */
   private static final String SQL =
-      "SELECT count(*) AS count FROM TestSequence WHERE col1 = ?";
+    "SELECT count(*) AS count FROM TestSequence WHERE col1 = ?";
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.query.IParameterizedCountSql#bindParameters(java.sql.PreparedStatement,
-   *      com.poesys.db.dto.IDto)
-   */
-  public void bindParameters(PreparedStatement stmt, TestSequence parameters)
-      throws SQLException {
-    stmt.setString(1, parameters.getCol1());
+  @Override
+  public void bindParameters(PreparedStatement stmt, TestSequence parameters) {
+    try {
+      stmt.setString(1, parameters.getCol1());
+    } catch (SQLException e) {
+      throw new DbErrorException("SQL error", e);
+    }
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.query.IParameterizedCountSql#getSql()
-   */
+  @Override
   public String getSql() {
     return SQL;
   }

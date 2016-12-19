@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.insert.Insert;
 import com.poesys.db.dao.insert.InsertSqlParent;
@@ -68,11 +69,12 @@ public class UpdateParentTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
 
     // Create the insert command (class under test) for the parent.
-    Insert<Parent> inserter = new Insert<Parent>(new InsertSqlParent());
+    Insert<Parent> inserter =
+      new Insert<Parent>(new InsertSqlParent(), getSubsystem());
 
     // Create the GUID primary key for the parent.
     GuidPrimaryKey key =
@@ -112,7 +114,6 @@ public class UpdateParentTest extends ConnectionTest {
     dto.setChildren(children);
 
     Statement stmt = null;
-    PreparedStatement pstmt = null;
     try {
       // Delete any rows in the Parent and Child tables.
       stmt = conn.createStatement();
@@ -123,36 +124,36 @@ public class UpdateParentTest extends ConnectionTest {
       stmt.close();
       stmt = null;
 
-      // Insert the test row.
-      inserter.insert(conn, dto);
+      conn.commit();
 
     } catch (SQLException e) {
-      fail("insert method failed: " + e.getMessage());
+      fail("delete failed: " + e.getMessage());
     } finally {
       if (stmt != null) {
         stmt.close();
         stmt = null;
       }
-      if (pstmt != null) {
-        pstmt.close();
-        pstmt = null;
-      }
     }
+
+    // Insert the test row.
+    inserter.insert(dto);
 
     // Create the Updater.
     UpdateByKey<Parent> updater =
-      new UpdateByKey<Parent>(new UpdateSqlParent());
+      new UpdateByKey<Parent>(new UpdateSqlParent(), getSubsystem());
 
+    PreparedStatement pstmt = null;
     try {
       // Change col1 in the parent and one of the children.
       dto.setCol1(COL1_CHANGED);
       child2.setCol1(COL1_CHANGED);
 
       // Update the test row.
-      updater.update(conn, dto);
+      updater.update(dto);
 
-      // Query the row again for comparison.
+      // Query the column directly for comparison.
       pstmt = conn.prepareStatement(QUERY_PARENT);
+      // Use key to set query parameter 1 with GUID key value
       key.setParams(pstmt, 1);
       ResultSet rs = pstmt.executeQuery();
       String queriedCol1 = null;
@@ -161,26 +162,30 @@ public class UpdateParentTest extends ConnectionTest {
       }
       pstmt.close();
       pstmt = null;
-      assertTrue(queriedCol1 != null);
-      assertTrue(COL1_CHANGED.equals(queriedCol1));
+      assertTrue("Queried parent column is null", queriedCol1 != null);
+      assertTrue("Queried parent column not updated, original value " + COL1_VALUE
+                     + ", queried value " + queriedCol1,
+                 COL1_CHANGED.equals(queriedCol1));
 
       // Get the second child and see if the value has changed.
       pstmt = conn.prepareStatement(QUERY_CHILD);
+      // Use key to set query parameter 1 with GUID key value, child key is
+      // constant 2
       key.setParams(pstmt, 1);
       rs = pstmt.executeQuery();
       queriedCol1 = null;
       if (rs.next()) {
         queriedCol1 = rs.getString("col1");
       }
-      pstmt.close();
-      pstmt = null;
-      assertTrue(queriedCol1 != null);
-      assertTrue(COL1_CHANGED.equals(queriedCol1));
+      assertTrue("Queried child column is null", queriedCol1 != null);
+      assertTrue("Queried child column not updated", COL1_CHANGED.equals(queriedCol1));
+      conn.commit();
     } catch (SQLException e) {
-      fail("update method failed: " + e.getMessage());
+      fail("update method failed with SQL exception: " + e.getMessage());
     } finally {
-      if (stmt != null) {
-        stmt.close();
+      if (pstmt != null) {
+        pstmt.close();
+        pstmt = null;
       }
       if (conn != null) {
         conn.close();

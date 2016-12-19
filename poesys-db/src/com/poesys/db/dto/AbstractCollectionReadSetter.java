@@ -18,8 +18,6 @@
 package com.poesys.db.dto;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -27,8 +25,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.apache.log4j.Logger;
 
-import com.poesys.db.BatchException;
-import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoFactory;
@@ -75,7 +71,7 @@ abstract public class AbstractCollectionReadSetter<T extends IDbDto> extends
   }
 
   @Override
-  public void set(Connection connection) throws SQLException {
+  public void set() {
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     IDaoFactory<T> factory =
       manager.getFactory(getClassName(), subsystem, expiration);
@@ -95,12 +91,6 @@ abstract public class AbstractCollectionReadSetter<T extends IDbDto> extends
           collection.add(dto);
           dto.deserializeNestedObjects();
         }
-      } catch (ConstraintViolationException e) {
-        throw new DbErrorException(e.getMessage(), e);
-      } catch (BatchException e) {
-        throw new DbErrorException(e.getMessage(), e);
-      } catch (DtoStatusException e) {
-        throw new DbErrorException(e.getMessage(), e);
       } catch (java.util.ConcurrentModificationException e) {
         logger.error("Concurrent modification for DTO " + dto.getPrimaryKey(),
                      e);

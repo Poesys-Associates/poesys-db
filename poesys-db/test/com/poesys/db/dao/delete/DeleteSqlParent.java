@@ -14,13 +14,11 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao.delete;
 
 
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.dto.Parent;
@@ -35,32 +33,28 @@ import com.poesys.db.pk.IPrimaryKey;
  * 
  * @see com.poesys.db.dto.Parent
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class DeleteSqlParent implements IDeleteSql<Parent> {
   /** SQL statement that deletes the Parent row */
   private static final String SQL = "DELETE FROM Parent WHERE ";
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.update.IUpdateSql#getSql(com.poesys.db.pk.IPrimaryKey)
-   */
+  @Override
   public String getSql(IPrimaryKey key) {
     StringBuilder builder = new StringBuilder(SQL);
     builder.append(key.getSqlWhereExpression(""));
     return builder.toString();
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.update.IUpdateSql#setParams(java.sql.PreparedStatement,
-   *      int, java.lang.Object)
-   */
-  public int setParams(PreparedStatement stmt, int next, IDbDto dto)
-      throws SQLException {
+  @Override
+  public int setParams(PreparedStatement stmt, int next, IDbDto dto) {
     next = dto.getPrimaryKey().setParams(stmt, next);
     return next;
+  }
+
+  @Override
+  public String getParamString(Parent dto) {
+    StringBuilder builder = new StringBuilder("Parameters: None");
+    return builder.toString();
   }
 }

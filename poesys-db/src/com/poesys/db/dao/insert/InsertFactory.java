@@ -32,6 +32,18 @@ import com.poesys.db.dto.IDbDto;
  * @param <T> the database DTO type to insert
  */
 public class InsertFactory<T extends IDbDto> {
+  
+  /** The database subsystem of DTO class T */
+  protected final String subsystem;
+  
+  /**
+   * Create a InsertFactory object.
+   *
+   * @param subsystem the subsystem of class T
+   */
+  public InsertFactory(String subsystem) {
+    this.subsystem = subsystem;
+  }
 
   /**
    * Generate a simple single-object insert.
@@ -40,7 +52,7 @@ public class InsertFactory<T extends IDbDto> {
    * @return the insert object
    */
   public IInsert<T> getInsert(IInsertSql<T> sql) {
-    return new Insert<T>(sql);
+    return new Insert<T>(sql, subsystem);
   }
 
   /**
@@ -51,7 +63,7 @@ public class InsertFactory<T extends IDbDto> {
    * @return the insert object
    */
   public IInsert<T> getInsertNoKey(IInsertSql<T> sql) {
-    return new InsertNoKey<T>(sql);
+    return new InsertNoKey<T>(sql, subsystem);
   }
 
   /**
@@ -63,7 +75,7 @@ public class InsertFactory<T extends IDbDto> {
    * @return the insert object
    */
   public IInsertBatch<T> getInsertBatch(IInsertSql<T> sql) {
-    return new InsertBatch<T>(sql);
+    return new InsertBatch<T>(sql, subsystem);
   }
 
   /**
@@ -73,7 +85,7 @@ public class InsertFactory<T extends IDbDto> {
    * @return the insert object
    */
   public IInsertCollection<T> getInsertCollection(IInsertSql<T> sql) {
-    return new InsertCollection<T>(sql);
+    return new InsertCollection<T>(sql, subsystem);
   }
 
   /**
@@ -85,6 +97,6 @@ public class InsertFactory<T extends IDbDto> {
    * @return the insert object
    */
   public IInsertCollection<T> getInsertNoKeyCollection(IInsertSql<T> sql) {
-    return new InsertNoKeyCollection<T>(sql);
+    return new InsertNoKeyCollection<T>(sql, subsystem);
   }
 }

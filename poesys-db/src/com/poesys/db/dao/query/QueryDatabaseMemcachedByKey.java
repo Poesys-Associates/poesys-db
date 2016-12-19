@@ -18,11 +18,6 @@
 package com.poesys.db.dao.query;
 
 
-import java.sql.SQLException;
-
-import org.apache.log4j.Logger;
-
-import com.poesys.db.BatchException;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoManager;
 import com.poesys.db.dao.PoesysTrackingThread;
@@ -45,17 +40,10 @@ import com.poesys.db.pk.IPrimaryKey;
  */
 public class QueryDatabaseMemcachedByKey<T extends IDbDto> extends
     QueryMemcachedByKey<T> implements IQueryByKey<T> {
-  /** Logger for debugging */
-  private static final Logger logger =
-    Logger.getLogger(QueryDatabaseMemcachedByKey.class);
   /** the subsystem containing the T class */
   private final String subsystem;
   /** expiration time in milliseconds for cached objects */
   private final Integer expiration;
-
-  /** Error message when thread gets SQL error */
-  private static final String SQL_ERROR =
-    "com.poesys.db.dto.msg.unexpected_sql_error";
 
   /**
    * Create a QueryDatabaseMemcachedByKey object with the appropriate SQL class,
@@ -89,32 +77,23 @@ public class QueryDatabaseMemcachedByKey<T extends IDbDto> extends
   protected Runnable getRunnableQuery(IPrimaryKey key) {
     // Create a runnable query object that does the query.
     Runnable query = new Runnable() {
+      @SuppressWarnings("unchecked")
       public void run() {
         T dto = null;
         // Get the current tracking thread in which this is running.
         PoesysTrackingThread thread =
           (PoesysTrackingThread)Thread.currentThread();
-        try {
-          dto = queryDtoFromDatabase(key);
-          thread.addDto(dto);
-        } catch (SQLException e) {
-          logger.error(SQL_ERROR, e);
-          throw new RuntimeException(SQL_ERROR, e);
+        dto = (T)thread.getDto(key.getStringKey());
+        if (dto == null) {
+          dto = queryDtoFromDatabase(key, thread);
         }
+        thread.addDto(dto);
 
         // For queried objects, get the nested objects and cache the DTO.
         // This is done outside the query method to ensure that the
         // SQL resources are completely closed.
         if (dto != null && dto.isQueried()) {
-          try {
-            dto.queryNestedObjects();
-          } catch (SQLException e) {
-            logger.error(SQL_ERROR, e);
-            throw new RuntimeException(SQL_ERROR, e);
-          } catch (BatchException e) {
-            logger.error(SQL_ERROR, e);
-            throw new RuntimeException(SQL_ERROR, e);
-          }
+          dto.queryNestedObjects();
           // Get the memcached cache manager.
           DaoManagerFactory.initMemcachedManager(subsystem);
           IDaoManager memcachedManager =

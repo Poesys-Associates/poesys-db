@@ -18,18 +18,16 @@
 package com.poesys.db.dao.update;
 
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 import org.apache.log4j.Logger;
 
-import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.Message;
 import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
-import com.poesys.db.dto.IDbDto.Status;
 import com.poesys.db.pk.IPrimaryKey;
 
 
@@ -52,7 +50,7 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
   /** Internal Strategy-pattern object containing the SQL query */
   private IUpdateSql<T> sql;
   /** Error message when no DTO supplied */
-  private static final String NO_DTO_MSG =
+  private static final String NO_DTO_ERROR =
     "com.poesys.db.dao.update.msg.no_dto";
   /** Error message when insert throws exception */
   private static final String UPDATE_ERROR =
@@ -62,56 +60,51 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
   /** timeout for the cache thread */
   private static final int TIMEOUT = 1000 * 60;
 
-  /** Indicates whether this is a leaf update */
-  private boolean leaf = false;
+  /** the subsystem of class T */
+  protected final String subsystem;
 
   /**
    * Create an UpdateByKey object by supplying the concrete implementation of
    * the SQL-statement generator and JDBC setter.
    * 
    * @param sql the SQL UPDATE statement specification
+   * @param subsystem of class T
    */
-  public UpdateByKey(IUpdateSql<T> sql) {
+  public UpdateByKey(IUpdateSql<T> sql, String subsystem) {
     this.sql = sql;
+    this.subsystem = subsystem;
   }
 
   @Override
-  public void update(Connection connection, T dto) throws SQLException,
-      BatchException {
+  public void update(T dto) {
     // Check that the DTO is there and is CHANGED.
     if (dto == null) {
-      throw new InvalidParametersException(NO_DTO_MSG);
+      throw new InvalidParametersException(Message.getMessage(NO_DTO_ERROR,
+                                                              null));
     } else if (dto.getStatus() == IDbDto.Status.CHANGED) {
       // Process CHANGED DTOs only
       // Check for the tracking thread and create it if it's not already there.
-      PoesysTrackingThread thread = null;
       if (Thread.currentThread() instanceof PoesysTrackingThread) {
-        thread = (PoesysTrackingThread)Thread.currentThread();
+        PoesysTrackingThread thread =
+          (PoesysTrackingThread)Thread.currentThread();
         // Process only if not already processed
         if (thread.isProcessed(dto.getPrimaryKey().getStringKey())) {
-          updateInDatabase(connection, dto);
+          updateInDatabase(dto);
         }
       } else {
         Runnable query = new Runnable() {
           public void run() {
+            PoesysTrackingThread thread =
+              (PoesysTrackingThread)Thread.currentThread();
             try {
-              updateInDatabase(connection, dto);
-            } catch (SQLException e) {
-              // Log and let the thread complete immediately
-              Object[] args = { dto.getPrimaryKey().getStringKey() };
-              String message = Message.getMessage(UPDATE_ERROR, args);
-              logger.error(message, e);
-              throw new RuntimeException(message, e);
-            } catch (BatchException e) {
-              // Log and let the thread complete immediately
-              Object[] args = { dto.getPrimaryKey().getStringKey() };
-              String message = Message.getMessage(UPDATE_ERROR, args);
-              logger.error(message, e);
-              throw new RuntimeException(message, e);
+              updateInDatabase(dto);
+            } finally {
+              thread.closeConnection();
             }
           }
         };
-        thread = new PoesysTrackingThread(query);
+        PoesysTrackingThread thread =
+          new PoesysTrackingThread(query, subsystem);
         thread.start();
         // Join the thread, blocking until the thread completes or
         // until the query times out.
@@ -125,42 +118,36 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
       }
 
     }
-    // After processing the object, post-process nested objects.
-    // This gets done regardless of main object status.
-    postprocess(connection, dto);
   }
 
   /**
    * Update the DTO in the database. This method must only be called for a DTO
    * that has status CHANGED and has not already been processed.
    * 
-   * @param connection the SQL connection
    * @param dto the DTO to update in the database
-   * @throws SQLException when there is a database problem
-   * @throws BatchException when there is an exception during a batch operation
    */
-  private void updateInDatabase(Connection connection, T dto)
-      throws SQLException, BatchException {
+  private void updateInDatabase(T dto) {
+    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
     PreparedStatement stmt = null;
 
     if (dto == null) {
-      throw new InvalidParametersException(NO_DTO_MSG);
-    } else {
-      dto.validateForUpdate();
-      dto.preprocessNestedObjects(connection);
+      throw new InvalidParametersException(NO_DTO_ERROR);
     }
 
     String sqlStmt = null;
 
     try {
+      dto.validateForUpdate();
+      dto.preprocessNestedObjects();
       IPrimaryKey key = dto.getPrimaryKey();
       sqlStmt = sql.getSql(key);
       if (sqlStmt != null) {
-        stmt = connection.prepareStatement(sqlStmt);
+        stmt = thread.getConnection().prepareStatement(sqlStmt);
         sql.setParams(stmt, 1, dto);
 
         logger.debug("Executing update with key " + key);
         logger.debug("SQL: " + sqlStmt);
+        logger.debug(sql.getParamString(dto));
 
         stmt.executeUpdate();
 
@@ -168,32 +155,31 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
         // processing is complete (over the entire inheritance hierarchy).
       }
     } catch (SQLException e) {
-      logger.error(e.getMessage());
-      logger.error(sqlStmt);
-      logger.error("Updated object key: " + dto.getPrimaryKey().getValueList());
       dto.setFailed();
-      throw e;
+      Object[] args = { dto.getPrimaryKey().getStringKey() };
+      String message = Message.getMessage(UPDATE_ERROR, args);
+      logger.error(message, e);
+      throw new DbErrorException(message, thread, e);
     } catch (RuntimeException e) {
       dto.setFailed();
       throw e;
     } finally {
-      // Set status to EXISTING after processing the changes.
-      if (dto.getStatus() == Status.CHANGED) {
-        dto.setExisting();
-      }
+      // Close the statement as required.
       if (stmt != null) {
-        stmt.close();
+        try {
+          stmt.close();
+        } catch (SQLException e) {
+          // ignore
+        }
       }
     }
 
-    PoesysTrackingThread thread =
-      ((PoesysTrackingThread)Thread.currentThread());
     // Add the DTO to the tracking thread if not tracked.
     if (thread.getDto(dto.getPrimaryKey().getStringKey()) == null) {
       thread.addDto(dto);
     }
     // Process the nested objects.
-    postprocess(connection, dto);
+    postprocess(dto);
     // Set the object as processed.
     thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
   }
@@ -202,24 +188,10 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
    * Post-process the nested objects of a DTO. Override this method to supply
    * extra information like a session ID.
    * 
-   * @param connection the JDBC connection
    * @param dto the DTO containing the nested objects
-   * @throws SQLException when there is a database problem
-   * @throws BatchException when there is a batch processing problem
    */
-  protected void postprocess(Connection connection, T dto) throws SQLException,
-      BatchException {
-    dto.postprocessNestedObjects(connection);
-  }
-
-  @Override
-  public boolean isLeaf() {
-    return leaf;
-  }
-
-  @Override
-  public void setLeaf(boolean isLeaf) {
-    leaf = isLeaf;
+  protected void postprocess(T dto) {
+    dto.postprocessNestedObjects();
   }
 
   @Override

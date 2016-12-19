@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.insert.InsertBatch;
 import com.poesys.db.dao.insert.InsertSqlTestNatural;
@@ -59,10 +60,10 @@ public class DeleteCollectionTestNaturalTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
     InsertBatch<TestNatural> inserter =
-      new InsertBatch<TestNatural>(new InsertSqlTestNatural());
+      new InsertBatch<TestNatural>(new InsertSqlTestNatural(), getSubsystem());
     List<TestNatural> dtos = new CopyOnWriteArrayList<TestNatural>();
     BigDecimal col1 = new BigDecimal("1234.5678");
 
@@ -80,10 +81,12 @@ public class DeleteCollectionTestNaturalTest extends ConnectionTest {
       stmt = conn.createStatement();
       stmt.executeUpdate("DELETE FROM TestNatural");
       stmt.close();
+      
+      conn.commit();
 
       // Insert the test batch.
       stmt = conn.createStatement();
-      inserter.insert(conn, dtos, BATCH_SIZE);
+      inserter.insert(dtos, BATCH_SIZE);
 
       // Delete the batch.
       for (TestNatural dto : dtos) {
@@ -91,8 +94,8 @@ public class DeleteCollectionTestNaturalTest extends ConnectionTest {
       }
 
       DeleteCollectionByKey<TestNatural> deleter =
-        new DeleteCollectionByKey<TestNatural>(new DeleteSqlTestNatural());
-      deleter.delete(conn, dtos);
+        new DeleteCollectionByKey<TestNatural>(new DeleteSqlTestNatural(), getSubsystem());
+      deleter.delete(dtos);
 
       query = conn.prepareStatement(QUERY);
 
@@ -133,17 +136,18 @@ public class DeleteCollectionTestNaturalTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
     DeleteCollectionByKey<TestNatural> cut =
-      new DeleteCollectionByKey<TestNatural>(new DeleteSqlTestNatural());
+      new DeleteCollectionByKey<TestNatural>(new DeleteSqlTestNatural(), getSubsystem());
     Collection<TestNatural> dtos = null;
     Statement stmt = null;
 
     try {
       // Insert the test batch, which is null.
       stmt = conn.createStatement();
-      cut.delete(conn, dtos);
+      cut.delete(dtos);
+      conn.commit();
     } catch (SQLException e) {
       fail("delete batch process with null input failed: " + e.getMessage());
     } finally {
@@ -151,7 +155,6 @@ public class DeleteCollectionTestNaturalTest extends ConnectionTest {
         stmt.close();
       }
       if (conn != null) {
-        conn.commit();
         conn.close();
       }
     }

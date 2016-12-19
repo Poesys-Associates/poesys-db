@@ -45,6 +45,7 @@ public class MessageTest {
     List<String> list = new ArrayList<String>();
     // Add a bundle with user-supplied test messages and a message override.
     list.add("com.poesys.db.TestBundle");
+    Message.resetPropertiesFiles();
     Message.initializePropertiesFiles(list);
   }
 
@@ -99,7 +100,7 @@ public class MessageTest {
   }
 
   /**
-   * Test the standard messsage with arguments. Depends on the message
+   * Test the standard message with arguments. Depends on the message
    * com.poesys.db.connection.msg.invalid_jndi in PoesysDbBundle.
    */
   @Test
@@ -119,14 +120,16 @@ public class MessageTest {
   }
 
   /**
-   * Test the standard messsage with arguments. Depends on the message
-   * com.poesys.db.connection.msg.invalid_jndi in PoesysDbBundle.
+   * Test the standard message with arguments. Depends on the message
+   * com.poesys.db.connection.msg.rollbackError in PoesysDbBundle having
+   * the text "SQL exception on rolling back transaction" and TestBundle having "No rollback".
    */
   @Test
   public void testGetUserOverriddenMessage() {
+    
     String message =
       Message.getMessage("com.poesys.db.connection.msg.rollbackError", null);
-    assertTrue("Did not override message " + message,
+    assertTrue("Did not override message with string " + message,
                message.equals("No rollback"));
   }
 }

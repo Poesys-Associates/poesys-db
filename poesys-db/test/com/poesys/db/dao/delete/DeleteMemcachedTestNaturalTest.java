@@ -28,14 +28,10 @@ import java.sql.Statement;
 import org.apache.log4j.Logger;
 
 import com.poesys.db.BatchException;
-import com.poesys.db.dao.ConnectionTest;
+import com.poesys.db.DbErrorException;
+import com.poesys.db.dao.MemcachedTest;
 import com.poesys.db.dao.insert.InsertMemcached;
 import com.poesys.db.dao.insert.InsertSqlTestNatural;
-import com.poesys.db.dao.query.IKeyQuerySql;
-import com.poesys.db.dao.query.QueryByKey;
-import com.poesys.db.dao.query.QueryMemcachedByKey;
-import com.poesys.db.dao.query.TestNaturalKeyQuerySql;
-import com.poesys.db.dto.IDbDto;
 import com.poesys.db.dto.TestNatural;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -45,9 +41,10 @@ import com.poesys.db.pk.IPrimaryKey;
  * 
  * @author Robert J. Muller
  */
-public class DeleteMemcachedTestNaturalTest extends ConnectionTest {
-  private static final Logger logger = Logger.getLogger(DeleteMemcachedTestNaturalTest.class);
-  
+public class DeleteMemcachedTestNaturalTest extends MemcachedTest {
+  private static final Logger logger =
+    Logger.getLogger(DeleteMemcachedTestNaturalTest.class);
+
   private static final String QUERY =
     "SELECT col1 FROM TestNatural WHERE key1 = 'A' and key2 = 'B'";
 
@@ -63,7 +60,7 @@ public class DeleteMemcachedTestNaturalTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
 
     // Create an Inserter to add the row to update
@@ -89,8 +86,10 @@ public class DeleteMemcachedTestNaturalTest extends ConnectionTest {
       stmt.executeUpdate("DELETE FROM TestNatural");
       stmt.close();
 
+      conn.commit();
+
       // Insert the row to delete with the DAO class under test.
-      inserter.insert(conn, dto);
+      inserter.insert(dto);
 
       // Query the row using JDBC, no cache.
       stmt = conn.createStatement();
@@ -101,9 +100,11 @@ public class DeleteMemcachedTestNaturalTest extends ConnectionTest {
       stmt.close();
       stmt = null;
 
+      conn.commit();
+
       // Delete the test row.
       dto.delete();
-      deleter.delete(conn, dto);
+      deleter.delete(dto);
 
       // Query the row from the database to verify database delete.
       stmt = conn.createStatement();
@@ -113,17 +114,14 @@ public class DeleteMemcachedTestNaturalTest extends ConnectionTest {
       }
       stmt.close();
       stmt = null;
+      conn.commit();
       logger.info("Verified row removed from database");
 
-      // Get the row using a standard memcached query to see if it's deleted in
-      // the cache.
-      IKeyQuerySql<TestNatural> sql = new TestNaturalKeyQuerySql();
-      QueryByKey<TestNatural> query =
-        new QueryMemcachedByKey<TestNatural>(sql,
-                                             getSubsystem(),
-                                             Integer.MAX_VALUE);
-      IDbDto queriedDto = query.queryByKey(key);
-      assertTrue("TestNatural object not deleted", queriedDto == null);
+      // Check the cache to make sure the object is marked deleted.
+      logger.debug("Checking deleted object from memcached with key "
+                   + key.getStringKey());
+      Object object = getFromMemcached(key);
+      assertTrue("Found deleted memcached object in cache", object == null);
     } catch (SQLException e) {
       fail("delete test failed: " + e.getMessage());
     } finally {

@@ -26,6 +26,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.Message;
 import com.poesys.db.NoPrimaryKeyException;
@@ -41,7 +42,7 @@ import com.poesys.db.pk.PrimaryKeyFactory;
 /**
  * Test the specialization/inheritance insertion capability.
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class InsertSubSubClassTest extends ConnectionTest {
   private static final String QUERY_ROOT =
@@ -67,23 +68,25 @@ public class InsertSubSubClassTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
 
     // Create the insert commands (class under test) for the three tables.
-    Insert<RootClass> cut1 = new Insert<RootClass>(new InsertSqlRootClass());
-    Insert<SubClass> cut2 = new Insert<SubClass>(new InsertSqlSubClass());
+    Insert<RootClass> cut1 =
+      new Insert<RootClass>(new InsertSqlRootClass(), getSubsystem());
+    Insert<SubClass> cut2 =
+      new Insert<SubClass>(new InsertSqlSubClass(), getSubsystem());
     Insert<SubSubClass> cut3 =
-      new Insert<SubSubClass>(new InsertSqlSubSubClass());
+      new Insert<SubSubClass>(new InsertSqlSubSubClass(), getSubsystem());
 
     // Create the sequence primary key for the class.
     AbstractSingleValuedPrimaryKey key = null;
     try {
       key =
-        PrimaryKeyFactory.createMySqlSequenceKey(conn,
-                                                 "root_class",
+        PrimaryKeyFactory.createMySqlSequenceKey("root_class",
                                                  KEY_NAME,
-                                                 CLASS_NAME);
+                                                 CLASS_NAME,
+                                                 getSubsystem());
     } catch (InvalidParametersException e1) {
       fail(e1.getMessage());
     } catch (NoPrimaryKeyException e1) {
@@ -108,13 +111,15 @@ public class InsertSubSubClassTest extends ConnectionTest {
       stmt.close();
       stmt = null;
 
+      conn.commit();
+
       // Insert the test object. Keep the new flag set for inserting the
       // subclass parts.
-      cut1.insert(conn, dto);
+      cut1.insert(dto);
       dto.undoStatus();
-      cut2.insert(conn, dto);
+      cut2.insert(dto);
       dto.undoStatus();
-      cut3.insert(conn, dto);
+      cut3.insert(dto);
 
       // Test the flags.
       assertTrue("inserted parent not EXISTING",
@@ -134,6 +139,8 @@ public class InsertSubSubClassTest extends ConnectionTest {
       assertTrue(queriedCol != null);
       assertTrue(COL_VALUE.equals(queriedCol));
 
+      conn.commit();
+
       // Query the sub-class row.
       pstmt = conn.prepareStatement(QUERY_SUB);
       key.setParams(pstmt, 1);
@@ -148,6 +155,8 @@ public class InsertSubSubClassTest extends ConnectionTest {
       assertTrue(queriedCol != null);
       assertTrue(COL_VALUE.equals(queriedCol));
 
+      conn.commit();
+
       // Query the sub-sub-class row.
       pstmt = conn.prepareStatement(QUERY_SUB_SUB);
       key.setParams(pstmt, 1);
@@ -161,6 +170,8 @@ public class InsertSubSubClassTest extends ConnectionTest {
       rs = null;
       assertTrue(queriedCol != null);
       assertTrue(COL_VALUE.equals(queriedCol));
+
+      conn.commit();
     } catch (SQLException e) {
       fail("insert method failed with SQL error: " + e.getMessage());
     } finally {

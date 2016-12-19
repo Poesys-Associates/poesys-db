@@ -25,6 +25,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dto.TestMultipleParams;
 
@@ -47,9 +48,11 @@ import com.poesys.db.dto.TestMultipleParams;
  * </code>
  * </pre>
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class DeleteWithParametersTest extends ConnectionTest {
+  /** SQL statement to clean out test table before doing test */
+  private static final String DELETE_FROM_TEST = "DELETE FROM TestMultipleDelete";
   /** SQL statement that inserts a test row into TestMultiple */
   private static final String INSERT =
     "INSERT INTO TestMultipleDelete (pkey, col1, colType) VALUES (?, ?, ?)";
@@ -71,46 +74,60 @@ public class DeleteWithParametersTest extends ConnectionTest {
       // Clear the test table. Bug: seems to encounter weird metadata locking.
       // Delete the "b" test rows.
       DeleteWithParameters<TestMultipleParams, TestMultipleParams> clearer =
-        new DeleteWithParameters<TestMultipleParams, TestMultipleParams>(new DeleteSqlTestMultiple());
-      clearer.delete(conn, new TestMultipleParams(NEW, "b"));
+        new DeleteWithParameters<TestMultipleParams, TestMultipleParams>(new DeleteSqlTestMultiple(),
+                                                                         getSubsystem());
+      clearer.delete(new TestMultipleParams(NEW, "b"));
+
+      // Delete any rows in the TestNatural table.
+      Statement stmt = null;
+      stmt = conn.createStatement();
+      stmt.executeUpdate(DELETE_FROM_TEST);
+      stmt.close();
+      stmt = null;
+
+      conn.commit();
 
       // Insert test rows that create a set of multiple rows identified by a
       // single value of the colType column, 'b'.
-      PreparedStatement stmt = conn.prepareStatement(INSERT);
+      PreparedStatement insertStmt = conn.prepareStatement(INSERT);
       for (long i = 1; i < 10; i++) {
         // insert key, col1, colType a
-        stmt.setLong(1, i);
-        stmt.setString(2, "Col Value " + i);
-        stmt.setString(3, "a");
-        stmt.execute();
+        insertStmt.setLong(1, i);
+        insertStmt.setString(2, "Col Value " + i);
+        insertStmt.setString(3, "a");
+        insertStmt.execute();
       }
 
       for (long i = 10; i < 15; i++) {
         // insert key, col1, colType b
-        stmt.setLong(1, i);
-        stmt.setString(2, "Col Value " + i);
-        stmt.setString(3, "b");
-        stmt.execute();
+        insertStmt.setLong(1, i);
+        insertStmt.setString(2, "Col Value " + i);
+        insertStmt.setString(3, "b");
+        insertStmt.execute();
       }
 
-      stmt.close();
+      insertStmt.close();
+
+      conn.commit();
 
       // Delete the "b" test rows.
       DeleteWithParameters<TestMultipleParams, TestMultipleParams> deleter =
-        new DeleteWithParameters<TestMultipleParams, TestMultipleParams>(new DeleteSqlTestMultiple());
+        new DeleteWithParameters<TestMultipleParams, TestMultipleParams>(new DeleteSqlTestMultiple(),
+                                                                         getSubsystem());
       TestMultipleParams parameters = new TestMultipleParams(NEW, "b");
-      deleter.delete(conn, parameters);
+      deleter.delete(parameters);
 
       // Query the five "b" rows to make sure they're gone.
       Statement query = conn.createStatement();
       ResultSet rs =
-        query.executeQuery("SELECT col1 FROM TestMultiple WHERE colType = 'b'");
-      while (rs.next()) {
+        query.executeQuery("SELECT col1 FROM TestMultipleDelete WHERE colType = 'b'");
+      if (rs.next()) {
         fail("Found a 'b' row when they're supposed to have been deleted");
       }
       query.close();
+      conn.commit();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     } finally {
       if (conn != null) {
         conn.close();

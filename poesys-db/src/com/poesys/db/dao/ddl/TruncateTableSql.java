@@ -14,31 +14,29 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao.ddl;
 
 /**
- * A test implementation of the ISql interface that contains a generic
- * TRUNCATE statement.
+ * An implementation of the ISql interface that truncates a table. The connected
+ * user must have privileges for this operation.
  * 
  * @author Robert J. Muller
  */
 public class TruncateTableSql implements ISql {
   /** Basic part of the TRUNCATE statement */
   StringBuilder sql = new StringBuilder("TRUNCATE TABLE ");
-  
+
   /**
    * Create a TruncateTableSql object.
+   * 
    * @param tableName the name of the table to truncate
    */
   public TruncateTableSql(String tableName) {
     sql.append(tableName);
   }
 
-  /* (non-Javadoc)
-   * @see com.poesys.db.dao.ddl.ISql#getSql()
-   */
+  @Override
   public String getSql() {
     return sql.toString();
   }

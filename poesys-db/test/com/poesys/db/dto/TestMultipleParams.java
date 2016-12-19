@@ -27,7 +27,7 @@ import com.poesys.db.pk.IPrimaryKey;
  * of all rows in the TestMultiple class that have a particular column type
  * (colType).
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class TestMultipleParams extends AbstractTestDto {
   /** Generated serial version UID for Serializable object */

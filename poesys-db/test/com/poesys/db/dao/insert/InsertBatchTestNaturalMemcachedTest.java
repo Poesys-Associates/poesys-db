@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dto.TestNatural;
 
@@ -60,7 +61,7 @@ public class InsertBatchTestNaturalMemcachedTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
     InsertBatch<TestNatural> cut =
       new InsertMemcachedBatch<TestNatural>(new InsertSqlTestNatural(),
@@ -84,9 +85,10 @@ public class InsertBatchTestNaturalMemcachedTest extends ConnectionTest {
       stmt.executeUpdate("DELETE FROM TestNatural");
       stmt.close();
 
+      conn.commit();
+
       // Insert the test batch.
-      stmt = conn.createStatement();
-      cut.insert(conn, dtos, BATCH_SIZE);
+      cut.insert(dtos, BATCH_SIZE);
 
       query = conn.prepareStatement(QUERY);
 
@@ -104,6 +106,7 @@ public class InsertBatchTestNaturalMemcachedTest extends ConnectionTest {
         assertTrue(queriedCol1 != null);
         // Must use compareTo here, not equals, because of precision difference
         assertTrue(col1.compareTo(queriedCol1) == 0);
+        conn.commit();
       }
     } catch (SQLException e) {
       fail("insert batch method failed: " + e.getMessage());
@@ -129,7 +132,7 @@ public class InsertBatchTestNaturalMemcachedTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
     InsertBatch<TestNatural> cut =
       new InsertMemcachedBatch<TestNatural>(new InsertSqlTestNatural(),
@@ -150,9 +153,7 @@ public class InsertBatchTestNaturalMemcachedTest extends ConnectionTest {
       }
 
       // Create the DTO.
-      errorDtos.add(new TestNatural(keyValue,
-                                    keyValue,
-                                    col1));
+      errorDtos.add(new TestNatural(keyValue, keyValue, col1));
     }
 
     for (int i = 0; i < OBJECT_COUNT; i++) {
@@ -172,10 +173,12 @@ public class InsertBatchTestNaturalMemcachedTest extends ConnectionTest {
       stmt.executeUpdate("DELETE FROM TestNatural");
       stmt.close();
 
+      conn.commit();
+
       // Insert the test batch.
       stmt = conn.createStatement();
       try {
-        cut.insert(conn, errorDtos, BATCH_SIZE);
+        cut.insert(errorDtos, BATCH_SIZE);
         fail();
       } catch (Throwable e) {
         assertTrue(true);
@@ -206,6 +209,7 @@ public class InsertBatchTestNaturalMemcachedTest extends ConnectionTest {
         }
         i++;
       }
+      conn.commit();
     } catch (SQLException e) {
       fail("insert batch method failed: " + e.getMessage());
     } finally {
@@ -213,7 +217,6 @@ public class InsertBatchTestNaturalMemcachedTest extends ConnectionTest {
         stmt.close();
       }
       if (conn != null) {
-        conn.commit();
         conn.close();
       }
     }
@@ -231,7 +234,7 @@ public class InsertBatchTestNaturalMemcachedTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
     InsertBatch<TestNatural> cut =
       new InsertMemcachedBatch<TestNatural>(new InsertSqlTestNatural(),
@@ -246,9 +249,12 @@ public class InsertBatchTestNaturalMemcachedTest extends ConnectionTest {
       stmt.executeUpdate("DELETE FROM TestNatural");
       stmt.close();
 
+      conn.commit();
+
       // Insert the test batch, which is null.
       stmt = conn.createStatement();
-      cut.insert(conn, dtos, BATCH_SIZE);
+      cut.insert(dtos, BATCH_SIZE);
+      conn.commit();
     } catch (SQLException e) {
       fail("insert batch method with null input failed: " + e.getMessage());
     } finally {
@@ -256,7 +262,6 @@ public class InsertBatchTestNaturalMemcachedTest extends ConnectionTest {
         stmt.close();
       }
       if (conn != null) {
-        conn.commit();
         conn.close();
       }
     }

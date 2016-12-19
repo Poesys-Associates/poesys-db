@@ -18,11 +18,8 @@
 package com.poesys.db.dao.insert;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Collection;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.dto.IDbDto;
 
 
@@ -58,37 +55,29 @@ public class InsertCollection<T extends IDbDto> implements IInsertCollection<T> 
    */
   private final Insert<T> dao;
 
+  protected final String subsystem;
+
   /**
    * Create an InsertCollection object of type T, a kind of AbstractDto, by
    * supplying the concrete implementation of the SQL-statement generator and
    * JDBC setter.
    * 
    * @param sql the SQL INSERT statement generator object for type T
+   * @param subsystem the database subsystem for the DTO being processed
    */
-  public InsertCollection(IInsertSql<T> sql) {
-    dao = new Insert<T>(sql);
+  public InsertCollection(IInsertSql<T> sql, String subsystem) {
+    this.subsystem = subsystem;
+    dao = new Insert<T>(sql, subsystem);
   }
 
   @Override
-  public void insert(Connection connection, Collection<T> dtos)
-      throws SQLException, BatchException {
+  public void insert(Collection<T> dtos) {
 
     if (dtos != null) {
       for (T dto : dtos) {
-        dao.insert(connection, dto);
+        dao.insert(dto);
       }
     }
-  }
-
-
-  @Override
-  public boolean isLeaf() {
-    return dao.isLeaf();
-  }
-
-  @Override
-  public void setLeaf(boolean isLeaf) {
-    dao.setLeaf(isLeaf);
   }
 
   @Override

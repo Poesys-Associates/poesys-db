@@ -27,6 +27,7 @@ import java.sql.Statement;
 import org.junit.Test;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.insert.Insert;
 import com.poesys.db.dao.insert.InsertSqlTestSequence;
@@ -59,60 +60,60 @@ public class QueryCountTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
 
     // Delete all the rows from TestSequence
     try {
       stmt = conn.createStatement();
       stmt.execute("DELETE FROM TestSequence");
+      conn.commit();
     } catch (RuntimeException e1) {
       fail("Couldn't delete rows from TestSequence");
     } finally {
       if (stmt != null) {
         stmt.close();
       }
-    }
-
-    // Create the sequence key and the objects to insert.
-    Insert<TestSequence> inserter =
-      new Insert<TestSequence>(new InsertSqlTestSequence());
-    AbstractSingleValuedPrimaryKey key1 =
-      PrimaryKeyFactory.createMySqlSequenceKey(conn, "test", "pkey", CLASS_NAME);
-    String col1 = "test";
-    TestSequence dto1 = new TestSequence(key1, col1);
-    AbstractSingleValuedPrimaryKey key2 =
-      PrimaryKeyFactory.createMySqlSequenceKey(conn, "test", "pkey", CLASS_NAME);
-    TestSequence dto2 = new TestSequence(key2, col1);
-    AbstractSingleValuedPrimaryKey key3 =
-      PrimaryKeyFactory.createMySqlSequenceKey(conn, "test", "pkey", CLASS_NAME);
-    TestSequence dto3 = new TestSequence(key3, "no test");
-
-    // Insert the objects.
-    try {
-      inserter.insert(conn, dto1);
-      inserter.insert(conn, dto2);
-      inserter.insert(conn, dto3);
-      assertTrue(true);
-    } catch (SQLException e) {
-      fail("Insert test objects failed: " + e.getMessage());
-    }
-
-    // Query the count of objects.
-    try {
-      IParameterizedCountSql<TestSequence> sql =
-        new TestSequenceParameterizedCountSql();
-      QueryCount<TestSequence> dao = new QueryCount<TestSequence>(sql);
-      BigInteger count = dao.queryCount(conn, dto1);
-      assertTrue("null count queried", count != null);
-      // Should get back 2 of the 3 DTOs
-      assertTrue("wrong count: " + count, count.equals(new BigInteger("2")));
-    } catch (SQLException e) {
-      fail("Query count exception: " + e.getMessage());
-    } finally {
       if (conn != null) {
         conn.close();
       }
     }
+
+    // Create the sequence key and the objects to insert.
+    Insert<TestSequence> inserter =
+      new Insert<TestSequence>(new InsertSqlTestSequence(), getSubsystem());
+    AbstractSingleValuedPrimaryKey key1 =
+      PrimaryKeyFactory.createMySqlSequenceKey("test",
+                                               "pkey",
+                                               CLASS_NAME,
+                                               getSubsystem());
+    String col1 = "test";
+    TestSequence dto1 = new TestSequence(key1, col1);
+    AbstractSingleValuedPrimaryKey key2 =
+      PrimaryKeyFactory.createMySqlSequenceKey("test",
+                                               "pkey",
+                                               CLASS_NAME,
+                                               getSubsystem());
+    TestSequence dto2 = new TestSequence(key2, col1);
+    AbstractSingleValuedPrimaryKey key3 =
+      PrimaryKeyFactory.createMySqlSequenceKey("test",
+                                               "pkey",
+                                               CLASS_NAME,
+                                               getSubsystem());
+    TestSequence dto3 = new TestSequence(key3, "no test");
+
+    inserter.insert(dto1);
+    inserter.insert(dto2);
+    inserter.insert(dto3);
+    assertTrue(true);
+
+    // Query the count of objects.
+    IParameterizedCountSql<TestSequence> sql =
+      new TestSequenceParameterizedCountSql();
+    QueryCount<TestSequence> dao = new QueryCount<TestSequence>(sql);
+    BigInteger count = dao.queryCount(dto1, getSubsystem());
+    assertTrue("null count queried", count != null);
+    // Should get back 2 of the 3 DTOs
+    assertTrue("wrong count: " + count, count.equals(new BigInteger("2")));
   }
 }

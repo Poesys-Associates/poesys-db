@@ -14,7 +14,6 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao.update;
 
@@ -22,6 +21,7 @@ package com.poesys.db.dao.update;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dto.TestNatural;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -34,34 +34,36 @@ import com.poesys.db.pk.IPrimaryKey;
  * 
  * @see com.poesys.db.dto.TestNatural
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class UpdateSqlTestNatural implements IUpdateSql<TestNatural> {
   /** SQL statement that updates col1 */
   private static final String SQL = "UPDATE TestNatural SET col1 = ? WHERE ";
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.IInsertSql#getSql(com.poesys.db.pk.IPrimaryKey)
-   */
+  @Override
   public String getSql(IPrimaryKey key) {
     StringBuilder builder = new StringBuilder(SQL);
     builder.append(key.getSqlWhereExpression(""));
     return builder.toString();
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.IInsertSql#setParams(java.sql.PreparedStatement,
-   *      int, java.lang.Object)
-   */
-  public int setParams(PreparedStatement stmt, int next, TestNatural dto)
-      throws SQLException {
-    stmt.setBigDecimal(next, dto.getCol1());
-    next++;
-    next = dto.getPrimaryKey().setParams(stmt, next);
+  @Override
+  public int setParams(PreparedStatement stmt, int next, TestNatural dto) {
+    try {
+      stmt.setBigDecimal(next, dto.getCol1());
+      next++;
+      next = dto.getPrimaryKey().setParams(stmt, next);
+    } catch (SQLException e) {
+      throw new DbErrorException("SQL error", e);
+    }
     return next;
+  }
+
+  @Override
+  public String getParamString(TestNatural dto) {
+    StringBuilder builder = new StringBuilder("Parameters: \"");
+    builder.append(dto.getCol1());
+    builder.append("\"");
+    return builder.toString();
   }
 }

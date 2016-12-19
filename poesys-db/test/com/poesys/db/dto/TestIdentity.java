@@ -24,6 +24,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import com.poesys.db.DbErrorException;
+import com.poesys.db.Message;
 import com.poesys.db.pk.IPrimaryKey;
 import com.poesys.db.pk.IdentityPrimaryKey;
 
@@ -40,7 +42,7 @@ import com.poesys.db.pk.IdentityPrimaryKey;
  * </code>
  * </pre>
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class TestIdentity extends AbstractTestDto {
   /** Generated serial version UID for Serializable object */
@@ -54,7 +56,10 @@ public class TestIdentity extends AbstractTestDto {
 
   /** Message for null compare object */
   private static final String NULL_COMP_MSG =
-    "Null object supplied to comparison";
+    "com.poesys.db.col.msg.null_comparison";
+  /** Message for unexpected SQL error */
+  private static final String SQL_ERROR =
+    "com.poesys.db.dto.msg.unexpected_sql_error";
 
   /**
    * Create a TestIdentity object.
@@ -70,20 +75,10 @@ public class TestIdentity extends AbstractTestDto {
     this.col1 = col1;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.IDto#getPrimaryKey()
-   */
   public IPrimaryKey getPrimaryKey() {
     return key;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see java.lang.Comparable#compareTo(java.lang.Object)
-   */
   public int compareTo(IDbDto o) {
     if (o == null) {
       throw new RuntimeException(NULL_COMP_MSG);
@@ -148,14 +143,18 @@ public class TestIdentity extends AbstractTestDto {
   }
 
   @Override
-  public void finalizeInsert(PreparedStatement stmt) throws SQLException {
+  public void finalizeInsert(PreparedStatement stmt) {
     // Set the key attribute.
-    ResultSet rs = stmt.getGeneratedKeys();
-    if (rs.next()) {
-      // Get the key value.
-      BigDecimal decimalValue = rs.getBigDecimal(1);
-      // Convert the value to a big integer and assign.
-      id = decimalValue.toBigInteger();
+    try {
+      ResultSet rs = stmt.getGeneratedKeys();
+      if (rs.next()) {
+        // Get the key value.
+        BigDecimal decimalValue = rs.getBigDecimal(1);
+        // Convert the value to a big integer and assign.
+        id = decimalValue.toBigInteger();
+      }
+    } catch (SQLException e) {
+      throw new DbErrorException(Message.getMessage(SQL_ERROR, null));
     }
   }
 }

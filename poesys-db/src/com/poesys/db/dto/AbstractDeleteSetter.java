@@ -1,18 +1,29 @@
 /*
  * Copyright (c) 2009 Poesys Associates. All rights reserved.
+ * 
+ * This file is part of Poesys-DB.
+ * 
+ * Poesys-DB is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ * 
+ * Poesys-DB is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along with
+ * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
  */
 package com.poesys.db.dto;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
-
-import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoFactory;
 import com.poesys.db.dao.IDaoManager;
+import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dao.delete.IDelete;
 import com.poesys.db.dao.delete.IDeleteSql;
 import com.poesys.db.dto.IDbDto.Status;
@@ -44,20 +55,17 @@ abstract public class AbstractDeleteSetter<T extends IDbDto> extends
   }
 
   @Override
-  public void set(Connection connection) throws SQLException {
+  public void set() {
+    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     IDaoFactory<T> factory =
       manager.getFactory(getClassName(), subsystem, expiration);
     IDelete<T> dao = factory.getDelete(getSql());
     try {
-      dao.delete(connection, getDto());
+      dao.delete(getDto());
     } catch (ConstraintViolationException e) {
-      throw new DbErrorException(e.getMessage(), e);
-    } catch (BatchException e) {
-      throw new DbErrorException(e.getMessage(), e);
-    } catch (DtoStatusException e) {
-      throw new DbErrorException(e.getMessage(), e);
-    }
+      throw new DbErrorException(e.getMessage(), thread, e);
+    } 
   }
 
   /**

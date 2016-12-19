@@ -18,11 +18,8 @@
 package com.poesys.db.dao.delete;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Collection;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.dto.IDbDto;
 
 
@@ -55,30 +52,29 @@ public class DeleteCollectionByKey<T extends IDbDto> implements
   /** The Strategy-pattern object for the SQL statement */
   IDeleteSql<T> sql;
 
+  /** the database subsystem for the DTO */
+  protected final String subsystem;
+
   /**
    * Create a DeleteCollectionByKey object by supplying the concrete
    * implementation of the SQL-statement generator and JDBC setter.
    * 
    * @param sql the SQL DELETE statement generator object
+   * @param subsystem the subsystem of class T
    */
-  public DeleteCollectionByKey(IDeleteSql<T> sql) {
+  public DeleteCollectionByKey(IDeleteSql<T> sql, String subsystem) {
+    this.subsystem = subsystem;
     this.sql = sql;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.insert.IUpdateBatch#update(java.sql.Connection,
-   * java.util.Collection, int)
-   */
-  public void delete(Connection connection, Collection<T> dtos)
-      throws SQLException, BatchException {
-    DeleteByKey<T> deleter = new DeleteByKey<T>(sql);
+  @Override
+  public void delete(Collection<T> dtos) {
+    DeleteByKey<T> deleter = new DeleteByKey<T>(sql, subsystem);
 
     // Iterate only if there are DTOs to iterate over.
     if (dtos != null) {
       for (T dto : dtos) {
-        deleter.delete(connection, dto);
+        deleter.delete(dto);
       }
     }
   }

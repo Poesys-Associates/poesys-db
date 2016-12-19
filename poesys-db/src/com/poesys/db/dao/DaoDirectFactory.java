@@ -74,6 +74,19 @@ import com.poesys.db.dto.IDbDto;
  * @param <T> the type of database DTO to process
  */
 public class DaoDirectFactory<T extends IDbDto> implements IDaoFactory<T> {
+  
+  /** the subsystem of class T */
+  protected final String subsystem;
+  
+  /**
+   * Create a DaoDirectFactory object.
+   *
+   * @param subsystem the subsystem of class T
+   */
+  public DaoDirectFactory(String subsystem) {
+    this.subsystem = subsystem;
+  }
+
   public IQueryByKey<T> getQueryByKey(IKeyQuerySql<T> sql, String subsystem) {
     return new QueryByKey<T>(sql, subsystem);
   }
@@ -106,7 +119,7 @@ public class DaoDirectFactory<T extends IDbDto> implements IDaoFactory<T> {
   public IDelete<T> getDelete(IDeleteSql<T> sql) {
     DeleteByKey<T> deleter = null;
     if (sql != null) {
-      deleter = new DeleteByKey<T>(sql);
+      deleter = new DeleteByKey<T>(sql, subsystem);
     }
     return deleter;
   }
@@ -115,7 +128,7 @@ public class DaoDirectFactory<T extends IDbDto> implements IDaoFactory<T> {
   public IDeleteBatch<T> getDeleteBatch(IDeleteSql<T> sql) {
     DeleteBatchByKey<T> deleter = null;
     if (sql != null) {
-      deleter = new DeleteBatchByKey<T>(sql);
+      deleter = new DeleteBatchByKey<T>(sql, subsystem);
     }
     return deleter;
   }
@@ -124,7 +137,7 @@ public class DaoDirectFactory<T extends IDbDto> implements IDaoFactory<T> {
   public IDeleteCollection<T> getDeleteCollection(IDeleteSql<T> sql) {
     DeleteCollectionByKey<T> deleter = null;
     if (sql != null) {
-      deleter = new DeleteCollectionByKey<T>(sql);
+      deleter = new DeleteCollectionByKey<T>(sql, subsystem);
     }
     return deleter;
   }
@@ -133,32 +146,32 @@ public class DaoDirectFactory<T extends IDbDto> implements IDaoFactory<T> {
   public <P extends IDbDto> IDeleteWithParameters<T, P> getDeleteWithParameters(IDeleteSqlWithParameters<T, P> sql) {
     DeleteWithParameters<T, P> deleter = null;
     if (sql != null) {
-      deleter = new DeleteWithParameters<T, P>(sql);
+      deleter = new DeleteWithParameters<T, P>(sql, subsystem);
     }
     return deleter;
   }
 
   @Override
   public IInsert<T> getInsert(IInsertSql<T> sql, Boolean key) {
-    return key ? new Insert<T>(sql) : new InsertNoKey<T>(sql);
+    return key ? new Insert<T>(sql, subsystem) : new InsertNoKey<T>(sql, subsystem);
   }
 
   @Override
   public IInsertBatch<T> getInsertBatch(IInsertSql<T> sql) {
-    return new InsertBatch<T>(sql);
+    return new InsertBatch<T>(sql, subsystem);
   }
 
   @Override
   public IInsertCollection<T> getInsertCollection(IInsertSql<T> sql, Boolean key) {
-    return key ? new InsertCollection<T>(sql)
-        : new InsertNoKeyCollection<T>(sql);
+    return key ? new InsertCollection<T>(sql, subsystem)
+        : new InsertNoKeyCollection<T>(sql, subsystem);
   }
 
   @Override
   public IUpdate<T> getUpdate(IUpdateSql<T> sql) {
     UpdateByKey<T> updater = null;
     if (sql != null) {
-      updater = new UpdateByKey<T>(sql);
+      updater = new UpdateByKey<T>(sql, subsystem);
     }
     return updater;
   }
@@ -167,7 +180,7 @@ public class DaoDirectFactory<T extends IDbDto> implements IDaoFactory<T> {
   public IUpdateBatch<T> getUpdateBatch(IUpdateSql<T> sql) {
     UpdateBatchByKey<T> updater = null;
     if (sql != null) {
-      updater = new UpdateBatchByKey<T>(sql);
+      updater = new UpdateBatchByKey<T>(sql, subsystem);
     }
     return updater;
   }
@@ -176,7 +189,7 @@ public class DaoDirectFactory<T extends IDbDto> implements IDaoFactory<T> {
   public IUpdateCollection<T> getUpdateCollection(IUpdateSql<T> sql) {
     UpdateCollectionByKey<T> updater = null;
     if (sql != null) {
-      updater = new UpdateCollectionByKey<T>(sql);
+      updater = new UpdateCollectionByKey<T>(sql, subsystem);
     }
     return updater;
   }
@@ -185,7 +198,7 @@ public class DaoDirectFactory<T extends IDbDto> implements IDaoFactory<T> {
   public IUpdateWithParameters<T> getUpdateWithParameters(IUpdateSql<T> sql) {
     UpdateWithParameters<T> updater = null;
     if (sql != null) {
-      updater = new UpdateWithParameters<T>(sql);
+      updater = new UpdateWithParameters<T>(sql, subsystem);
     }
     return updater;
   }

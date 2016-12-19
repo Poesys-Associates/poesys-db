@@ -14,14 +14,11 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao.query;
 
 
 import java.math.BigInteger;
-import java.sql.Connection;
-import java.sql.SQLException;
 
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.dto.IDbDto;
@@ -41,12 +38,12 @@ public interface IQueryCount<P extends IDbDto> {
   /**
    * Query a count of some kind from the database.
    * 
-   * @param connection the database connection with which to query
    * @param parameters a DTO that contains any parameters to the query
-   * @return a BigInteger count
-   * @throws SQLException when there is a problem with the query
+   * @param subsystem the subsystem that contains the DTO * @return a BigInteger
+   *          count
    * @throws InvalidParametersException when the input parameters are not valid
+   * @return the count as a large integer
    */
-  public BigInteger queryCount(Connection connection, P parameters)
-      throws SQLException, InvalidParametersException;
+  public BigInteger queryCount(P parameters, String subsystem)
+      throws InvalidParametersException;
 }

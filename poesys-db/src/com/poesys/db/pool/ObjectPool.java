@@ -23,19 +23,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.log4j.Logger;
-
 
 /**
  * A generic pool of objects that supports a minimum number of objects, a
  * maximum number of objects, and a validation interval for an executor thread
- * that checks those states
+ * that checks those states; used primarily to maintain a pool of Memcached
+ * client objects in Poesys/DB
  * 
  * @author Robert J. Muller
  */
 public abstract class ObjectPool<T> {
-  /** Log4j logger for this class */
-  private static final Logger logger = Logger.getLogger(ObjectPool.class);
   /** the pool data structure */
   private ConcurrentLinkedQueue<T> pool;
   /** the thread service for checking pool status */
@@ -134,19 +131,19 @@ public abstract class ObjectPool<T> {
     if (executorService != null) {
       executorService.shutdown();
     }
+    // Use the failed flag to record an exception to continue through all
+    // objects before throwing the exception.
     boolean failed = false;
     while (pool.size() > 0) {
       T object = pool.poll();
       try {
         closeObject(object);
       } catch (Throwable e) {
-        // Warn about this object, then continue closing objects.
-        logger.warn("Problem closing pooled object " + toString(object), e);
         failed = true;
       }
-      if (failed) {
-        throw new PoolShutdownException(OBJECT_CLOSE_ERROR);
-      }
+    }
+    if (failed) {
+      throw new PoolShutdownException(OBJECT_CLOSE_ERROR);
     }
   }
 

@@ -26,6 +26,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.insert.Insert;
 import com.poesys.db.dao.insert.InsertSqlTestNatural;
@@ -53,12 +54,12 @@ public class UpdateTestNaturalTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
 
     // Create an Inserter to add the row to update
     Insert<TestNatural> inserter =
-      new Insert<TestNatural>(new InsertSqlTestNatural());
+      new Insert<TestNatural>(new InsertSqlTestNatural(), getSubsystem());
 
     // Create the DTO.
     BigDecimal col1 = new BigDecimal("1234.5678");
@@ -66,7 +67,7 @@ public class UpdateTestNaturalTest extends ConnectionTest {
 
     // Create the Updater.
     UpdateByKey<TestNatural> updater =
-      new UpdateByKey<TestNatural>(new UpdateSqlTestNatural());
+      new UpdateByKey<TestNatural>(new UpdateSqlTestNatural(), getSubsystem());
 
     Statement stmt = null;
     try {
@@ -75,8 +76,10 @@ public class UpdateTestNaturalTest extends ConnectionTest {
       stmt.executeUpdate("DELETE FROM TestNatural");
       stmt.close();
 
+      conn.commit();
+
       // Insert the row to update
-      inserter.insert(conn, dto);
+      inserter.insert(dto);
 
       // Query the row.
       stmt = conn.createStatement();
@@ -87,12 +90,14 @@ public class UpdateTestNaturalTest extends ConnectionTest {
       }
       stmt.close();
 
+      conn.commit();
+
       // Change col1.
       BigDecimal col1Changed = new BigDecimal("1234.5678");
       dto.setCol1(col1Changed);
 
       // Update the test row.
-      updater.update(conn, dto);
+      updater.update(dto);
 
       // Query the row again for comparison.
       stmt = conn.createStatement();
@@ -106,6 +111,7 @@ public class UpdateTestNaturalTest extends ConnectionTest {
       // Must use compareTo here, not equals, because of precision difference
       // col2 should be the changed value
       assertTrue(queriedCol2.compareTo(col1Changed) == 0);
+      conn.commit();
     } catch (SQLException e) {
       fail("update method failed: " + e.getMessage());
     } finally {
@@ -117,5 +123,4 @@ public class UpdateTestNaturalTest extends ConnectionTest {
       }
     }
   }
-
 }

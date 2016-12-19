@@ -20,7 +20,6 @@ package com.poesys.db.pk;
 
 import java.io.Serializable;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -125,8 +124,8 @@ public interface IPrimaryKey extends Iterable<AbstractColumnValue>,
    * Get a text SQL expression suitable for inclusion in a WHERE clause that
    * selects a specific row based on the value of the primary key using JDBC
    * parameters in the format col1 = ? AND col2 = ?. The method prefixes the
-   * column names in the string with the specified alias, which may be null.
-   * The column names are ordered in the correct order (alphabetical order).
+   * column names in the string with the specified alias, which may be null. The
+   * column names are ordered in the correct order (alphabetical order).
    * 
    * @param alias the SQL alias for the table, prefixed to the column names; if
    *          null, no alias is prefixed
@@ -211,10 +210,9 @@ public interface IPrimaryKey extends Iterable<AbstractColumnValue>,
    *          statement with a parameterized SQL statement
    * @param nextIndex the parameter index at which to start setting the primary
    *          key values
-   * @throws SQLException when there is a problem setting the parameter value
    * @return the next index at which to set values
    */
-  int setParams(PreparedStatement stmt, int nextIndex) throws SQLException;
+  int setParams(PreparedStatement stmt, int nextIndex);
 
   /**
    * <p>
@@ -244,10 +242,8 @@ public interface IPrimaryKey extends Iterable<AbstractColumnValue>,
    * @param nextIndex the parameter index at which to start setting the primary
    *          key values
    * @return the next index at which to set values
-   * @throws SQLException when there is a problem setting the parameter value
    */
-  int setInsertParams(PreparedStatement stmt, int nextIndex)
-      throws SQLException;
+  int setInsertParams(PreparedStatement stmt, int nextIndex);
 
   /**
    * <p>
@@ -270,10 +266,9 @@ public interface IPrimaryKey extends Iterable<AbstractColumnValue>,
    * 
    * @param stmt the PreparedStatement containing the INSERT statement just
    *          executed
-   * @throws SQLException when there is a problem finalizing the primary key
    */
-  void finalizeInsert(PreparedStatement stmt) throws SQLException;
-  
+  void finalizeInsert(PreparedStatement stmt);
+
   /**
    * Get the unique name to use for the cache name.
    * 
@@ -284,8 +279,8 @@ public interface IPrimaryKey extends Iterable<AbstractColumnValue>,
   /**
    * Get an iterator over the column values of the primary key object. The
    * iterator lets you iterate through the column values in order. You can use
-   * objects of this class in Java foreach loops. The order is the correct
-   * order (alphabetical order).
+   * objects of this class in Java foreach loops. The order is the correct order
+   * (alphabetical order).
    * 
    * @return a List of ColumnValue&lt;Object&gt; objects of different data types
    */
@@ -301,8 +296,8 @@ public interface IPrimaryKey extends Iterable<AbstractColumnValue>,
   /**
    * Get a string that serves as a globally unique identifier for the object.
    * The string key must have no blank or non-printing characters \n or \r or
-   * the null character \0. The column names appear in the string in the
-   * correct order (alphabetical order).
+   * the null character \0. The column names appear in the string in the correct
+   * order (alphabetical order).
    * 
    * @return a globally unique identifier string
    */

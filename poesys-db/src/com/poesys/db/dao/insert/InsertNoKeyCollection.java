@@ -18,11 +18,8 @@
 package com.poesys.db.dao.insert;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.Collection;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.dto.IDbDto;
 
 
@@ -51,6 +48,8 @@ import com.poesys.db.dto.IDbDto;
  */
 public class InsertNoKeyCollection<T extends IDbDto> implements
     IInsertCollection<T> {
+  /** The database subsystem of the DTO class T */
+  protected final String subsystem;
   /**
    * The single-object DAO for inserting one of the collection elements at a
    * time
@@ -62,34 +61,24 @@ public class InsertNoKeyCollection<T extends IDbDto> implements
    * implementation of the SQL-statement generator and JDBC setter.
    * 
    * @param sql the SQL INSERT statement generator object
+   * @param subsystem the subsystem of DTO class T
    */
-  public InsertNoKeyCollection(IInsertSql<T> sql) {
-    dao = new InsertNoKey<T>(sql);
+  public InsertNoKeyCollection(IInsertSql<T> sql, String subsystem) {
+    this.subsystem = subsystem;
+    dao = new InsertNoKey<T>(sql, subsystem);
   }
 
   @Override
-  public void insert(Connection connection, Collection<T> dtos)
-      throws SQLException, BatchException {
-
+  public void insert(Collection<T> dtos) {
     if (dtos != null) {
       for (T dto : dtos) {
-        dao.insert(connection, dto);
+        dao.insert(dto);
       }
     }
   }
 
   @Override
-  public boolean isLeaf() {
-    return dao.isLeaf();
-  }
-
-  @Override
-  public void setLeaf(boolean isLeaf) {
-    dao.setLeaf(isLeaf);
-  }
-
-  @Override
   public void close() {
-    // Nothing to do    
+    // Nothing to do
   }
 }

@@ -14,13 +14,11 @@
  * 
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
- * 
  */
 package com.poesys.db.dao.query;
 
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
 
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.pk.IPrimaryKey;
@@ -45,10 +43,10 @@ import com.poesys.db.pk.IPrimaryKey;
  * the constructor call</li>
  * </ol>
  * <p>
- * The <code>getSql</code> method should construct the complete SQL statement
- * by concatenating the static SQL with the dynamically generated primary key
- * query expression from the primary key object
- * <code>getSqlWhereExpression</code> method.
+ * The <code>getSql</code> method should construct the complete SQL statement by
+ * concatenating the static SQL with the dynamically generated primary key query
+ * expression from the primary key object <code>getSqlWhereExpression</code>
+ * method.
  * </p>
  * <p>
  * This example represents a simple query of the <code>Natural</code> table, a
@@ -60,7 +58,7 @@ import com.poesys.db.pk.IPrimaryKey;
  *   private static final String SQL =
  *     &quot;SELECT key1, key2, col1 FROM Natural WHERE &quot;;
  * 
- *   public IDto getData(IPrimaryKey key, ResultSet rs) throws SQLException {
+ *   public IDto getData(IPrimaryKey key, ResultSet rs) {
  *     String key1 = rs.getString(&quot;key1&quot;);
  *     String key2 = rs.getString(&quot;key2&quot;);
  *     BigDecimal col = rs.getBigDecimal(&quot;col1&quot;);
@@ -108,7 +106,6 @@ public interface IKeyQuerySql<T extends IDbDto> {
    * @param key the primary key of the object to return
    * @param rs the result set from the query execution
    * @return the DTO
-   * @throws SQLException when the parameter setting fails with a SQL error
    */
-  T getData(IPrimaryKey key, ResultSet rs) throws SQLException;
+  T getData(IPrimaryKey key, ResultSet rs);
 }

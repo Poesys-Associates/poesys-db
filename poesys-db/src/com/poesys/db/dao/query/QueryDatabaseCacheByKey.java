@@ -18,7 +18,6 @@
 package com.poesys.db.dao.query;
 
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -26,12 +25,11 @@ import java.sql.SQLException;
 
 import org.apache.log4j.Logger;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.DbErrorException;
+import com.poesys.db.Message;
 import com.poesys.db.NoPrimaryKeyException;
-import com.poesys.db.connection.ConnectionFactoryFactory;
-import com.poesys.db.connection.IConnectionFactory;
+import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.dto.IDtoCache;
 import com.poesys.db.pk.IPrimaryKey;
@@ -59,11 +57,11 @@ public class QueryDatabaseCacheByKey<T extends IDbDto> extends QueryByKey<T>
   /** Reference to the DTO cache of data transfer objects (DTOs) */
   IDtoCache<T> cache;
 
-  /** Error getting resource bundle, can't resolve to bundle text so a constant */
-  private static final String RESOURCE_BUNDLE_ERROR =
-    "Problem getting Poesys/DB resource bundle";
+  /** Error on executing SQL query */
+  private static final String SQL_ERROR =
+    "com.poesys.db.dto.msg.unexpected_sql_error";
   /** Error message resource for the no-object-cache error message */
-  private static final String NO_CACHE =
+  private static final String NO_CACHE_ERROR =
     "com.poesys.db.dao.query.msg.no_object_cache";
 
   /**
@@ -78,80 +76,84 @@ public class QueryDatabaseCacheByKey<T extends IDbDto> extends QueryByKey<T>
                                  String subsystem) {
     super(sql, subsystem);
     if (cache == null) {
-      throw new RuntimeException(NO_CACHE);
+      throw new RuntimeException(Message.getMessage(NO_CACHE_ERROR, null));
     }
     this.cache = cache;
   }
 
   @Override
-  public T queryByKey(IPrimaryKey key) throws SQLException, BatchException {
+  protected T getDto(IPrimaryKey key, PoesysTrackingThread thread) {
     PreparedStatement stmt = null;
-    ResultSet rs = null;
 
     // Make sure the key is there.
     if (key == null) {
-      throw new NoPrimaryKeyException(NO_PRIMARY_KEY_MSG);
+      throw new NoPrimaryKeyException(Message.getMessage(NO_PRIMARY_KEY_ERROR,
+                                                         null));
     }
 
-    T object = null;
+    // Check the cache for the object.
+    T dto = null;
+    if (cache != null) {
+      dto = cache.get(key);
+    }
 
-    Connection connection = null;
-
+    // Always get the data from the database.
     try {
-      IConnectionFactory factory =
-        ConnectionFactoryFactory.getInstance(subsystem);
-      connection = factory.getConnection();
+      Connection connection = thread.getConnection();
       stmt = connection.prepareStatement(sql.getSql(key));
       key.setParams(stmt, 1);
       logger.debug("Querying uncached object by key: " + sql.getSql(key));
       logger.debug("Setting key value: " + key.getValueList());
-      rs = stmt.executeQuery();
+      ResultSet rs = stmt.executeQuery();
 
-      // Get a single result from the ResultSet and create the IDto.
+      // Get a single result from the ResultSet and create the DTO.
       if (rs.next()) {
-        object = sql.getData(key, rs);
+        dto = sql.getData(key, rs);
         // Only cache if successfully retrieved.
-        if (object != null) {
+        if (dto != null) {
           // Cache the object. This must be done here before processing nested
           // objects to avoid infinite loops.
-          cache.cache(object);
+          cache.cache(dto);
           // Set the new and changed flags to show this object exists and is
           // unchanged from the version in the database.
-          object.setExisting();
+          dto.setExisting();
+          thread.addDto(dto);
         }
       }
     } catch (ConstraintViolationException e) {
-      throw new DbErrorException(e.getMessage(), e);
+      throw new DbErrorException(e.getMessage(), thread, e);
     } catch (SQLException e) {
-      // Log the message and the SQL statement, then rethrow the exception.
+      // Log the message and the SQL statement, then throw a standard DB
+      // exception.
       logger.error("Caching query by key error: " + e.getMessage());
       logger.error("Caching query by key sql: " + sql.getSql(key) + "\n");
       logger.debug("SQL statement in class: " + sql.getClass().getName());
-      throw e;
-    } catch (IOException e) {
-      // Problem with resource bundle, rethrow as SQLException
-      throw new SQLException(RESOURCE_BUNDLE_ERROR);
+      String message = Message.getMessage(SQL_ERROR, null);
+      throw new DbErrorException(message, thread, e);
     } finally {
       if (stmt != null) {
-        stmt.close();
-      }
-      if (rs != null) {
-        rs.close();
-      }
-      // Close the connection.
-      if (connection != null) {
-        String connectionString = connection.toString();
-        connection.close();
-        logger.debug("Closed connection " + connectionString);
+        try {
+          stmt.close();
+        } catch (SQLException e) {
+          // ignore
+        }
       }
     }
 
     // Query any nested objects. This is outside the fetch above to make sure
-    // that the statement and result set are closed before recursing.
-    if (object != null) {
-      object.queryNestedObjects();
+    // that the statement and result set are closed before recursing. The
+    if (dto != null) {
+      // Only query nested objects if the thread hasn't already processed this
+      // DTO, and thus already queried them.
+      if (!thread.isProcessed(key.getStringKey())) {
+        // TODO need to find a way to tell the logic to query from database
+        // directly instead of using cache
+        dto.queryNestedObjects();
+        thread.setProcessed(key.getStringKey(), true);
+      }
+      dto.setExisting();
     }
 
-    return object;
+    return dto;
   }
 }

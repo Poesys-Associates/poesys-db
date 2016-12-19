@@ -33,9 +33,9 @@ import com.poesys.ms.col.IColumnValue;
  */
 public class StringColumnValue extends AbstractColumnValue {
   /**
-   * Generated serial version UID for Serializable object
+   * serial version UID for Serializable object
    */
-  private static final long serialVersionUID = -6922643209815919451L;
+  private static final long serialVersionUID = 1L;
 
   /** The String value */
   private String value = null;
@@ -57,12 +57,6 @@ public class StringColumnValue extends AbstractColumnValue {
     }
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @seecom.poesys.db.dto.AbstractColumnValue#valueEquals(com.poesys.db.dto.
-   * AbstractColumnValue)
-   */
   @Override
   public boolean valueEquals(AbstractColumnValue value) {
     boolean ret = false;
@@ -73,35 +67,22 @@ public class StringColumnValue extends AbstractColumnValue {
     return ret;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.ColumnValue#hashCode()
-   */
   @Override
   public int hashCode() {
     return value.hashCode();
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.ColumnValue#setParam(java.sql.PreparedStatement,
-   * int)
-   */
   @Override
-  public int setParam(PreparedStatement stmt, int nextIndex)
-      throws SQLException {
+  public int setParam(PreparedStatement stmt, int nextIndex) {
     // Use the String setter for the value.
-    stmt.setString(nextIndex, value);
+    try {
+      stmt.setString(nextIndex, value);
+    } catch (SQLException e) {
+      throwDbError(e);
+    }
     return ++nextIndex;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.ColumnValue#hasValue()
-   */
   @Override
   public boolean hasValue() {
     return value != null;
@@ -116,33 +97,16 @@ public class StringColumnValue extends AbstractColumnValue {
     return value;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see
-   * com.poesys.db.col.AbstractColumnValue#accept(com.poesys.db.col.IColumnVisitor
-   * )
-   */
   @Override
   protected void accept(IColumnVisitor visitor) {
     visitor.visit(this);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see java.lang.Object#toString()
-   */
   @Override
   public String toString() {
     return value.toString();
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.col.AbstractColumnValue#copy()
-   */
   @Override
   public AbstractColumnValue copy() {
     return new StringColumnValue(name, value);

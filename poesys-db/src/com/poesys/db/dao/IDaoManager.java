@@ -1,4 +1,20 @@
-/* Copyright (c) 2011 Poesys Associates. All rights reserved. */
+/*
+ * Copyright (c) 2011 Poesys Associates. All rights reserved.
+ * 
+ * This file is part of Poesys-DB.
+ * 
+ * Poesys-DB is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later
+ * version.
+ * 
+ * Poesys-DB is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along with
+ * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
+ */
 package com.poesys.db.dao;
 
 
@@ -56,7 +72,7 @@ public interface IDaoManager {
    * <p>
    * <strong>Note:</strong> a distributed caching scheme may cache the objects
    * of the class but not the class, in which case this method returns false, as
-   * there is no need for the information. 
+   * there is no need for the information.
    * </p>
    * 
    * @param name the fully qualified class name
@@ -106,9 +122,10 @@ public interface IDaoManager {
    * @param <T> the type of object to look up
    * @param key the unique identifier of the object you want to retrieve; also
    *          contains the cache name for in-memory cache lookup
+   * @param subsystem the subsystem of the DTO class
    * @return the object
    */
-  <T extends IDbDto> T getCachedObject(IPrimaryKey key);
+  <T extends IDbDto> T getCachedObject(IPrimaryKey key, String subsystem);
 
   /**
    * Get an object identified by a primary key out of a named cache. The object
@@ -119,10 +136,12 @@ public interface IDaoManager {
    * @param <T> the type of object to look up
    * @param key the unique identifier of the object you want to retrieve; also
    *          contains the cache name for in-memory cache lookup
+   * @param subsystem the subsystem of the DTO class
    * @param expireTime the milliseconds until the object expires from the cache
    * @return the object
    */
-  <T extends IDbDto> T getCachedObject(IPrimaryKey key, int expireTime);
+  <T extends IDbDto> T getCachedObject(IPrimaryKey key, int expireTime,
+                                       String subsystem);
 
   /**
    * Put an object into a named cache. The object may be of any type. The cache

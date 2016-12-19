@@ -22,6 +22,7 @@ package com.poesys.db.dao.query;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dto.TestSequence;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -30,28 +31,24 @@ import com.poesys.db.pk.IPrimaryKey;
  * SQL query class for querying TestSequence objects that have sequence primary
  * keys.
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class TestSequenceKeyQuerySql implements IKeyQuerySql<TestSequence> {
   /** SQL primary key query for TestSequence */
   private static final String SQL = "SELECT col1 FROM TestSequence WHERE ";
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.query.IKeyQuerySql#getData(java.sql.ResultSet)
-   */
-  public TestSequence getData(IPrimaryKey key, ResultSet rs)
-      throws SQLException {
-    String col = rs.getString("col1");
+  @Override
+  public TestSequence getData(IPrimaryKey key, ResultSet rs) {
+    String col;
+    try {
+      col = rs.getString("col1");
+    } catch (SQLException e) {
+      throw new DbErrorException("SQL error", e);
+    }
     return new TestSequence(key, col);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dao.query.IKeyQuerySql#getSql(com.poesys.db.pk.IPrimaryKey)
-   */
+  @Override
   public String getSql(IPrimaryKey key) {
     return SQL + key.getSqlWhereExpression("");
   }

@@ -18,10 +18,8 @@
 package com.poesys.db.dao.query;
 
 
-import java.sql.SQLException;
 import java.util.Collection;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.dto.IDbDto;
 
 
@@ -45,10 +43,8 @@ public interface IQueryListWithParameters<T extends IDbDto, S extends IDbDto, C 
    *          be either a standard DTO for a database object or a DTO created
    *          specifically to hold a set of parameters
    * @return a List of database DTO objects
-   * @throws SQLException when there is a SQL problem with the query
-   * @throws BatchException when an operation involving multiple objects fails
    */
-  public C query(S parameters) throws SQLException, BatchException;
+  public C query(S parameters);
 
   /**
    * Set the expiration of objects queried by the query method. This setter

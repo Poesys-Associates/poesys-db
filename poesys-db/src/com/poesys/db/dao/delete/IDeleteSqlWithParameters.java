@@ -19,7 +19,6 @@ package com.poesys.db.dao.delete;
 
 
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.pk.IPrimaryKey;
@@ -67,7 +66,17 @@ public interface IDeleteSqlWithParameters<T extends IDbDto, P extends IDbDto> {
    *          values to set into the statement
    * @return the index of the next parameter to set (the first primary key
    *         value)
-   * @throws SQLException when the parameter setting fails with a SQL error
    */
-  int setParams(PreparedStatement stmt, int next, P dto) throws SQLException;
+  int setParams(PreparedStatement stmt, int next, P dto);
+
+  /**
+   * Return the parameters other than the primary key set by the setParams
+   * method as a string suitable for logging display. This lets you display the
+   * parameters to the SQL statement in the log along with the SQL statement.
+   * 
+   * @param parameters the data transfer object containing the values to set
+   *          into the statement
+   * @return the parameters string suitable for logging display
+   */
+  String getParamString(P parameters);
 }

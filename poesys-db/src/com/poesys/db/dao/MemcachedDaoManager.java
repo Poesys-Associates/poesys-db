@@ -141,49 +141,50 @@ public final class MemcachedDaoManager implements IDaoManager {
     new Integer(properties.getString(MEMCACHED_PROP_POOL_INTERVAL));
 
   /** Memcached client pool */
-  private static final ObjectPool<MemcachedClient> clients = new ObjectPool<MemcachedClient>(MIN, MAX, INTERVAL) {
+  private static final ObjectPool<MemcachedClient> clients =
+    new ObjectPool<MemcachedClient>(MIN, MAX, INTERVAL) {
 
-    @Override
-    protected String toString(MemcachedClient object) {
-      return object.toString();
-    }
+      @Override
+      protected String toString(MemcachedClient object) {
+        return object.toString();
+      }
 
-    @Override
-    protected MemcachedClient createObject() {
-      MemcachedClient client = null;
-      String protocol = properties.getString(MEMCACHED_PROP_PROTOCOL);
+      @Override
+      protected MemcachedClient createObject() {
+        MemcachedClient client = null;
+        String protocol = properties.getString(MEMCACHED_PROP_PROTOCOL);
 
-      try {
-        if (BINARY.equalsIgnoreCase(protocol)) {
-          client =
-            new MemcachedClient(new BinaryConnectionFactory(ClientMode.Static),
-                                getSockets());
-        } else if (TEXT.equalsIgnoreCase(protocol)) {
-          client =
-            new MemcachedClient(new DefaultConnectionFactory(ClientMode.Static),
-                                getSockets());
-        } else {
-          Object[] args = new Object[1];
-          args[0] = protocol;
-          String msg = Message.getMessage(MEMCACHED_UNKNOWN_PROTOCOL, args);
-          throw new DbErrorException(msg);
+        try {
+          if (BINARY.equalsIgnoreCase(protocol)) {
+            client =
+              new MemcachedClient(new BinaryConnectionFactory(ClientMode.Static),
+                                  getSockets());
+          } else if (TEXT.equalsIgnoreCase(protocol)) {
+            client =
+              new MemcachedClient(new DefaultConnectionFactory(ClientMode.Static),
+                                  getSockets());
+          } else {
+            Object[] args = new Object[1];
+            args[0] = protocol;
+            String msg = Message.getMessage(MEMCACHED_UNKNOWN_PROTOCOL, args);
+            throw new DbErrorException(msg);
+          }
+        } catch (IOException e) {
+          throw new DbErrorException(MEMCACHED_CLIENT);
         }
-      } catch (IOException e) {
-        throw new DbErrorException(MEMCACHED_CLIENT, e);
+        return client;
       }
-      return client;
-    }
 
-    @Override
-    protected void closeObject(MemcachedClient object) {
-      try {
-        object.shutdown();
-      } catch (Throwable e) {
-        // Ignore
-        logger.warn(SHUTDOWN_CLIENT_ERROR, e);
+      @Override
+      protected void closeObject(MemcachedClient object) {
+        try {
+          object.shutdown();
+        } catch (Throwable e) {
+          // Ignore
+          logger.warn(Message.getMessage(SHUTDOWN_CLIENT_ERROR, null), e);
+        }
       }
-    }
-  };
+    };
 
   // Error messages from the Poesys resource bundle.
 
@@ -263,7 +264,7 @@ public final class MemcachedDaoManager implements IDaoManager {
         } catch (NumberFormatException e) {
           List<String> errors = new ArrayList<String>(1);
           errors.add(parts[1]);
-          DbErrorException e1 = new DbErrorException(INVALID_PORT, e);
+          DbErrorException e1 = new DbErrorException(INVALID_PORT);
           e1.setParameters(errors);
           throw e1;
         }
@@ -297,8 +298,9 @@ public final class MemcachedDaoManager implements IDaoManager {
   }
 
   @Override
-  public <T extends IDbDto> T getCachedObject(IPrimaryKey key, int expireTime) {
-    T object = getCachedObject(key);
+  public <T extends IDbDto> T getCachedObject(IPrimaryKey key, int expireTime,
+                                              String subsystem) {
+    T object = getCachedObject(key, subsystem);
     MemcachedClient client = clients.getObject();
     try {
       if (object != null) {
@@ -313,7 +315,7 @@ public final class MemcachedDaoManager implements IDaoManager {
 
   @SuppressWarnings("unchecked")
   @Override
-  public <T extends IDbDto> T getCachedObject(IPrimaryKey key) {
+  public <T extends IDbDto> T getCachedObject(IPrimaryKey key, String subsystem) {
     // Check for the separate thread and create it if it's not already there.
     PoesysTrackingThread thread = null;
     if (Thread.currentThread() instanceof PoesysTrackingThread) {
@@ -327,7 +329,7 @@ public final class MemcachedDaoManager implements IDaoManager {
           getFromMemcached(key);
         }
       };
-      thread = new PoesysTrackingThread(query);
+      thread = new PoesysTrackingThread(query, subsystem);
       thread.start();
       // Join the thread, blocking until the thread completes or
       // until the query times out.
@@ -438,7 +440,8 @@ public final class MemcachedDaoManager implements IDaoManager {
     } catch (IllegalStateException e) {
       List<String> errors = new ArrayList<String>(1);
       errors.add(object.getPrimaryKey().getStringKey());
-      DbErrorException e1 = new DbErrorException(MEMCACHED_QUEUE_FULL, e);
+      DbErrorException e1 =
+        new DbErrorException(Message.getMessage(MEMCACHED_QUEUE_FULL, null));
       e1.setParameters(errors);
       throw e1;
     } catch (IllegalArgumentException e) {
@@ -447,7 +450,7 @@ public final class MemcachedDaoManager implements IDaoManager {
         Object[] args = { object.getClass().getName() };
         String message = Message.getMessage(NONSERIALIZABLE_ERROR, args);
         logger.error(message, cause);
-        DbErrorException e1 = new DbErrorException(message, e);
+        DbErrorException e1 = new DbErrorException(message);
         throw e1;
       }
     } finally {

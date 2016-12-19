@@ -25,7 +25,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.apache.log4j.Logger;
+
 import com.poesys.db.BatchException;
+import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.insert.Insert;
 import com.poesys.db.dao.insert.InsertSqlTestNatural;
@@ -38,6 +41,7 @@ import com.poesys.db.dto.TestNatural;
  * @author Robert J. Muller
  */
 public class DeleteTestNaturalTest extends ConnectionTest {
+  private static final Logger logger = Logger.getLogger(DeleteTestNaturalTest.class);
   private static final String QUERY =
     "SELECT col1 FROM TestNatural WHERE key1 = 'A' and key2 = 'B'";
 
@@ -53,12 +57,12 @@ public class DeleteTestNaturalTest extends ConnectionTest {
     try {
       conn = getConnection();
     } catch (SQLException e) {
-      throw new RuntimeException("Connect failed: " + e.getMessage(), e);
+      throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
 
     // Create an Inserter to add the row to update
     Insert<TestNatural> inserter =
-      new Insert<TestNatural>(new InsertSqlTestNatural());
+      new Insert<TestNatural>(new InsertSqlTestNatural(), getSubsystem());
 
     // Create the DTO.
     BigDecimal col1 = new BigDecimal("1234.5678");
@@ -66,7 +70,7 @@ public class DeleteTestNaturalTest extends ConnectionTest {
 
     // Create the Deleter.
     DeleteByKey<TestNatural> deleter =
-      new DeleteByKey<TestNatural>(new DeleteSqlTestNatural());
+      new DeleteByKey<TestNatural>(new DeleteSqlTestNatural(), getSubsystem());
 
     Statement stmt = null;
     try {
@@ -74,9 +78,11 @@ public class DeleteTestNaturalTest extends ConnectionTest {
       stmt = conn.createStatement();
       stmt.executeUpdate("DELETE FROM TestNatural");
       stmt.close();
+      
+      conn.commit();
 
       // Insert the row to delete with the DAO class under test.
-      inserter.insert(conn, dto);
+      inserter.insert(dto);
 
       // Query the row.
       stmt = conn.createStatement();
@@ -85,10 +91,12 @@ public class DeleteTestNaturalTest extends ConnectionTest {
         fail("Failed to insert row to delete");
       }
       stmt.close();
+      
+      conn.commit();
 
       // Delete the test row.
       dto.delete();
-      deleter.delete(conn, dto);
+      deleter.delete(dto);
 
       // Query the row again for comparison.
       stmt = conn.createStatement();
@@ -98,6 +106,7 @@ public class DeleteTestNaturalTest extends ConnectionTest {
       } else {
         assertTrue(true);
       }
+      conn.commit();
     } catch (SQLException e) {
       fail("delete test failed: " + e.getMessage());
     } finally {
@@ -105,6 +114,7 @@ public class DeleteTestNaturalTest extends ConnectionTest {
         stmt.close();
       }
       if (conn != null) {
+        logger.info("Closing connection " + conn.hashCode());
         conn.close();
       }
     }

@@ -33,9 +33,9 @@ import com.poesys.ms.col.IColumnValue;
  */
 public class NullColumnValue extends AbstractColumnValue {
   /**
-   * Generated serial version UID for Serializable object
+   * serial version UID for Serializable object
    */
-  private static final long serialVersionUID = -6564706433028662068L;
+  private static final long serialVersionUID = 1L;
 
   /** The JDBC java.sql.type type for the column */
   int jdbcType;
@@ -55,78 +55,42 @@ public class NullColumnValue extends AbstractColumnValue {
     this.jdbcType = jdbcType;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @seecom.poesys.db.dto.AbstractColumnValue#vallueEquals(com.poesys.db.dto.
-   * AbstractColumnValue)
-   */
   @Override
   public boolean valueEquals(AbstractColumnValue value) {
     return false;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.ColumnValue#hashCode()
-   */
   @Override
   public int hashCode() {
     return 0;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.ColumnValue#setParam(java.sql.PreparedStatement,
-   * int)
-   */
   @Override
-  public int setParam(PreparedStatement stmt, int nextIndex)
-      throws SQLException {
+  public int setParam(PreparedStatement stmt, int nextIndex) {
     // Set the value to the java.sql.type type input in the constructor.
-    stmt.setNull(nextIndex, jdbcType);
+    try {
+      stmt.setNull(nextIndex, jdbcType);
+    } catch (SQLException e) {
+      throwDbError(e);
+    }
     return ++nextIndex;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.ColumnValue#hasValue()
-   */
   @Override
   public boolean hasValue() {
     return false;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see
-   * com.poesys.db.col.AbstractColumnValue#accept(com.poesys.db.col.IColumnVisitor
-   * )
-   */
   @Override
   protected void accept(IColumnVisitor visitor) {
     visitor.visit(this);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see java.lang.Object#toString()
-   */
   @Override
   public String toString() {
     return "null";
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.col.AbstractColumnValue#copy()
-   */
   @Override
   public AbstractColumnValue copy() {
     return new NullColumnValue(name, jdbcType);

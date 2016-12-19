@@ -18,8 +18,6 @@
 package com.poesys.db.dto;
 
 
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.ConstraintViolationException;
@@ -31,7 +29,7 @@ import com.poesys.db.pk.IPrimaryKey;
  * A test DTO class that serves as an association class for testing n-ary
  * linking.
  * 
- * @author Bob Muller (muller@computer.org)
+ * @author Robert J. Muller
  */
 public class TernaryLink extends AbstractTestDto {
   /** Generated serial version UID for Serializable object */
@@ -51,20 +49,14 @@ public class TernaryLink extends AbstractTestDto {
    * violation. Another way to say this: you must have already inserted all
    * linked objects.
    * 
-   * @author Bob Muller (muller@computer.org)
+   * @author Robert J. Muller
    */
   private class LinkTargetIsNotNew implements IValidate {
     /**  */
     private static final long serialVersionUID = 1L;
     private static final String ERROR_MSG = "com.poesys.db.ternary_link_is_new";
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.poesys.db.dto.IValidate#validate(java.sql.Connection)
-     */
-    public synchronized void validate(Connection connection)
-        throws SQLException {
+    public synchronized void validate() {
       Link1 link1 = TernaryLink.this.getLink1();
       Link2 link2 = TernaryLink.this.getLink2();
       Link3 link3 = TernaryLink.this.getLink3();

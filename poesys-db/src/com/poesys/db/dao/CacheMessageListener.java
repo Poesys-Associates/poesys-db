@@ -70,11 +70,16 @@ public class CacheMessageListener implements Runnable, MessageListener {
   private Connection connection;
   private Session sessionConsumer;
   private MessageConsumer consumer;
+  
+  private final String subsystem;
 
   /**
    * Create a CacheMessageListener object.
+   * 
+   * @param subsystem the subsystem of the DTO class
    */
-  public CacheMessageListener() {
+  public CacheMessageListener(String subsystem) {
+    this.subsystem = subsystem;
   }
 
   /**
@@ -113,9 +118,9 @@ public class CacheMessageListener implements Runnable, MessageListener {
     } finally {
       if (connection != null) {
         try {
-          String connectionString = connection.toString();
+          int connectionId = connection.hashCode();
           connection.close();
-          logger.debug("Closed connection " + connectionString);
+          logger.debug("Closed connection " + connectionId);
         } catch (JMSException e) {
           String message = com.poesys.db.Message.getMessage(LISTENER_MSG, null);
           logger.error(message, e);
@@ -124,11 +129,6 @@ public class CacheMessageListener implements Runnable, MessageListener {
     }
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see javax.jms.MessageListener#onMessage(javax.jms.Message)
-   */
   @Override
   public void onMessage(Message message) {
     IPrimaryKey key = null;
@@ -155,7 +155,7 @@ public class CacheMessageListener implements Runnable, MessageListener {
             // Make sure the singleton manager is instantiated.
 
             IDtoCache<? extends IDbDto> cache =
-              CacheDaoManager.getInstance().getCache(cacheName);
+              CacheDaoManager.getInstance(subsystem).getCache(cacheName);
             // Remove the object from the local cache only if it's there; if
             // it's not there, move on since there's nothing to do.
             if (cache != null) {
