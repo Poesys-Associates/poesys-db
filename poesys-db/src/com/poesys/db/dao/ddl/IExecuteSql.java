@@ -17,22 +17,19 @@
  */
 package com.poesys.db.dao.ddl;
 
-
-import java.sql.Connection;
-
-
 /**
  * An interface for Command-pattern data access objects (DAOs) that execute a
- * SQL DDL statement.
+ * SQL DDL statement. Each call to execute() is a complete transaction, using a
+ * pooled connection that the method closes after executing the SQL statement.
+ * That means that (1) each DDL statement is a separate transaction and (2) no
+ * DDL statement happens in an existing transaction, which would have the effect
+ * of committing that existing transaction as a side effect.
  * 
  * @author Robert J. Muller
  */
 public interface IExecuteSql {
   /**
    * Execute the registered SQL DDL statement.
-   * 
-   * @param connection the database connection with which to execute the
-   *          statement
    */
-  public void execute(Connection connection);
+  public void execute();
 }

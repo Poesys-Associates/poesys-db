@@ -20,7 +20,6 @@ package com.poesys.db.dao.query;
 
 import java.util.List;
 
-import com.poesys.db.BatchException;
 import com.poesys.db.dto.IDbDto;
 
 
@@ -39,9 +38,8 @@ public interface IQueryList<T extends IDbDto> {
    * Query a list of DTOs.
    * 
    * @return a List of DTO objects
-   * @throws BatchException when a multiple-object operation fails
    */
-  public List<T> query() throws BatchException;
+  public List<T> query();
 
   /**
    * Set the expiration of objects queried by the query method. This setter

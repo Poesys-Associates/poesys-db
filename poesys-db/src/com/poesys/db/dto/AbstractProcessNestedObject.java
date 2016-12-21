@@ -44,8 +44,7 @@ import com.poesys.db.dao.PoesysTrackingThread;
  *   }
  * 
  *   &#064;Override
- *   protected void doNew(Connection connection, IDbDto dto),
- *       BatchException {
+ *   protected void doNew(Connection connection, IDbDto dto) {
  *     // Insert the child.
  *     IInsert dao =
  *       DaoManager.getFactory(Parent.class.getName()).getInsert(new InsertSqlChild());
