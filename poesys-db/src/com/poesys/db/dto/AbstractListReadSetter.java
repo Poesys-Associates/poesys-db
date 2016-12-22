@@ -64,11 +64,11 @@ abstract public class AbstractListReadSetter<T extends IDbDto> extends
    */
   public AbstractListReadSetter(String subsystem, Integer expiration) {
     super(subsystem, expiration);
+    setterName = AbstractListReadSetter.class.getName();
   }
 
   @Override
-  public void set() {
-    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
+  protected void doSet(PoesysTrackingThread thread) {
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     IDaoFactory<T> factory =
       manager.getFactory(getClassName(), subsystem, expiration);

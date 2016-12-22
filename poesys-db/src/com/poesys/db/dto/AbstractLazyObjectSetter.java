@@ -52,11 +52,11 @@ abstract public class AbstractLazyObjectSetter<T extends IDbDto> extends
    */
   public AbstractLazyObjectSetter(String subsystem, Integer expiration) {
     super(subsystem, expiration);
+    setterName = AbstractLazyObjectSetter.class.getName();
   }
 
   @Override
-  public void set() {
-    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
+  protected void doSet(PoesysTrackingThread thread) {
     try {
       IDaoManager manager = DaoManagerFactory.getManager(subsystem);
       IDaoFactory<T> factory =

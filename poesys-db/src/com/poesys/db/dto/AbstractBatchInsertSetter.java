@@ -57,14 +57,14 @@ abstract public class AbstractBatchInsertSetter<T extends IDbDto, C extends Coll
    */
   public AbstractBatchInsertSetter(String subsystem, Integer expiration) {
     super(subsystem, expiration);
+    setterName = AbstractBatchInsertSetter.class.getName();
   }
 
   @Override
-  public void set() {
+  protected void doSet(PoesysTrackingThread thread) {
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     IDaoFactory<T> factory =
       manager.getFactory(getClassName(), subsystem, expiration);
-    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
     List<IInsertSql<T>> inserts = getSql();
     try {
       // Iterate through the superclasses, if any, inserting the superclass

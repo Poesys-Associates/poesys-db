@@ -55,11 +55,11 @@ abstract public class AbstractCollectionDeleteSetter<T extends IDbDto> extends
    */
   public AbstractCollectionDeleteSetter(String subsystem, Integer expiration) {
     super(subsystem, expiration);
+    setterName = AbstractCollectionDeleteSetter.class.getName();
   }
 
   @Override
-  public void set() {
-    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
+  protected void doSet(PoesysTrackingThread thread) {
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     IDaoFactory<T> factory =
       manager.getFactory(getClassName(), subsystem, expiration);

@@ -93,21 +93,17 @@ public abstract class AbstractProcessNestedObjects<T extends IDbDto, C extends C
    */
   public AbstractProcessNestedObjects(String subsystem, Integer expiration) {
     super(subsystem, expiration);
+    setterName = AbstractProcessNestedObjects.class.getName();
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  public void set() {
+  protected void doSet(PoesysTrackingThread thread) {
     C inserts = (C)new ArrayList<T>();
     C updates = (C)new ArrayList<T>();
     C deletes = (C)new ArrayList<T>();
 
     C dtos = getDtos();
-
-    PoesysTrackingThread thread = null;
-    if (Thread.currentThread() instanceof PoesysTrackingThread) {
-      thread = (PoesysTrackingThread)Thread.currentThread();
-    }
 
     if (dtos != null) {
       for (T dto : dtos) {

@@ -65,12 +65,12 @@ abstract public class AbstractListSetter<T extends IDbDto, S extends IDbDto, C e
    */
   public AbstractListSetter(String subsystem, Integer expiration) {
     super(subsystem, expiration);
+    setterName = AbstractListSetter.class.getName();
   }
 
-  @Override
   @SuppressWarnings("unchecked")
-  public void set() {
-    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
+  @Override
+  protected void doSet(PoesysTrackingThread thread) {
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     IDaoFactory<T> factory =
       manager.getFactory(getClassName(), subsystem, expiration);

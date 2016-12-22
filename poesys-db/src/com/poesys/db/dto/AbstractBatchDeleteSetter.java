@@ -54,11 +54,11 @@ abstract public class AbstractBatchDeleteSetter<T extends IDbDto> extends
    */
   public AbstractBatchDeleteSetter(String subsystem, Integer expiration) {
     super(subsystem, expiration);
+    setterName = AbstractBatchDeleteSetter.class.getName();
   }
 
   @Override
-  public void set() {
-    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
+  protected void doSet(PoesysTrackingThread thread) {
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     // Expiration is not used in deletes, just set to 0
     IDaoFactory<T> factory = manager.getFactory(getClassName(), subsystem, 0);

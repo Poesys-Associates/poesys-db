@@ -51,11 +51,11 @@ abstract public class AbstractInsertSetter extends AbstractSetter<IDbDto>
    */
   public AbstractInsertSetter(String subsystem, Integer expiration) {
     super(subsystem, expiration);
+    setterName = AbstractInsertSetter.class.getName();
   }
 
   @Override
-  public void set() {
-    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
+  protected void doSet(PoesysTrackingThread thread) {
     try {
       // Go through all the DTOs and insert them.
       if (getDtos() != null) {

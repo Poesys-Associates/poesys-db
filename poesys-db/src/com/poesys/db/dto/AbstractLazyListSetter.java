@@ -57,12 +57,12 @@ abstract public class AbstractLazyListSetter<T extends IDbDto, P extends IDbDto,
    */
   public AbstractLazyListSetter(String subsystem, Integer expiration) {
     super(subsystem, expiration);
+    setterName = AbstractLazyListSetter.class.getName();
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public void set() {
-    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
+  protected void doSet(PoesysTrackingThread thread) {
     IDaoManager manager = null;
 
     try {

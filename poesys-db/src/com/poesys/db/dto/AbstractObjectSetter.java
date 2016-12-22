@@ -54,11 +54,11 @@ abstract public class AbstractObjectSetter<T extends IDbDto> extends
    */
   public AbstractObjectSetter(String subsystem, Integer expiration) {
     super(subsystem, expiration);
+    setterName = AbstractObjectSetter.class.getName();
   }
 
   @Override
-  public void set() {
-    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
+  protected void doSet(PoesysTrackingThread thread) {
     // No isSet() check here, always query the object.
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     IDaoFactory<T> factory =

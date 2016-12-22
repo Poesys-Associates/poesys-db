@@ -29,6 +29,7 @@ import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoFactory;
 import com.poesys.db.dao.IDaoManager;
+import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dao.query.IKeyQuerySql;
 import com.poesys.db.dao.query.IQueryByKey;
 import com.poesys.db.pk.IPrimaryKey;
@@ -68,10 +69,11 @@ abstract public class AbstractCollectionReadSetter<T extends IDbDto> extends
    */
   public AbstractCollectionReadSetter(String subsystem, Integer expiration) {
     super(subsystem, expiration);
+    setterName = AbstractCollectionReadSetter.class.getName();
   }
 
   @Override
-  public void set() {
+  protected void doSet(PoesysTrackingThread thread) {
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     IDaoFactory<T> factory =
       manager.getFactory(getClassName(), subsystem, expiration);
