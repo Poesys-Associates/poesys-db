@@ -264,14 +264,14 @@ public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
   }
 
   /**
-   * Post-process any nested objects for successfully processed DTOs. In batch
+   * Post-process any nested objects for successfully deleted DTOs. In batch
    * processing, you must first process ALL the deleted parent DTOs so that the
    * database reflects the changes for the nested operations, hence the child
    * processing must be in a completely separate loop after the first loop that
    * processes the parents. Only process DELETED DTOs here; don't process
-   * FAILED, NEW, or CHANGED DTOs. Also notify parent observers of the delete
-   * for both DELETED and CASCADE_DELETED DTOs. The separate thread is required
-   * to track processing history, to prevent infinite processing loops.
+   * FAILED, NEW, EXISTING, or CHANGED DTOs. Also notify parent observers of the
+   * delete for both DELETED and CASCADE_DELETED DTOs. The separate thread is
+   * required to track processing history, to prevent infinite processing loops.
    * 
    * @param dtos the collection of DTOs
    */
