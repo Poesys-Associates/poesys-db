@@ -59,19 +59,20 @@ abstract public class AbstractObjectSetter<T extends IDbDto> extends
 
   @Override
   protected void doSet(PoesysTrackingThread thread) {
-    // No isSet() check here, always query the object.
-    IDaoManager manager = DaoManagerFactory.getManager(subsystem);
-    IDaoFactory<T> factory =
-      manager.getFactory(getClassName(), subsystem, expiration);
-    IQueryByKey<T> dao = factory.getQueryByKey(getSql(), subsystem);
-    T dto = null;
+    if (!isSet()) {
+      IDaoManager manager = DaoManagerFactory.getManager(subsystem);
+      IDaoFactory<T> factory =
+        manager.getFactory(getClassName(), subsystem, expiration);
+      IQueryByKey<T> dao = factory.getQueryByKey(getSql(), subsystem);
+      T dto = null;
 
-    if (getKey() != null) {
-      try {
-        dto = dao.queryByKey(getKey());
-        set(dto);
-      } catch (ConstraintViolationException e) {
-        throw new DbErrorException(e.getMessage(), thread, e);
+      if (getKey() != null) {
+        try {
+          dto = dao.queryByKey(getKey());
+          set(dto);
+        } catch (ConstraintViolationException e) {
+          throw new DbErrorException(e.getMessage(), thread, e);
+        }
       }
     }
   }

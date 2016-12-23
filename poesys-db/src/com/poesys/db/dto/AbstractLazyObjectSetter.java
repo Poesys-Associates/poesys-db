@@ -57,21 +57,23 @@ abstract public class AbstractLazyObjectSetter<T extends IDbDto> extends
 
   @Override
   protected void doSet(PoesysTrackingThread thread) {
-    try {
-      IDaoManager manager = DaoManagerFactory.getManager(subsystem);
-      IDaoFactory<T> factory =
-        manager.getFactory(getClassName(), subsystem, expiration);
-      IQueryByKey<T> dao = factory.getQueryByKey(getSql(), subsystem);
-      // If there is a key, query using it; otherwise, just return as there is
-      // nothing to query and set.
-      if (getKey() != null) {
-        // Query using the outer object as parameters (that is, the parent
-        // key).
-        T dto = dao.queryByKey(getKey());
-        set(dto);
+    if (!isSet()) {
+      try {
+        IDaoManager manager = DaoManagerFactory.getManager(subsystem);
+        IDaoFactory<T> factory =
+          manager.getFactory(getClassName(), subsystem, expiration);
+        IQueryByKey<T> dao = factory.getQueryByKey(getSql(), subsystem);
+        // If there is a key, query using it; otherwise, just return as there is
+        // nothing to query and set.
+        if (getKey() != null) {
+          // Query using the outer object as parameters (that is, the parent
+          // key).
+          T dto = dao.queryByKey(getKey());
+          set(dto);
+        }
+      } catch (ConstraintViolationException e) {
+        throw new DbErrorException(e.getMessage(), thread, e);
       }
-    } catch (ConstraintViolationException e) {
-      throw new DbErrorException(e.getMessage(), thread, e);
     }
   }
 }

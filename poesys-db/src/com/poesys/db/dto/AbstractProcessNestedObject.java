@@ -86,13 +86,13 @@ public abstract class AbstractProcessNestedObject<T extends IDbDto> extends
    */
   public AbstractProcessNestedObject(String subsystem, Integer expiration) {
     super(subsystem, expiration);
+    setterName = AbstractProcessNestedObject.class.getName();
   }
 
   @Override
-  public void set() {
+  protected void doSet(PoesysTrackingThread thread) {
     T dto = getDto();
     boolean isProcessed = false;
-    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
 
     if (dto != null && !isProcessed) {
       if (Thread.currentThread() instanceof PoesysTrackingThread) {
