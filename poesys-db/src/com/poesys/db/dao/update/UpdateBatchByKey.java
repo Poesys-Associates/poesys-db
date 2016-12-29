@@ -72,10 +72,6 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
   /** Internal Strategy-pattern object containing the SQL query */
   private IUpdateSql<T> sql;
 
-  /** Builder for the batch processing error strings */
-  private StringBuilder builder = new StringBuilder();
-  /** Flag indicating whether a batch has encountered errors */
-  private boolean hasErrors = false;
   /** timeout for the cache thread */
   private static final int TIMEOUT = 1000 * 60;
 
@@ -133,8 +129,19 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
             (PoesysTrackingThread)Thread.currentThread();
           try {
             processUpdateBatches(dtos, size, thread);
+            // Post process the DTOs here, as the client is not in the tracking
+            // thread.
+            postProcessNestedObjects(dtos);
           } finally {
             thread.closeConnection();
+          }
+        }
+
+        private void postProcessNestedObjects(Collection<T> dtos) {
+          for (T dto : dtos) {
+            // Process nested objects, as the caller is not in the tracking
+            // thread.
+            dto.postprocessNestedObjects();
           }
         }
       };
@@ -193,8 +200,6 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
         if (count > 0 && stmt != null) {
           processFinalBatch(dtos, stmt, list);
         }
-
-        postprocessDtos(dtos);
       }
     }
   }
@@ -207,6 +212,7 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
    *          updates
    * @param list the list of processed DTOs, for error handling
    */
+  @SuppressWarnings("unchecked")
   private void processFinalBatch(Collection<T> dtos, PreparedStatement stmt,
                                  List<T> list) {
     PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
@@ -221,8 +227,7 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
       }
     } catch (BatchUpdateException e) {
       codes = e.getUpdateCounts();
-      builder.append(e.getMessage() + ": ");
-      hasErrors = processErrors(codes, list, builder);
+      thread.processErrors(codes, (Collection<IDbDto>)dtos);
     } catch (SQLException e) {
       // Log and let the thread complete immediately
       Object[] args = { "batch of DTOs" };
@@ -275,14 +280,14 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
       // of parent object status.
       dto.preprocessNestedObjects();
 
-      // Only proceed if the dto is CHANGED and unprocessed.
-      if (dto.getStatus() == IDbDto.Status.CHANGED
-          && thread.isProcessed(dto.getPrimaryKey().getStringKey())) {
-        // update already processed, warn then skip this DTO
+      // Check status; if not CHANGED, the DTO is already processed, which is
+      // probably some kind of unnecessary duplication, so skip processing and
+      // log a warning. Otherwise, process the update.
+      if (dto.getStatus() != Status.CHANGED) {
         Object[] args = { dto.getPrimaryKey().getStringKey() };
         String message = Message.getMessage(ALREADY_PROCESSED_WARNING, args);
         logger.warn(message);
-      } else if (dto.getStatus() == IDbDto.Status.CHANGED) {
+      } else {
         dto.validateForUpdate();
 
         // Everything is valid, so proceed to the main update.
@@ -299,6 +304,9 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
         // Add the DTO to the tracking thread.
         thread.addDto(dto);
 
+        // Note that the caller must set the DTO status to EXISTING once ALL
+        // processing is complete (over the entire inheritance hierarchy).
+
         logger.debug("Adding update to batch with key " + key);
         logger.debug("SQL: " + sqlStmt);
         logger.debug(sql.getParamString(dto));
@@ -307,9 +315,6 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
           count =
             processBatch(dto.getPrimaryKey().getStringKey(), stmt, list, count);
         }
-      } else {
-        // Just register the DTO without doing anything to it.
-        thread.addDto(dto);
       }
     } catch (InvalidParametersException | SQLException e) {
       Object[] args = { dto.getPrimaryKey().getStringKey() };
@@ -330,6 +335,7 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
    * @param count the count of DTOs processed in this batch
    * @return the count after completion of batch processing, normally 0
    */
+  @SuppressWarnings("unchecked")
   private int processBatch(String key, PreparedStatement stmt, List<T> list,
                            int count) {
     PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
@@ -342,8 +348,7 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
       list.clear();
     } catch (BatchUpdateException e) {
       codes = e.getUpdateCounts();
-      builder.append(e.getMessage() + ": ");
-      hasErrors = processErrors(codes, list, builder);
+      thread.processErrors(codes, (Collection<IDbDto>)list);
       // Reset the batch variables for the next batch.
       count = 0;
       list.clear();
@@ -354,45 +359,6 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
       throw new DbErrorException(message, thread, e);
     }
     return count;
-  }
-
-  /**
-   * Post-process any nested objects for successfully processed DTOs. In batch
-   * processing, you must first process ALL the parent DTOs so that the data is
-   * in the database for the nested operations, hence the child processing must
-   * be in a completely separate loop after the first loop that processes the
-   * parents. Only process CHANGED or EXISTING DTOs here; don't process FAILED,
-   * NEW, or DELETED DTOs. Note that the caller should set the DTO status to
-   * EXISTING once all processing for the DTO is complete (that is, after all
-   * updates have been done for all levels of the inheritance hierarchy).
-   * 
-   * @param dtos a collection of DTOs to post-process
-   */
-  private void postprocessDtos(Collection<T> dtos) {
-    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
-
-    for (T dto : dtos) {
-      if (!thread.isProcessed(dto.getPrimaryKey().getStringKey())
-          && (dto.getStatus() == IDbDto.Status.CHANGED || dto.getStatus() == IDbDto.Status.EXISTING)) {
-        postprocess(dto);
-        thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
-      }
-    }
-
-    // If there are errors, throw an exception.
-    if (hasErrors) {
-      throw new RuntimeException(builder.toString());
-    }
-  }
-
-  /**
-   * Post-process the nested objects of a DTO. Override this method if you want
-   * to add things such as a session ID.
-   * 
-   * @param dto the DTO containing the nested objects
-   */
-  protected void postprocess(T dto) {
-    dto.postprocessNestedObjects();
   }
 
   @Override

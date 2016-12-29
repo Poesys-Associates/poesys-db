@@ -91,7 +91,7 @@ public class QueryCacheByKey<T extends IDbDto> extends QueryByKey<T> implements
 
     // First check tracking thread for DTO.
     @SuppressWarnings("unchecked")
-    T dto = (T)thread.getDto(key.getStringKey());
+    T dto = (T)thread.getDto(key);
 
     // Check the cache for the object if not in thread.
     if (dto == null && cache != null) {
@@ -116,9 +116,6 @@ public class QueryCacheByKey<T extends IDbDto> extends QueryByKey<T> implements
               // nested
               // objects to avoid infinite loops.
               cache.cache(dto);
-              // Set the new and changed flags to show this object exists and is
-              // unchanged from the version in the database.
-              dto.setExisting();
               thread.addDto(dto);
             }
           }
@@ -149,12 +146,14 @@ public class QueryCacheByKey<T extends IDbDto> extends QueryByKey<T> implements
     if (dto != null) {
       // Only query nested objects if the thread hasn't already processed this
       // DTO, and thus already queried them.
-      if (!thread.isProcessed(key.getStringKey())) {
+      if (!thread.isProcessed(key)) {
         dto.queryNestedObjects();
-        thread.setProcessed(key.getStringKey(), true);
+        thread.setProcessed(key, true);
       }
-      dto.setExisting();
     }
+    
+    // Set status to existing to indicate DTO is fresh from the database.
+    dto.setExisting();
 
     return dto;
   }

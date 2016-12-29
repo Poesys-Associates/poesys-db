@@ -21,6 +21,7 @@ package com.poesys.db.dao.delete;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoManager;
 import com.poesys.db.dto.IDbDto;
+import com.poesys.db.dto.IDbDto.Status;
 
 
 /**
@@ -45,24 +46,13 @@ public class DeleteMemcachedByKey<T extends IDbDto> extends DeleteByKey<T>
 
   @Override
   public void delete(T dto) {
-    // Delete only happens for DELETED objects, not CASCADE_DELETED.
     super.delete(dto);
-    // Only proceed if the dto is DELETED or CASCADE_DELETED.
-    if (dto.getStatus() == IDbDto.Status.DELETED
-        || dto.getStatus() == IDbDto.Status.CASCADE_DELETED) {
+    // Only proceed if the DTO is DELETED_FROM_DATABASE.
+    if (dto.getStatus() == Status.DELETED_FROM_DATABASE) {
       DaoManagerFactory.initMemcachedManager(subsystem);
       IDaoManager manager = DaoManagerFactory.getManager(subsystem);
       manager.removeObjectFromCache(dto.getPrimaryKey().getCacheName(),
                                     dto.getPrimaryKey());
     }
-  }
-
-  @Override
-  protected void postprocess(T dto) {
-    dto.postprocessNestedObjects();
-  }
-
-  @Override
-  public void close() {
   }
 }

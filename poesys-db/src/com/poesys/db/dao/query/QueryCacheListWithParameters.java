@@ -82,27 +82,11 @@ public class QueryCacheListWithParameters<T extends IDbDto, S extends IDbDto, C 
     // Look the object up in the cache, create if not there and cache it.
     T dto = cache.get(key);
     if (dto == null) {
-      dto = sql.getData(rs);
+      // Use the standard list query to get the DTO.
+      dto = super.getObject(rs, thread);
       // Only cache if successfully retrieved
       if (dto != null) {
-        // Cache object here to avoid infinite loops when querying nested
-        // objects.
         cache.cache(dto);
-        // Set the new and changed flags to show this object exists and is
-        // unchanged from the version in the database.
-        dto.setExisting();
-        // If tracking and there is a DTO, track the DTO.
-        try {
-          if (thread != null && dto != null
-              && thread.getDto(key.getStringKey()) == null) {
-            thread.addDto(dto);
-            thread.setProcessed(key.getStringKey(), true);
-          }
-        } catch (Throwable e) {
-          logger.warn("Exception in querying cached list with parameters with tracking thread "
-                          + thread.getId(),
-                      e);
-        }
       }
     }
     return dto;

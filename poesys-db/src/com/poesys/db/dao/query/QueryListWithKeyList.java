@@ -31,6 +31,7 @@ import com.poesys.db.DbErrorException;
 import com.poesys.db.Message;
 import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
+import com.poesys.db.pk.IPrimaryKey;
 
 
 /**
@@ -97,7 +98,7 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
     if (Thread.currentThread() instanceof PoesysTrackingThread) {
       thread = (PoesysTrackingThread)Thread.currentThread();
       logger.debug("Using existing TrackingThread " + thread.getId());
-      doDatabaseQuery(thread);
+      doQuery(thread);
     } else {
       thread = new PoesysTrackingThread(getRunnableQuery(), subsystem);
 
@@ -133,7 +134,7 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
         PoesysTrackingThread thread =
           (PoesysTrackingThread)Thread.currentThread();
         try {
-          doDatabaseQuery(thread);
+          doQuery(thread);
         } catch (Exception e) {
           Object[] args = { sql.getKeyValues() };
           String message =
@@ -153,7 +154,7 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
    * 
    * @param thread the tracking thread
    */
-  protected void doDatabaseQuery(PoesysTrackingThread thread) {
+  protected void doQuery(PoesysTrackingThread thread) {
     PreparedStatement stmt = null;
     ResultSet rs = null;
 
@@ -172,7 +173,7 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
       // class member.
       int count = 0;
       while (rs.next()) {
-        T object = getObject(rs);
+        T object = getObject(rs, thread);
         if (object != null) {
           list.add(object);
           count++;
@@ -212,10 +213,14 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
                                            PoesysTrackingThread thread) {
     if (list != null) {
       for (T dto : list) {
-        if (!thread.isProcessed(dto.getPrimaryKey().getStringKey())) {
+        // Query only first time as optimization.
+        if (!thread.isProcessed(dto.getPrimaryKey())) {
           dto.queryNestedObjects();
         }
-        thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
+        // Set processed after first nested-object query.
+        thread.setProcessed(dto.getPrimaryKey(), true);
+        // Set status to existing to indicate DTO is fresh from the database.
+        dto.setExisting();
       }
     }
   }
@@ -225,14 +230,26 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
    * provide caching or other services for the object.
    * 
    * @param rs the result set from an executed SQL statement
+   * @param thread the tracking thread for the current query process
    * @return the object
    */
-  protected T getObject(ResultSet rs) {
-    T object = sql.getData(rs);
-    // Set the new and changed flags to show this object exists and is
-    // unchanged from the version in the database.
-    object.setExisting();
-    return object;
+  protected T getObject(ResultSet rs, PoesysTrackingThread thread) {
+    IPrimaryKey key = sql.getPrimaryKey(rs);
+    @SuppressWarnings("unchecked")
+    // Try getting the queried object from the tracking thread.
+    T dto = (T)thread.getDto(key);
+    if (dto == null) {
+      // Get the queried object from the result set.
+      dto = sql.getData(rs);
+      logger.debug("Retrieved DTO from database: "
+                   + dto.getPrimaryKey().getStringKey());
+    } else {
+      logger.debug("Retrieved DTO from tracking thread: "
+                   + dto.getPrimaryKey().getStringKey());
+      // Set object as processed to prevent infinite recursion.
+      thread.setProcessed(key, true);
+    }
+    return dto;
   }
 
   @Override

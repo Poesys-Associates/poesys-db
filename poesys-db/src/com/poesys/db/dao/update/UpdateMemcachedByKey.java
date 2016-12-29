@@ -21,6 +21,7 @@ package com.poesys.db.dao.update;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoManager;
 import com.poesys.db.dto.IDbDto;
+import com.poesys.db.dto.IDbDto.Status;
 
 
 /**
@@ -46,7 +47,7 @@ public class UpdateMemcachedByKey<T extends IDbDto> extends UpdateByKey<T>
   @Override
   public void update(T dto) {
     // Remove CHANGED DTOs from the cache.
-    if (dto != null && dto.hasStatusChanged()) {
+    if (dto != null && dto.getStatus() == Status.CHANGED) {
       DaoManagerFactory.initMemcachedManager(subsystem);
       IDaoManager manager = DaoManagerFactory.getManager(subsystem);
 

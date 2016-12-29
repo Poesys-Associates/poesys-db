@@ -18,9 +18,8 @@
 package com.poesys.db.dto;
 
 
-import com.poesys.db.ConstraintViolationException;
-import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.PoesysTrackingThread;
+import com.poesys.db.dto.IDbDto.Status;
 
 
 /**
@@ -92,30 +91,17 @@ public abstract class AbstractProcessNestedObject<T extends IDbDto> extends
   @Override
   protected void doSet(PoesysTrackingThread thread) {
     T dto = getDto();
-    boolean isProcessed = false;
 
-    if (dto != null && !isProcessed) {
-      if (Thread.currentThread() instanceof PoesysTrackingThread) {
-        // Currently processing in hierarchy, check processed status
-        String key = dto.getPrimaryKey().getStringKey();
-        if (thread.getDto(key) != null)
-          isProcessed = thread.isProcessed(key);
-      }
-
-      try {
-        IDbDto.Status status = dto.getStatus();
-        if (status == IDbDto.Status.NEW) {
-          doNew(dto);
-        } else if (status == IDbDto.Status.CHANGED
-                   || status == IDbDto.Status.EXISTING) {
-          // Process changed object or nested objects for existing object
-          doChanged(dto);
-        } else if (status == IDbDto.Status.DELETED
-                   || status == IDbDto.Status.CASCADE_DELETED) {
-          doDeleted(dto);
-        } // otherwise, ignore the DTO completely
-      } catch (ConstraintViolationException e) {
-        throw new DbErrorException(e.getMessage(), thread, e);
+    if (dto != null) {
+      Status status = dto.getStatus();
+      if (status == Status.NEW) {
+        doNew(dto);
+      } else if (status == Status.CHANGED) {
+        // Process changed object or nested objects for existing object
+        doChanged(dto);
+      } else if (status == Status.DELETED
+                 || status == IDbDto.Status.CASCADE_DELETED) {
+        doDeleted(dto);
       }
     }
   }
@@ -127,9 +113,22 @@ public abstract class AbstractProcessNestedObject<T extends IDbDto> extends
    */
   abstract protected T getDto();
 
+  @Override
   public boolean isSet() {
-    // Set if the nested DTO is not null
-    return getDto() != null;
+    boolean isSet = false;
+    if (getDto() != null) {
+      // Check the tracking thread for processed status.
+      PoesysTrackingThread thread =
+        (PoesysTrackingThread)Thread.currentThread();
+      if (thread.isProcessed(getDto().getPrimaryKey())) {
+        // Processed, don't process.
+        isSet = true;
+      }
+    } else {
+      // Null DTO, don't process.
+      isSet = true;
+    }
+    return isSet;
   }
 
   /**

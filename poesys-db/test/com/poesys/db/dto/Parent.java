@@ -19,8 +19,8 @@ package com.poesys.db.dto;
 
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.DataEvent;
@@ -239,6 +239,32 @@ public class Parent extends AbstractTestDto {
   }
 
   /**
+   * Post-process setter for post-processing nested object property community.
+   */
+  private class PostProcessChildrenSetter 
+      extends com.poesys.db.dto.AbstractPostProcessSetter {
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * Create a PostProcessChildrenSetter object.
+     */
+    public PostProcessChildrenSetter() {
+      super("org.tair.db.community", 2147483647);
+    }
+
+    @Override
+    protected String getClassName() {
+      return Parent.class.getName();
+    }
+
+    @Override
+    protected Collection<IDbDto> getDtos() {
+      Collection<IDbDto> collection = new ArrayList<IDbDto>(children);
+      return collection;
+    }
+  }
+
+  /**
    * Create a Parent with a GUID primary key value and a list of setters for
    * setting the composite child collection field.
    * 
@@ -249,13 +275,15 @@ public class Parent extends AbstractTestDto {
     super();
 
     // Create the setters and validators.
-    this.insertSetters = new CopyOnWriteArrayList<ISet>();
+    this.insertSetters = new ArrayList<ISet>();
     insertSetters.add(new InsertChildren());
-    this.preSetters = new CopyOnWriteArrayList<ISet>();
+    this.preSetters = new ArrayList<ISet>();
     preSetters.add(new PreprocessChildren());
-    this.postSetters = new CopyOnWriteArrayList<ISet>();
+    this.postSetters = new ArrayList<ISet>();
     postSetters.add(new PostprocessChildren());
-    this.querySetters = new CopyOnWriteArrayList<ISet>();
+    this.postProcessSetters = new ArrayList<ISet>();
+    postProcessSetters.add(new PostProcessChildrenSetter());
+    this.querySetters = new ArrayList<ISet>();
     querySetters.add(new QueryChildren());
 
     this.key = (GuidPrimaryKey)key;

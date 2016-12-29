@@ -64,9 +64,9 @@ abstract public class AbstractCollectionDeleteSetter<T extends IDbDto> extends
     IDaoFactory<T> factory =
       manager.getFactory(getClassName(), subsystem, expiration);
     IDeleteCollection<T> dao = factory.getDeleteCollection(getSql());
-    Collection<T> links = getDtos();
+    Collection<T> dtos = getDtos();
     try {
-      dao.delete(links);
+      dao.delete(dtos);
     } catch (ConstraintViolationException e) {
       throw new DbErrorException(e.getMessage(), thread, e);
     }

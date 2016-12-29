@@ -25,7 +25,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.ArrayList;
 
 import com.poesys.db.BatchException;
 import com.poesys.db.DbErrorException;
@@ -135,7 +135,7 @@ public class InsertTernaryLink1Test extends ConnectionTest {
     Link3 link3Dto = new Link3(key3, COL_VALUE);
 
     // Create the links and add them to the Link1 object.
-    List<IPrimaryKey> keylist1_2_1_3 = new CopyOnWriteArrayList<IPrimaryKey>();
+    List<IPrimaryKey> keylist1_2_1_3 = new ArrayList<IPrimaryKey>();
     keylist1_2_1_3.add(key1); // Link1 object
     keylist1_2_1_3.add(key21); // first link2 object
     keylist1_2_1_3.add(key3); // Link3 object
@@ -146,7 +146,7 @@ public class InsertTernaryLink1Test extends ConnectionTest {
     link1.setLink2(link21Dto);
     link1.setLink3(link3Dto);
 
-    List<IPrimaryKey> keylist1_2_2_3 = new CopyOnWriteArrayList<IPrimaryKey>();
+    List<IPrimaryKey> keylist1_2_2_3 = new ArrayList<IPrimaryKey>();
     keylist1_2_2_3.add(key1); // Link1 object
     keylist1_2_2_3.add(key22); // second link2 object
     keylist1_2_2_3.add(key3); // Link3 object
@@ -157,7 +157,7 @@ public class InsertTernaryLink1Test extends ConnectionTest {
     link2.setLink2(link22Dto);
     link2.setLink3(link3Dto);
 
-    List<IPrimaryKey> keylist1_2_3_3 = new CopyOnWriteArrayList<IPrimaryKey>();
+    List<IPrimaryKey> keylist1_2_3_3 = new ArrayList<IPrimaryKey>();
     keylist1_2_3_3.add(key1); // Link1 object
     keylist1_2_3_3.add(key23); // third link2 object
     keylist1_2_3_3.add(key3); // Link3 object
@@ -168,18 +168,18 @@ public class InsertTernaryLink1Test extends ConnectionTest {
     link3.setLink2(link23Dto);
     link3.setLink3(link3Dto);
 
-    List<TernaryLink> links1 = new CopyOnWriteArrayList<TernaryLink>();
+    List<TernaryLink> links1 = new ArrayList<TernaryLink>();
     links1.add(link1);
     links1.add(link2);
     links1.add(link3);
 
-    List<TernaryLink> links21 = new CopyOnWriteArrayList<TernaryLink>();
+    List<TernaryLink> links21 = new ArrayList<TernaryLink>();
     links1.add(link1);
 
-    List<TernaryLink> links22 = new CopyOnWriteArrayList<TernaryLink>();
+    List<TernaryLink> links22 = new ArrayList<TernaryLink>();
     links1.add(link2);
 
-    List<TernaryLink> links23 = new CopyOnWriteArrayList<TernaryLink>();
+    List<TernaryLink> links23 = new ArrayList<TernaryLink>();
     links1.add(link3);
 
     // Add the links to the link objects.
@@ -296,7 +296,7 @@ public class InsertTernaryLink1Test extends ConnectionTest {
       pstmt.close();
       pstmt = null;
       rs = null;
-      assertTrue(counter == 3);
+      assertTrue("Wrong number of inserted rows: " + counter, counter == 3);
       conn.commit();
     } catch (SQLException e) {
       fail("insert method failed with SQL error: " + e.getMessage());

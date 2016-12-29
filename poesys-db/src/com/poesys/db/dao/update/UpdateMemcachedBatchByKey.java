@@ -23,6 +23,7 @@ import java.util.Collection;
 import com.poesys.db.dao.DaoManagerFactory;
 import com.poesys.db.dao.IDaoManager;
 import com.poesys.db.dto.IDbDto;
+import com.poesys.db.dto.IDbDto.Status;
 
 
 /**
@@ -53,7 +54,7 @@ public class UpdateMemcachedBatchByKey<T extends IDbDto> extends
       DaoManagerFactory.initMemcachedManager(subsystem);
       IDaoManager manager = DaoManagerFactory.getManager(subsystem);
       for (T dto : dtos) {
-        if (dto.hasStatusChanged()) {
+        if (dto != null && dto.getStatus() == Status.CHANGED) {
           manager.removeObjectFromCache(dto.getPrimaryKey().getCacheName(),
                                         dto.getPrimaryKey());
         }

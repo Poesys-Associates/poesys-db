@@ -47,6 +47,12 @@ import com.poesys.db.dto.IDbDto;
  * otherwise you will get a foreign key failure. The ISet command must check the
  * associated objects for database status using the isNew method on the IDto.
  * </p>
+ * <p>
+ * After the insert operation, the status should be EXISTING. The current
+ * implementation handles inheritance externally by undoing this status change
+ * for superclass inserts, finalizing the status to EXISTING only after
+ * inserting the concrete leaf class.
+ * </p>
  * 
  * @see com.poesys.db.dto.ISet
  * @see com.poesys.db.dto.IDbDto

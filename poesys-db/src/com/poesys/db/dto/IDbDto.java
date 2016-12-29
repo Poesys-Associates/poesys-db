@@ -117,6 +117,8 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
     DELETED,
     /** An existing object marked for deletion by cascade along a foreign key */
     CASCADE_DELETED,
+    /** A DELETED or CASCADE_DELETED object actually deleted from the database */
+    DELETED_FROM_DATABASE,
     /** An object in an invalid state after an operation such as nested query */
     FAILED
   };
@@ -154,6 +156,12 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
    * 
    */
   void setChanged();
+  
+  /**
+   * Set the status of the DTO to DELETED_FROM_DATABASE if it is currently status
+   * DELETED or DELETE_CASCADE.
+   */
+  void setDeletedFromDatabase();
 
   /**
    * Set the status of the DTO to FAILED.
@@ -173,7 +181,7 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
    * @return true if the status has changed, false otherwise
    */
   boolean hasStatusChanged();
-
+  
   /**
    * Finalize the current status by setting the previous status to be the same
    * as the current status. The undoStatus() method will then never switch to a

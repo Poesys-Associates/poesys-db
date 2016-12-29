@@ -140,20 +140,12 @@ public class Link1 extends AbstractTestDto {
     insertSetters.add(new InsertTernaryLinks());
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.IDbDto#getPrimaryKey()
-   */
+  @Override
   public IPrimaryKey getPrimaryKey() {
     return key;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see java.lang.Comparable#compareTo(java.lang.Object)
-   */
+  @Override
   public int compareTo(IDbDto o) {
     int retVal = key.compareTo(o.getPrimaryKey());
     if (retVal == 0) {

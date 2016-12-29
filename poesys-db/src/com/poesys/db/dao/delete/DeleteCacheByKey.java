@@ -52,9 +52,8 @@ public class DeleteCacheByKey<T extends IDbDto> extends DeleteByKey<T>
   public void delete(T dto) {
     // Delete only happens for DELETED objects, not CASCADE_DELETED.
     super.delete(dto);
-    // Only proceed if the dto is DELETED or CASCADE_DELETED.
-    if (dto.getStatus() == IDbDto.Status.DELETED
-        || dto.getStatus() == IDbDto.Status.CASCADE_DELETED) {
+    // Only proceed if the DTO is DELETED_FROM_DATABASE.
+    if (dto.getStatus() == IDbDto.Status.DELETED_FROM_DATABASE) {
       cache.remove(dto.getPrimaryKey());
     }
   }

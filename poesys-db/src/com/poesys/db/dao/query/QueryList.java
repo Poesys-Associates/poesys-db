@@ -30,6 +30,7 @@ import com.poesys.db.DbErrorException;
 import com.poesys.db.Message;
 import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
+import com.poesys.db.pk.IPrimaryKey;
 
 
 /**
@@ -171,7 +172,7 @@ public class QueryList<T extends IDbDto> implements IQueryList<T> {
 
       // Loop through and fetch all the results, adding each to the result list.
       while (rs.next()) {
-        T object = getObject(rs);
+        T object = getObject(rs, thread);
         if (object != null) {
           list.add(object);
         }
@@ -221,8 +222,15 @@ public class QueryList<T extends IDbDto> implements IQueryList<T> {
                                            PoesysTrackingThread thread) {
     // Query any nested objects. This is outside the fetch above to make sure
     // that the statement and result set are closed before recursing.
-    for (T object : list) {
-      object.queryNestedObjects();
+    for (T dto : list) {
+      // Check processed status to prevent infinite recursion.
+      if (!thread.isProcessed(dto.getPrimaryKey())) {
+        dto.queryNestedObjects();
+        // After first nested-object query, set as processed.
+        thread.setProcessed(dto.getPrimaryKey(), true);
+      }
+      // Set status to existing to indicate DTO is fresh from the database.
+      dto.setExisting();
     }
   }
 
@@ -231,13 +239,26 @@ public class QueryList<T extends IDbDto> implements IQueryList<T> {
    * provide caching or other services for the object.
    * 
    * @param rs the result set from an executed SQL statement
+   * @param thread the tracking thread
    * @return the database DTO
    */
-  protected T getObject(ResultSet rs) {
-    T object = sql.getData(rs);
-    // Set the status flag to show the object is synchronized with the database.
-    object.setExisting();
-    return object;
+  protected T getObject(ResultSet rs, PoesysTrackingThread thread) {
+    IPrimaryKey key = sql.getPrimaryKey(rs);
+    @SuppressWarnings("unchecked")
+    // Try getting the queried object from the tracking thread.
+    T dto = (T)thread.getDto(key);
+    if (dto == null) {
+      // Get the queried object from the result set.
+      dto = sql.getData(rs);
+      logger.debug("Retrieved DTO from database: " + dto.getPrimaryKey().getStringKey());
+      // Put the object into the tracking thread to prevent infinite recursion.
+      thread.addDto(dto);
+    } else {
+      logger.debug("Retrieved DTO from tracking thread: " + dto.getPrimaryKey().getStringKey());
+      // Set object as processed to prevent infinite recursion.
+      thread.setProcessed(key, true);
+    }
+    return dto;
   }
 
   @Override

@@ -67,12 +67,10 @@ abstract public class AbstractBatchInsertSetter<T extends IDbDto, C extends Coll
       manager.getFactory(getClassName(), subsystem, expiration);
     List<IInsertSql<T>> inserts = getSql();
     try {
-      // Iterate through the superclasses, if any, inserting the superclass
-      // objects, and finally inserting the leaf part.
       for (IInsertSql<T> insert : inserts) {
         IInsertBatch<T> dao = factory.getInsertBatch(insert);
-        C links = getDtos();
-        dao.insert(links, getBatchSize());
+        C dtos = getDtos();
+        dao.insert(dtos, getBatchSize());
       }
     } catch (ConstraintViolationException e) {
       throw new DbErrorException(e.getMessage(), thread, e);

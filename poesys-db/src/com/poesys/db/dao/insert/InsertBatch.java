@@ -47,7 +47,7 @@ import com.poesys.db.pk.IdentityPrimaryKey;
  * that contains the SQL INSERT statement and the JDBC code to set the
  * parameters in the JDBC result set, then pass that object into the InsertBatch
  * constructor. The insert() method will insert all objects in the input
- * collection that have the status NEW.
+ * collection that have the status NEW, then change status to EXISTING.
  * </p>
  * <p>
  * <em>Note: You cannot insert batches of objects with identity (auto-generated)
@@ -72,9 +72,6 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
   /** The helper class for generating the SQL statement */
   private final IInsertSql<T> sql;
 
-  /** Warning message when insert contains DTOs with the same key */
-  private static final String DUPLICATE_INSERT_WARNING =
-    "Duplicate insert ignored: ";
   /** Error message when no primary key supplied */
   private static final String NO_KEY_ERROR =
     "com.poesys.db.dao.insert.msg.no_primary_key_for_insert";
@@ -86,11 +83,6 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
   /** Error message when insert throws exception */
   private static final String INSERT_ERROR =
     "com.poesys.db.dao.insert.msg.insert";
-
-  /** Shared string builder for error string */
-  private StringBuilder builder = new StringBuilder();
-  /** Flag for whether batch has errors */
-  private boolean hasErrors = false;
 
   /** timeout for the cache thread */
   private static final int TIMEOUT = 1000 * 60;
@@ -122,8 +114,22 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
             (PoesysTrackingThread)Thread.currentThread();
           try {
             insertBatch(thread.getConnection(), dtos, size);
+            // Post process here as the client is not in the tracking thread.
+            postProcessNestedObjects(dtos);
           } finally {
             thread.closeConnection();
+          }
+        }
+
+        /**
+         * Post-process a collection of DTOs.
+         * 
+         * @param dtos the DTOs
+         */
+        private void postProcessNestedObjects(Collection<T> dtos) {
+          for (T dto : dtos) {
+            // Post process DTO, as client isn't in tracking thread.
+            dto.postprocessNestedObjects();
           }
         }
       };
@@ -153,6 +159,7 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
    * @param dtos the DTOs to insert
    * @param size the size of the batches to process
    */
+  @SuppressWarnings("unchecked")
   private void insertBatch(Connection connection, Collection<T> dtos, int size) {
     PreparedStatement stmt = null;
     int[] codes = null; // array of return codes from JDBC batch processing
@@ -177,14 +184,6 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
             throw new InvalidParametersException(Message.getMessage(IDENTITY_KEY_ERROR,
                                                                     null));
           } else if (dto.getStatus() == IDbDto.Status.NEW) {
-            if (thread.getDto(key.getStringKey()) == null) {
-              // Not in history, add it to be able to set it processed
-              thread.addDto(dto);
-            } else if (thread.isProcessed(key.getStringKey())) {
-              // insert already processed, warn about duplicate
-              logger.warn(DUPLICATE_INSERT_WARNING + key.getStringKey());
-              continue;
-            }
             /*
              * The DTO is NEW. Run any validation after querying nested objects
              * to be able to use them in validation.
@@ -222,8 +221,13 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
             logger.debug("SQL: " + sqlStr);
             // Add the DTO to the current batch list for error processing.
             list.add(dto);
-            // Set the DTO to have processed status.
-            thread.setProcessed(key.getStringKey(), true);
+            // Add the DTO to the tracking thread if not already tracked.
+            if (thread.getDto(key) == null) {
+              // Not in thread yet, add it to set processed flag.
+              thread.addDto(dto);
+            }
+            // Set status to EXISTING.
+            dto.setExisting();
             if (count == size) {
               try {
                 stmt.executeBatch();
@@ -235,10 +239,7 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
                 // Reset the batch variables for the next batch.
                 count = 0;
                 list.clear();
-                builder.append(e.getMessage());
-                builder.append(": ");
-                builder.append(sqlStr);
-                hasErrors = processErrors(codes, list, builder);
+                thread.processErrors(codes, (Collection<IDbDto>)list);
               }
             }
           }
@@ -255,8 +256,7 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
             codes = stmt.executeBatch();
           } catch (BatchUpdateException e) {
             codes = e.getUpdateCounts();
-            builder.append(e.getMessage() + ": ");
-            hasErrors = processErrors(codes, list, builder);
+            thread.processErrors(codes, (Collection<IDbDto>)list);
           } catch (SQLException e) {
             Object[] args = { "batch of DTOs" };
             String message = Message.getMessage(INSERT_ERROR, args);
@@ -288,12 +288,6 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
         if (dto.getStatus() == IDbDto.Status.NEW && !dto.isAbstractClass()) {
           dto.insertNestedObjects();
         }
-      }
-
-      // If there are errors, print the SQL and throw a batch exception.
-      if (hasErrors) {
-        logger.error(builder.toString());
-        throw new RuntimeException(builder.toString());
       }
     }
   }

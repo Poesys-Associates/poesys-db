@@ -62,7 +62,8 @@ abstract public class AbstractDeleteSetter<T extends IDbDto> extends
       manager.getFactory(getClassName(), subsystem, expiration);
     IDelete<T> dao = factory.getDelete(getSql());
     try {
-      dao.delete(getDto());
+      T dto = getDto();
+      dao.delete(dto);
     } catch (ConstraintViolationException e) {
       throw new DbErrorException(e.getMessage(), thread, e);
     } 

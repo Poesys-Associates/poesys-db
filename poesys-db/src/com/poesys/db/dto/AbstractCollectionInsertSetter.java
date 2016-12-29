@@ -33,9 +33,8 @@ import com.poesys.db.dao.insert.IInsertSql;
 /**
  * An abstract implementation of the ISet interface for a Strategy-pattern class
  * that inserts a collection of DTOs as part of a more comprehensive
- * transaction, taking in a connection and not closing it. The abstract methods
- * parameterize the class with objects that the set() method uses in processing
- * the non-batch insert.
+ * transaction. The abstract methods parameterize the class with objects that
+ * the set() method uses in processing the non-batch insert.
  * 
  * @author Robert J. Muller
  * @param <T> the type of IDbDto to insert
@@ -69,7 +68,7 @@ abstract public class AbstractCollectionInsertSetter<T extends IDbDto> extends
       dao.insert(links);
     } catch (ConstraintViolationException e) {
       throw new DbErrorException(e.getMessage(), thread, e);
-    } 
+    }
   }
 
   /**
@@ -101,6 +100,7 @@ abstract public class AbstractCollectionInsertSetter<T extends IDbDto> extends
    */
   abstract protected Collection<T> getDtos();
 
+  @Override
   public boolean isSet() {
     // Always not set
     return false;

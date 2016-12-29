@@ -106,7 +106,7 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
     // dependents.
     if (Thread.currentThread() instanceof PoesysTrackingThread) {
       thread = (PoesysTrackingThread)Thread.currentThread();
-      IDbDto dto = thread.getDto(key.getStringKey());
+      IDbDto dto = thread.getDto(key);
       // Only query if DTO not already queried in this thread.
       if (dto == null) {
         getDto(key, thread);
@@ -126,7 +126,7 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
       }
     }
 
-    return (T)thread.getDto(key.getStringKey());
+    return (T)thread.getDto(key);
   }
 
   /**
@@ -227,14 +227,18 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
     // that the statement and result set are closed before recursing.
     if (dto != null) {
       // Only query nested objects if the thread hasn't already processed this
-      // DTO, and thus already queried them.
-      if (!thread.isProcessed(key.getStringKey())) {
+      // DTO, and thus already queried them. This is an optimization that avoids
+      // unnecessary parameterized queries that will result in querying objects
+      // already queried and available in the thread.
+      if (!thread.isProcessed(key)) {
         dto.queryNestedObjects();
         // Mark the DTO fully processed.
-        thread.setProcessed(key.getStringKey(), true);
+        thread.setProcessed(key, true);
       }
-      dto.setExisting();
     }
+
+    // Set status to existing to indicate DTO is fresh from the database.
+    dto.setExisting();
 
     return dto;
   }

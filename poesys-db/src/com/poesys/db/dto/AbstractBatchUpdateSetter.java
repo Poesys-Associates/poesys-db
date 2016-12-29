@@ -64,9 +64,9 @@ abstract public class AbstractBatchUpdateSetter<T extends IDbDto> extends
     IDaoFactory<T> factory =
       manager.getFactory(getClassName(), subsystem, expiration);
     IUpdateBatch<T> dao = factory.getUpdateBatch(getSql());
-    List<T> links = getDtos();
+    List<T> dtos = getDtos();
     try {
-      dao.update(links, getBatchSize());
+      dao.update(dtos, getBatchSize());
     } catch (ConstraintViolationException e) {
       throw new DbErrorException(e.getMessage(), thread, e);
     }

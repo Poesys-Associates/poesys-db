@@ -21,9 +21,8 @@ package com.poesys.db.dto;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import com.poesys.db.ConstraintViolationException;
-import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.PoesysTrackingThread;
+import com.poesys.db.dto.IDbDto.Status;
 
 
 /**
@@ -107,32 +106,20 @@ public abstract class AbstractProcessNestedObjects<T extends IDbDto, C extends C
 
     if (dtos != null) {
       for (T dto : dtos) {
-        String key = dto.getPrimaryKey().getStringKey();
-        boolean isProcessed = false;
-        if (thread != null && thread.isProcessed(key)) {
-          isProcessed = true;
+        Status status = dto.getStatus();
+        if (status == Status.NEW) {
+          inserts.add(dto);
+        } else if (status == Status.CHANGED) {
+          updates.add(dto);
+        } else if (status == Status.DELETED || status == Status.CASCADE_DELETED) {
+          deletes.add(dto);
         }
-        if (!isProcessed) {
-          IDbDto.Status status = dto.getStatus();
-          if (status == IDbDto.Status.NEW) {
-            inserts.add(dto);
-          } else if (status == IDbDto.Status.CHANGED) {
-            updates.add(dto);
-          } else if (status == IDbDto.Status.DELETED
-                     || status == IDbDto.Status.CASCADE_DELETED) {
-            deletes.add(dto);
-          }
-        }// otherwise, ignore the DTO completely
-      }
-
-      try {
-        doNew(inserts);
-        doChanged(updates);
-        doDeleted(deletes);
-      } catch (ConstraintViolationException e) {
-        throw new DbErrorException(e.getMessage(), thread, e);
       }
     }
+
+    doNew(inserts);
+    doChanged(updates);
+    doDeleted(deletes);
   }
 
   /**
@@ -143,8 +130,26 @@ public abstract class AbstractProcessNestedObjects<T extends IDbDto, C extends C
   abstract protected C getDtos();
 
   public boolean isSet() {
-    // Set if the nested DTOs collection is not null
-    return getDtos() != null;
+    boolean isSet = false;
+    if (getDtos() != null && getDtos().size() > 0) {
+      // Check the tracking thread for processed status.
+      PoesysTrackingThread thread =
+        (PoesysTrackingThread)Thread.currentThread();
+      for (T dto : getDtos()) {
+        if (thread.isProcessed(dto.getPrimaryKey())) {
+          // Processed, don't process.
+          isSet = true;
+        } else {
+          // At least one unprocessed DTO, member needs processing.
+          isSet = false;
+          break;
+        }
+      }
+    } else {
+      // Null or empty DTO collection, don't process.
+      isSet = true;
+    }
+    return isSet;
   }
 
   /**

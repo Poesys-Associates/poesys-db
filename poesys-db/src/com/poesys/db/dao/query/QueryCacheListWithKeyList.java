@@ -20,6 +20,7 @@ package com.poesys.db.dao.query;
 
 import java.sql.ResultSet;
 
+import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.dto.IDtoCache;
 import com.poesys.db.pk.IPrimaryKey;
@@ -59,21 +60,19 @@ public class QueryCacheListWithKeyList<T extends IDbDto> extends
   }
 
   @Override
-  protected T getObject(ResultSet rs) {
+  protected T getObject(ResultSet rs, PoesysTrackingThread thread) {
     IPrimaryKey key = sql.getPrimaryKey(rs);
     // Look the object up in the cache, create if not there and cache it.
-    T object = cache.get(key);
-    if (object == null) {
-      object = sql.getData(rs);
+    T dto = cache.get(key);
+    if (dto == null) {
+      // Use the standard list query to get the DTO.
+      dto = super.getObject(rs, thread);
       // Only cache if successfully retrieved.
-      if (object != null) {
+      if (dto != null) {
         // Cache the object before querying nested objects to avoid loops.
-        cache.cache(object);
-        // Set the new and changed flags to show this object exists and is
-        // unchanged from the version in the database.
-        object.setExisting();
+        cache.cache(dto);
       }
     }
-    return object;
+    return dto;
   }
 }

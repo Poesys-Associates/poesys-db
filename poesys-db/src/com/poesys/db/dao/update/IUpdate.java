@@ -26,7 +26,9 @@ import com.poesys.db.dto.IDbDto;
  * (DTO) in the database. The implementation identifies the object to update
  * based on the primary key of the object contained in the input DTO. The
  * concrete implementation should specify what aspects of the object it updates.
- * It must also update only if the DTO has status CHANGED.
+ * It must also update only if the DTO has status CHANGED. The caller should set
+ * the DTO status to existing once <strong>all</strong> processing is complete
+ * (over the entire inheritance hierarchy).
  * 
  * @author Robert J. Muller
  * @param <T> the type of IDbDto to update

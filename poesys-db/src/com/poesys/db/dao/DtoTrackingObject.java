@@ -30,6 +30,7 @@ import com.poesys.db.dto.IDbDto;
 public class DtoTrackingObject {
   private final IDbDto dto;
   boolean isProcessed = false;
+  private Integer batchErrorCode = null;
 
   /**
    * Create a CachedObject, wrapping a DTO.
@@ -78,5 +79,23 @@ public class DtoTrackingObject {
    */
   public String getPrimaryKeyValue() {
     return dto.getPrimaryKey().getStringKey();
+  }
+
+  /**
+   * Get the batch error code for this DTO.
+   * 
+   * @return the error code
+   */
+  public Integer getBatchError() {
+    return batchErrorCode;
+  }
+
+  /**
+   * Set a batch error processing code for this DTO.
+   * 
+   * @param code the error code
+   */
+  public void setBatchError(int code) {
+    this.batchErrorCode = code;
   }
 }

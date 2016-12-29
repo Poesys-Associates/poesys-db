@@ -18,9 +18,6 @@
 package com.poesys.db.dao;
 
 
-import java.sql.PreparedStatement;
-import java.util.List;
-
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.Message;
 import com.poesys.db.dto.IDbDto;
@@ -28,9 +25,6 @@ import com.poesys.db.dto.IDbDto;
 
 /**
  * An abstract superclass for batch-oriented data access object (DAO) classes
- * that provides helper methods for processing results and errors encountered
- * during JDBC batch processing of a specified kind of data transfer object
- * (DTO).
  * 
  * @see com.poesys.db.dto.IDbDto
  * 
@@ -57,77 +51,5 @@ public abstract class AbstractBatch<T extends IDbDto> {
                                                               null));
     }
     this.subsystem = subsystem;
-  }
-
-  /**
-   * Process the error codes from a JDBC batch. Extract the DTO corresponding to
-   * any error from the list of DTOs in the batch and construct an error message
-   * containing the primary key values of the object that failed to insert. Note
-   * that all DTOs not in FAILED status have been successfully processed, so
-   * there is no need to set the processed flag to off. The method that sets the
-   * error message also marks the DTO as unprocessed.
-   * 
-   * @param codes the codes for the DTOs starting at the index; can be null
-   * @param dtos the list of DTOs in the batch
-   * @param builder a StringBuilder with any previous set of messages
-   * @return true if there were errors, false if there were none
-   * @throws InvalidParametersException when the sizes of the error code array
-   *           and the list of DTOs does not match
-   */
-  protected boolean processErrors(int[] codes, List<T> dtos,
-                                  StringBuilder builder)
-      throws InvalidParametersException {
-    boolean errors = false;
-    int i = 0;
-    // Process only if there are codes and DTOs.
-    if (codes != null && codes.length > 0 && dtos != null && dtos.size() > 0) {
-      // Check the sizes of the two arrays.
-      if (codes.length != dtos.size()) {
-        // Statement processing stopped at the first error, get failed DTO
-        errors = appendErrorString(builder, dtos.get(codes.length));
-      } else {
-        // Statement processing continued, check for FAILED
-        for (IDbDto dto : dtos) {
-          if (codes[i] == PreparedStatement.EXECUTE_FAILED) {
-            errors = appendErrorString(builder, dto);
-          } else if (codes[i] == PreparedStatement.SUCCESS_NO_INFO
-                     || codes[i] == 1) {
-            // Leave the current status alone, fully processed.
-          }
-          i++; // increment the counter to check the next code
-        }
-      }
-    } else if (codes != null && codes.length == 0 && dtos.size() > 0) {
-      // 0-length means the first object failed
-      errors = appendErrorString(builder, dtos.get(0));
-    }
-    return errors;
-  }
-
-  /**
-   * Append the error information for a DTO to an input Builder and set the dto
-   * to Failed status and unprocessed.
-   * 
-   * @param builder the builder to which to append
-   * @param dto the DTO to represent as a string
-   * @return true if there is an error, false if not
-   */
-  private boolean appendErrorString(StringBuilder builder, IDbDto dto) {
-    boolean errors = false;
-    // Operation failed for this DTO
-    builder.append(dto.getClass().getName());
-    builder.append(dto.getPrimaryKey().getValueList());
-    builder.append("\n");
-    dto.setFailed();
-    // Mark the DTO as unprocessed as it did not complete processing.
-    if (Thread.currentThread() instanceof PoesysTrackingThread) {
-      PoesysTrackingThread thread =
-        (PoesysTrackingThread)Thread.currentThread();
-      if (thread.getDto(dto.getPrimaryKey().getStringKey()) != null) {
-        thread.setProcessed(dto.getPrimaryKey().getStringKey(), false);
-      }
-    }
-    errors = true;
-    return errors;
   }
 }

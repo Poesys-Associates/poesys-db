@@ -93,7 +93,7 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
     }
 
     // First check tracking thread for DTO.
-    T dto = (T)thread.getDto(key.getStringKey());
+    T dto = (T)thread.getDto(key);
     if (dto == null) {
       // Next check memcached for DTO.
       dto = getObjectByKeyFromCache(key);
@@ -117,11 +117,10 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
       // retrieval processes nested objects regardless of whether the
       // object comes from the cache or the database.
       if (dto != null) {
-        if (!thread.isProcessed(key.getStringKey())) {
+        if (!thread.isProcessed(key)) {
           dto.queryNestedObjects();
-          thread.setProcessed(key.getStringKey(), true);
+          thread.setProcessed(key, true);
         }
-        dto.setExisting();
         // Get the memcached cache manager.
         DaoManagerFactory.initMemcachedManager(subsystem);
         IDaoManager memcachedManager = DaoManagerFactory.getManager(subsystem);
@@ -130,6 +129,10 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
                                           dto);
       }
     }
+    
+    // Set status to existing to indicate DTO is fresh from the database.
+    dto.setExisting();
+    
     return dto;
   }
 
@@ -161,9 +164,6 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
       if (rs.next()) {
         dto = sql.getData(key, rs);
         if (dto != null) {
-          // Set the new and changed flags to show this object exists and is
-          // unchanged from the version in the database.
-          dto.setExisting();
           dto.setQueried(true);
           logger.debug("Queried " + key.getStringKey() + " from database");
         }
@@ -206,18 +206,17 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
     MemcachedService<T> service = new MemcachedService<T>();
 
     // Make sure the key is there.
-    String keyString = null;
     if (key == null) {
       throw new NoPrimaryKeyException(NO_PRIMARY_KEY_ERROR);
-    } else {
-      keyString = key.getStringKey();
     }
+    
+    String keyString = key.getStringKey();
 
     // Check in memory for the object.
     logger.debug("Checking thread history for DTO " + keyString);
     PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
     // unchecked: required cast for non-generic getDto method
-    object = (T)thread.getDto(keyString);
+    object = (T)thread.getDto(key);
 
     if (object == null) {
       logger.debug("Object not found in thread DTO history, checking memcached with key \""

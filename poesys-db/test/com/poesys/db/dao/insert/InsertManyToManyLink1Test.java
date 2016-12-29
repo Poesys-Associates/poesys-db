@@ -224,8 +224,8 @@ public class InsertManyToManyLink1Test extends ConnectionTest {
         queriedCol = null;
         if (rs.next()) {
           queriedCol = rs.getString("col");
-          assertTrue(queriedCol != null);
-          assertTrue(COL_VALUE.equals(queriedCol));
+          assertTrue("Null column value for link", queriedCol != null);
+          assertTrue("Wrong link column value: " + queriedCol, COL_VALUE.equals(queriedCol));
         } else {
           fail("Not enough Link2 rows inserted--no row at index " + counter);
         }
@@ -251,7 +251,7 @@ public class InsertManyToManyLink1Test extends ConnectionTest {
       pstmt.close();
       pstmt = null;
       rs = null;
-      assertTrue(counter == 3);
+      assertTrue("Wrong number of rows inserted: " + counter, counter == 3);
       conn.commit();
     } catch (SQLException e) {
       fail("insert method failed with SQL error: " + e.getMessage());

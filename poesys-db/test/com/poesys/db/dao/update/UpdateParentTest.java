@@ -25,12 +25,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.BatchException;
 import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
+import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dao.insert.Insert;
 import com.poesys.db.dao.insert.InsertSqlParent;
 import com.poesys.db.dto.Child;
@@ -57,14 +58,20 @@ public class UpdateParentTest extends ConnectionTest {
   private static final String COL1_CHANGED = "changed";
   private static final String CLASS_NAME = "com.poesys.test.Child";
 
+  /** timeout for the cache thread */
+  private static final int TIMEOUT = 10000 * 60;
+
   /**
    * Test the update() method.
    * 
    * @throws IOException when can't get a property
    * @throws SQLException when can't get a connection
    * @throws BatchException when a problem happens during processing
+   * @throws InterruptedException when the tracking thread gets interrupted
+   *           unexpectedly
    */
-  public void testUpdate() throws IOException, SQLException, BatchException {
+  public void testUpdate() throws IOException, SQLException, BatchException,
+      InterruptedException {
     Connection conn;
     try {
       conn = getConnection();
@@ -85,7 +92,7 @@ public class UpdateParentTest extends ConnectionTest {
     Parent dto = new Parent(key, col1);
 
     // Create three children in a list and set the children into the parent.
-    List<Child> children = new CopyOnWriteArrayList<Child>();
+    List<Child> children = new ArrayList<Child>();
     NaturalPrimaryKey subKey1 =
       PrimaryKeyFactory.createSingleNumberKey(CHILD_SUBKEY_NAME,
                                               new BigInteger("1"),
@@ -125,7 +132,6 @@ public class UpdateParentTest extends ConnectionTest {
       stmt = null;
 
       conn.commit();
-
     } catch (SQLException e) {
       fail("delete failed: " + e.getMessage());
     } finally {
@@ -148,8 +154,30 @@ public class UpdateParentTest extends ConnectionTest {
       dto.setCol1(COL1_CHANGED);
       child2.setCol1(COL1_CHANGED);
 
-      // Update the test row.
-      updater.update(dto);
+      Runnable process = new Runnable() {
+        public void run() {
+          PoesysTrackingThread thread =
+            (PoesysTrackingThread)Thread.currentThread();
+          try {
+            // Update the test row.
+            updater.update(dto);
+
+            // Process nested objects. This version of Poesys/DB removes
+            // post-processing from the DAO, so the client needs to run the DTO
+            // method directly.
+            dto.postprocessNestedObjects();
+          } finally {
+            thread.closeConnection();
+          }
+        }
+      };
+      PoesysTrackingThread thread =
+        new PoesysTrackingThread(process, getSubsystem());
+      thread.start();
+
+      // Join the thread, blocking until the thread completes or
+      // until the query times out.
+      thread.join(TIMEOUT);
 
       // Query the column directly for comparison.
       pstmt = conn.prepareStatement(QUERY_PARENT);
@@ -163,8 +191,8 @@ public class UpdateParentTest extends ConnectionTest {
       pstmt.close();
       pstmt = null;
       assertTrue("Queried parent column is null", queriedCol1 != null);
-      assertTrue("Queried parent column not updated, original value " + COL1_VALUE
-                     + ", queried value " + queriedCol1,
+      assertTrue("Queried parent column not updated, original value "
+                     + COL1_VALUE + ", queried value " + queriedCol1,
                  COL1_CHANGED.equals(queriedCol1));
 
       // Get the second child and see if the value has changed.
@@ -178,7 +206,9 @@ public class UpdateParentTest extends ConnectionTest {
         queriedCol1 = rs.getString("col1");
       }
       assertTrue("Queried child column is null", queriedCol1 != null);
-      assertTrue("Queried child column not updated", COL1_CHANGED.equals(queriedCol1));
+      assertTrue("Queried child column not updated from " + COL1_VALUE + " to "
+                     + COL1_CHANGED + ": " + queriedCol1,
+                 COL1_CHANGED.equals(queriedCol1));
       conn.commit();
     } catch (SQLException e) {
       fail("update method failed with SQL exception: " + e.getMessage());
@@ -192,5 +222,4 @@ public class UpdateParentTest extends ConnectionTest {
       }
     }
   }
-
 }

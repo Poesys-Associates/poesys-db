@@ -28,6 +28,7 @@ import com.poesys.db.InvalidParametersException;
 import com.poesys.db.Message;
 import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
+import com.poesys.db.dto.IDbDto.Status;
 import com.poesys.db.pk.IPrimaryKey;
 
 
@@ -85,19 +86,16 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
       // Process CHANGED DTOs only
       // Check for the tracking thread and create it if it's not already there.
       if (Thread.currentThread() instanceof PoesysTrackingThread) {
-        PoesysTrackingThread thread =
-          (PoesysTrackingThread)Thread.currentThread();
-        // Process only if not already processed
-        if (thread.isProcessed(dto.getPrimaryKey().getStringKey())) {
-          updateInDatabase(dto);
-        }
+        doUpdate(dto);
       } else {
         Runnable query = new Runnable() {
           public void run() {
             PoesysTrackingThread thread =
               (PoesysTrackingThread)Thread.currentThread();
             try {
-              updateInDatabase(dto);
+              doUpdate(dto);
+              // Process nested objects, as the caller is not in the tracking thread.
+              dto.postprocessNestedObjects();
             } finally {
               thread.closeConnection();
             }
@@ -126,7 +124,7 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
    * 
    * @param dto the DTO to update in the database
    */
-  private void updateInDatabase(T dto) {
+  private void doUpdate(T dto) {
     PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
     PreparedStatement stmt = null;
 
@@ -136,62 +134,50 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
 
     String sqlStmt = null;
 
-    try {
-      dto.validateForUpdate();
-      dto.preprocessNestedObjects();
-      IPrimaryKey key = dto.getPrimaryKey();
-      sqlStmt = sql.getSql(key);
-      if (sqlStmt != null) {
-        stmt = thread.getConnection().prepareStatement(sqlStmt);
-        sql.setParams(stmt, 1, dto);
+    if (dto.getStatus() == Status.CHANGED) {
+      try {
+        dto.validateForUpdate();
+        dto.preprocessNestedObjects();
+        IPrimaryKey key = dto.getPrimaryKey();
+        sqlStmt = sql.getSql(key);
+        if (sqlStmt != null) {
+          stmt = thread.getConnection().prepareStatement(sqlStmt);
+          sql.setParams(stmt, 1, dto);
 
-        logger.debug("Executing update with key " + key);
-        logger.debug("SQL: " + sqlStmt);
-        logger.debug(sql.getParamString(dto));
+          logger.debug("Executing update with key " + key);
+          logger.debug("SQL: " + sqlStmt);
+          logger.debug(sql.getParamString(dto));
 
-        stmt.executeUpdate();
+          stmt.executeUpdate();
 
-        // Note that the caller must set the DTO status to EXISTING once ALL
-        // processing is complete (over the entire inheritance hierarchy).
-      }
-    } catch (SQLException e) {
-      dto.setFailed();
-      Object[] args = { dto.getPrimaryKey().getStringKey() };
-      String message = Message.getMessage(UPDATE_ERROR, args);
-      logger.error(message, e);
-      throw new DbErrorException(message, thread, e);
-    } catch (RuntimeException e) {
-      dto.setFailed();
-      throw e;
-    } finally {
-      // Close the statement as required.
-      if (stmt != null) {
-        try {
-          stmt.close();
-        } catch (SQLException e) {
-          // ignore
+          // Add the DTO to the tracking thread if not tracked.
+          if (thread.getDto(dto.getPrimaryKey()) == null) {
+            thread.addDto(dto);
+          }
+         
+          // Note that the caller must set the DTO status to EXISTING once ALL
+          // processing is complete (over the entire inheritance hierarchy).
+        }
+      } catch (SQLException e) {
+        dto.setFailed();
+        Object[] args = { dto.getPrimaryKey().getStringKey() };
+        String message = Message.getMessage(UPDATE_ERROR, args);
+        logger.error(message, e);
+        throw new DbErrorException(message, thread, e);
+      } catch (RuntimeException e) {
+        dto.setFailed();
+        throw e;
+      } finally {
+        // Close the statement as required.
+        if (stmt != null) {
+          try {
+            stmt.close();
+          } catch (SQLException e) {
+            // ignore
+          }
         }
       }
     }
-
-    // Add the DTO to the tracking thread if not tracked.
-    if (thread.getDto(dto.getPrimaryKey().getStringKey()) == null) {
-      thread.addDto(dto);
-    }
-    // Process the nested objects.
-    postprocess(dto);
-    // Set the object as processed.
-    thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
-  }
-
-  /**
-   * Post-process the nested objects of a DTO. Override this method to supply
-   * extra information like a session ID.
-   * 
-   * @param dto the DTO containing the nested objects
-   */
-  protected void postprocess(T dto) {
-    dto.postprocessNestedObjects();
   }
 
   @Override

@@ -77,31 +77,30 @@ public class QueryMemcachedListWithParameters<T extends IDbDto, S extends IDbDto
     logger.debug("Primary key for cache lookup: " + key.getStringKey());
     // Look the object up in the thread history first.
     @SuppressWarnings("unchecked")
-    T dto = (T)thread.getDto(key.getStringKey());
+    T dto = (T)thread.getDto(key);
     if (dto == null) {
       IDaoManager manager = DaoManagerFactory.initMemcachedManager(subsystem);
       dto = manager.getCachedObject(key, subsystem);
       if (dto == null) {
         // Not previously retrieved, extract from list query result set.
         dto = sql.getData(rs);
-        logger.debug("Queried " + key.getStringKey()
-                     + " from database for list (parameterized)");
-        // Only cache if successfully retrieved
+        logger.debug("Retrieved DTO from database for memcached parameterized list: "
+                     + key.getStringKey());
+        // Only cache if successfully retrieved; defer caching until after
+        // retrieving the nested objects.
         if (dto != null) {
-          // Set the new and changed flags to show this object exists and is
-          // unchanged from the version in the database.
-          dto.setExisting();
+          // Set queried flag to tell nested objects method to cache the object
+          // when the nested objects are retrieved.
           dto.setQueried(true);
-          // Cache object in memcached.
-          DaoManagerFactory.getManager(subsystem).putObjectInCache(dto.getPrimaryKey().getCacheName(),
-                                                                   expiration,
-                                                                   dto);
         }
+      } else {
+        logger.debug("Retrieved DTO from memcached for memcached parameterized list: "
+                     + key.getStringKey());
+        thread.setProcessed(key, true);
       }
     } else {
       dto.setQueried(false);
-      logger.debug("Retrieved " + key.getStringKey()
-                   + " from cache for list (parameterized)");
+      logger.debug("Retrieved DTO from tracking thread for memcached parameterized list");
     }
 
     return dto;
@@ -122,8 +121,7 @@ public class QueryMemcachedListWithParameters<T extends IDbDto, S extends IDbDto
     for (T dto : list) {
       dto.queryNestedObjects();
       // Cache the object if not already cached.
-      if (thread.getDto(dto.getPrimaryKey().getStringKey()) == null
-          && dto.isQueried()) {
+      if (thread.getDto(dto.getPrimaryKey()) == null && dto.isQueried()) {
         manager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
                                  expiration,
                                  dto);
@@ -131,18 +129,11 @@ public class QueryMemcachedListWithParameters<T extends IDbDto, S extends IDbDto
       }
 
       // object is complete, set it as processed.
-      thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
+      thread.setProcessed(dto.getPrimaryKey(), true);
       logger.debug("Retrieved all nested objects for "
                    + dto.getPrimaryKey().getStringKey());
+      // Set status to existing to indicate DTO is fresh from the database.
+      dto.setExisting();
     }
-  }
-
-  @Override
-  public void close() {
-  }
-
-  @Override
-  public void setExpiration(int expiration) {
-    // Do nothing, expiration is final for memcached implementation
   }
 }

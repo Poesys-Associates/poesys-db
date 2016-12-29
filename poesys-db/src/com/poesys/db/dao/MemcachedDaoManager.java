@@ -342,7 +342,7 @@ public final class MemcachedDaoManager implements IDaoManager {
       }
     }
 
-    return (T)thread.getDto(key.getStringKey());
+    return (T)thread.getDto(key);
   }
 
   /**
@@ -368,9 +368,10 @@ public final class MemcachedDaoManager implements IDaoManager {
         try {
           dto = (IDbDto)client.get(key.getStringKey());
           if (dto != null) {
-            // object found, track and set processed
+            // object found, track and set processed so that no setters will
+            // attempt to get it from the cache again.
             thread.addDto(dto);
-            thread.setProcessed(key.getStringKey(), true);
+            thread.setProcessed(key, true);
           }
           // Break out of loop after no-exception get
           break;

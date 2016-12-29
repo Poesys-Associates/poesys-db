@@ -69,35 +69,37 @@ public class QueryMemcachedList<T extends IDbDto> extends QueryList<T> {
   }
 
   @Override
-  protected T getObject(ResultSet rs) {
+  protected T getObject(ResultSet rs, PoesysTrackingThread thread) {
     IPrimaryKey key = sql.getPrimaryKey(rs);
-    // Look the object up in the cache, create if not there and cache it.
-    DaoManagerFactory.initMemcachedManager(subsystem);
-    IDaoManager manager = DaoManagerFactory.getManager(subsystem);
-    T object = manager.getCachedObject(key, subsystem);
-    if (object == null) {
-      object = sql.getData(rs);
-      logger.debug("Queried " + key.getStringKey() + " from database for list");
-      // Only cache if successfully retrieved.
-      if (object != null) {
-        // Set the new and changed flags to show this object exists and is
-        // unchanged from the version in the database.
-        object.setExisting();
-        object.setQueried(true);
+    // Look up the object in the tracking thread first.
+    @SuppressWarnings("unchecked")
+    T dto = (T)thread.getDto(key);
+    if (dto == null) {
+      // Look the object up in the cache, create if not there and cache it.
+      DaoManagerFactory.initMemcachedManager(subsystem);
+      IDaoManager manager = DaoManagerFactory.getManager(subsystem);
+      dto = manager.getCachedObject(key, subsystem);
+      if (dto == null) {
+        // Use the standard list query to get the DTO.
+        dto = super.getObject(rs, thread);
+        // Only cache if successfully retrieved; defer caching until nested
+        // objects are retrieved.
+        if (dto != null) {
+          // Set queried status to true to indicate database vs. cache query.
+          dto.setQueried(true);
+        }
+      } else {
+        dto.setQueried(false);
+        logger.debug("Retrieved DTO from cache for memcached list: "
+                     + key.getStringKey());
       }
     } else {
-      object.setQueried(false);
-      logger.debug("Retrieved " + key.getStringKey() + " from cache for list");
+      logger.debug("Retrieved DTO from tracking thread for memcached list: "
+                   + key.getStringKey());
+      thread.setProcessed(key, true);
     }
 
-    if (object != null
-        && Thread.currentThread() instanceof PoesysTrackingThread) {
-      PoesysTrackingThread thread =
-        (PoesysTrackingThread)Thread.currentThread();
-      thread.addDto(object);
-    }
-
-    return object;
+    return dto;
   }
 
   @Override
@@ -108,15 +110,21 @@ public class QueryMemcachedList<T extends IDbDto> extends QueryList<T> {
     // Query any nested objects using the current memcached session. This is
     // outside the fetch above to make sure that the statement and result set
     // are closed before recursing.
-    for (T object : list) {
-      object.queryNestedObjects();
+    for (T dto : list) {
+      // Only query DTOs not already queried in this thread as an optimization.
+      if (!thread.isProcessed(dto.getPrimaryKey())) {
+        dto.queryNestedObjects();
 
-      // Cache the object to ensure all nested object keys get serialized.
-      if (object.isQueried()) {
-        manager.putObjectInCache(object.getPrimaryKey().getCacheName(),
-                                 expiration,
-                                 object);
-        thread.setProcessed(object.getPrimaryKey().getStringKey(), true);
+        // Cache the object to ensure all nested object keys get serialized.
+        if (dto.isQueried()) {
+          manager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
+                                   expiration,
+                                   dto);
+        }
+        // After first-time nested objects are processed, set processed flag.
+        thread.setProcessed(dto.getPrimaryKey(), true);
+        // Set status to existing to indicate DTO is fresh from the database.
+        dto.setExisting();
       }
     }
   }

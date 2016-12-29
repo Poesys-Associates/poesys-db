@@ -112,7 +112,7 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
     if (Thread.currentThread() instanceof PoesysTrackingThread) {
       thread = (PoesysTrackingThread)Thread.currentThread();
       logger.debug("Using existing TrackingThread " + thread.getId());
-      doDatabaseQuery(parameters, thread);
+      doQuery(parameters, thread);
     } else {
       thread =
         new PoesysTrackingThread(getRunnableQuery(parameters), subsystem);
@@ -151,7 +151,7 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
         PoesysTrackingThread thread =
           (PoesysTrackingThread)Thread.currentThread();
         try {
-          doDatabaseQuery(parameters, thread);
+          doQuery(parameters, thread);
         } catch (Exception e) {
           String message = Message.getMessage(QUERY_ERROR, null);
           logger.error(message, e);
@@ -171,7 +171,7 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
    * @param parameters the query parameters
    * @param thread the tracking thread
    */
-  private void doDatabaseQuery(S parameters, PoesysTrackingThread thread) {
+  private void doQuery(S parameters, PoesysTrackingThread thread) {
     PreparedStatement stmt = null;
     ResultSet rs = null;
 
@@ -196,7 +196,6 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
           list.add(dto);
           count++;
         }
-        thread.addDto(dto);
       }
       logger.debug("Fetched " + count + (count == 1 ? " object" : " objects"));
     } catch (SQLException e) {
@@ -230,10 +229,12 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
   protected void queryNestedObjectsForList(PoesysTrackingThread thread) {
     if (list != null) {
       for (T dto : list) {
-        if (!thread.isProcessed(dto.getPrimaryKey().getStringKey())) {
+        if (!thread.isProcessed(dto.getPrimaryKey())) {
           dto.queryNestedObjects();
-          thread.setProcessed(dto.getPrimaryKey().getStringKey(), true);
+          thread.setProcessed(dto.getPrimaryKey(), true);
         }
+        // Set status to existing to indicate DTO is fresh from the database.
+        dto.setExisting();
       }
     }
   }
@@ -258,20 +259,20 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
    * @param thread the tracking thread for the query
    * @return the object
    */
-  @SuppressWarnings("unchecked")
   protected T getObject(ResultSet rs, PoesysTrackingThread thread) {
     IPrimaryKey key = sql.getPrimaryKey(rs);
-    T dto = sql.getData(rs);
-    // Set the new and changed flags to show this object exists and is
-    // unchanged from the version in the database.
-    dto.setExisting();
-    // If tracking and there is a DTO, track the DTO.
-    if (thread != null && dto != null
-        && thread.getDto(key.getStringKey()) == null) {
+    // Check the tracking thread for the object first.
+    @SuppressWarnings("unchecked")
+    T dto = (T)thread.getDto(key);
+    if (dto == null) {
+      // Get the DTO from the result set.
+      dto = sql.getData(rs);
+      logger.debug("Retrieved DTO from database: " + key.getStringKey());
       thread.addDto(dto);
-    } else if (thread != null && thread.getDto(key.getStringKey()) != null) {
-      // Set the DTO from the thread to get the processed DTO.
-      dto = (T)thread.getDto(key.getStringKey());
+    } else {
+      logger.debug("Retrieved DTO from tracking thread: " + key.getStringKey());
+      // Set the DTO as processed to prevent infinite recursion.
+      thread.setProcessed(key, true);
     }
     return dto;
   }

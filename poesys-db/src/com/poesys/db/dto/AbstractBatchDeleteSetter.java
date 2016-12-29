@@ -63,10 +63,10 @@ abstract public class AbstractBatchDeleteSetter<T extends IDbDto> extends
     // Expiration is not used in deletes, just set to 0
     IDaoFactory<T> factory = manager.getFactory(getClassName(), subsystem, 0);
     IDeleteBatch<T> dao = factory.getDeleteBatch(getSql());
-    List<T> links = getDtos();
+    List<T> dtos = getDtos();
 
     try {
-      dao.delete(links, getBatchSize());
+      dao.delete(dtos, getBatchSize());
     } catch (ConstraintViolationException e) {
       throw new DbErrorException(e.getMessage(), thread, e);
     }

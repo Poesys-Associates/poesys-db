@@ -31,7 +31,15 @@ import com.poesys.db.dao.PoesysTrackingThread;
 
 
 /**
+ * An implementation of the IDelete interface that deletes data from the
+ * database using just a SQL where clause. This class provides the system with
+ * the capability to do arbitrary deletes in the database. Note that the SQL
+ * statement can be null for deletes that are done through the database rather
+ * than through the application (that is, cascaded deletes). As there are no
+ * DTOs involved, no status values get set and there are no tracking-thread
+ * changes.
  * 
+ * @see IDeleteQuery
  * @author Robert J. Muller
  */
 public class DeleteByQuery implements IDeleteQuery {
@@ -70,15 +78,15 @@ public class DeleteByQuery implements IDeleteQuery {
   public void delete() {
     if (sql != null) {
       if (Thread.currentThread() instanceof PoesysTrackingThread) {
-        doDelete();
+        doDelete((PoesysTrackingThread)Thread.currentThread());
       } else {
         Runnable query = new Runnable() {
           public void run() {
-            try {
-              doDelete();
-            } finally {
-              PoesysTrackingThread thread =
+            PoesysTrackingThread thread =
                 (PoesysTrackingThread)Thread.currentThread();
+            try {
+              doDelete(thread);
+            } finally {
               thread.closeConnection();
             }
           }
@@ -101,11 +109,12 @@ public class DeleteByQuery implements IDeleteQuery {
 
   /**
    * Do the delete.
+   * 
+   * @param thread the tracking thread
    */
-  private void doDelete() {
+  private void doDelete(PoesysTrackingThread thread) {
     PreparedStatement stmt = null;
     String sqlText = null;
-    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
     Connection connection = thread.getConnection();
 
     try {

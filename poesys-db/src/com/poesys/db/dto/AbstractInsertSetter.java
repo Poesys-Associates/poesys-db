@@ -29,10 +29,9 @@ import com.poesys.db.dto.IDbDto.Status;
 
 /**
  * An abstract implementation of the ISet interface for a Strategy-pattern class
- * that inserts a single DTO as part of a more comprehensive transaction, taking
- * in a connection and not closing it. Note that if the DTO is part of an
- * inheritance hierarchy, the setter will insert one row for each class in the
- * hierarchy from the root down.
+ * that inserts a single DTO as part of a more comprehensive transaction. Note
+ * that if the DTO is part of an inheritance hierarchy, the setter will insert
+ * one row for each class in the hierarchy from the root down.
  * 
  * @author Robert J. Muller
  */
@@ -115,6 +114,7 @@ abstract public class AbstractInsertSetter extends AbstractSetter<IDbDto>
    */
   abstract protected Collection<IDbDto> getDtos();
 
+  @Override
   public boolean isSet() {
     boolean set = true;
     // Set if status is not NEW in the DTOs

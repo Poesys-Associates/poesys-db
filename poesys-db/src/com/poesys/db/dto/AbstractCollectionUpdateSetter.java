@@ -64,12 +64,12 @@ abstract public class AbstractCollectionUpdateSetter<T extends IDbDto> extends
     IDaoFactory<T> factory =
       manager.getFactory(getClassName(), subsystem, expiration);
     IUpdateCollection<T> dao = factory.getUpdateCollection(getSql());
-    Collection<T> links = getDtos();
+    Collection<T> dtos = getDtos();
     try {
-      dao.update(links);
+      dao.update(dtos);
     } catch (ConstraintViolationException e) {
       throw new DbErrorException(e.getMessage(), thread, e);
-    } 
+    }
   }
 
   /**

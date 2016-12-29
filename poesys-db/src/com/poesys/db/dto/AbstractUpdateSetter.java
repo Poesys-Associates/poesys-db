@@ -62,7 +62,8 @@ abstract public class AbstractUpdateSetter<T extends IDbDto> extends
       manager.getFactory(getClassName(), subsystem, expiration);
     IUpdate<T> dao = factory.getUpdate(getSql());
     try {
-      dao.update(getDto());
+      T dto = getDto();
+      dao.update(dto);
     } catch (ConstraintViolationException e) {
       throw new DbErrorException(e.getMessage(), thread, e);
     } catch (DtoStatusException e) {

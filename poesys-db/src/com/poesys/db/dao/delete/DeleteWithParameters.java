@@ -33,22 +33,23 @@ import com.poesys.db.pk.IPrimaryKey;
 
 /**
  * <p>
- * An implementation of the IDeleteWithParameters interface that deletes a set
- * of objects with a single DELETE statement parameterized with the contents of
- * a data transfer object. Use this class to delete a set of objects with a
- * single delete. You need to construct a special DTO that contains just the
- * parameters along with the IDeleteSql helper that processes the parameter
- * values. The validators validate the parameters, but there are no nested
- * objects and therefore no setters executed for this delete. The status of the
- * DTO is not relevant either; the delete will always happen.
+ * An implementation of the IDeleteWithParameters interface that deletes data
+ * from the database with a single DELETE statement parameterized with the
+ * contents of a data transfer object. Use this class to delete arbitrary data
+ * (as opposed to DTOs) with a single delete. You need to construct a special
+ * DTO that contains just the parameters along with the IDeleteSql helper that
+ * processes the parameter values. The validators validate the parameters, but
+ * there are no nested objects and therefore no setters executed for this
+ * delete. The status of the DTO is not relevant either; the delete will always
+ * happen.
  * </p>
  * <p>
  * <em>
  * Note: There is no implementation of the IDeleteWithParameters interface that
  * takes the DTO cache into account, as this command is not related to DTOs
- * specifically but rather is intended for use in database maintenance. If the
+ * specifically but rather is intended for use in database maintenance. <strong>If the
  * deleted data affects DTOs in some way, the client must take care of the
- * cache by removing those DTOs from the cache.
+ * cache by removing those DTOs from the cache.</strong>
  * </em>
  * </p>
  * 
@@ -99,14 +100,14 @@ public class DeleteWithParameters<T extends IDbDto, P extends IDbDto>
       // If the current thread is a PoesysTrackingThread, just process in that
       // thread; if not, start a new thread.
       if (Thread.currentThread() instanceof PoesysTrackingThread) {
-        doDelete(parameters);
+        doDelete(parameters, (PoesysTrackingThread)Thread.currentThread());
       } else {
         Runnable process = new Runnable() {
           public void run() {
             PoesysTrackingThread thread =
               (PoesysTrackingThread)Thread.currentThread();
             try {
-              doDelete(parameters);
+              doDelete(parameters, thread);
             } catch (Exception e) {
               Object[] args =
                 { "delete", parameters.getPrimaryKey().getStringKey() };
@@ -136,12 +137,18 @@ public class DeleteWithParameters<T extends IDbDto, P extends IDbDto>
     }
   }
 
-  public void doDelete(P parameters) {
+  /**
+   * Do the delete operation on the database as specified by the parameters.
+   * 
+   * @param parameters the parameters DTO
+   * @param thread the tracking thread
+   */
+  private void doDelete(P parameters, PoesysTrackingThread thread) {
     PreparedStatement stmt = null;
-    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
 
     if (parameters == null) {
-      throw new InvalidParametersException(Message.getMessage(NO_DTO_ERROR, null));
+      throw new InvalidParametersException(Message.getMessage(NO_DTO_ERROR,
+                                                              null));
     } else {
       parameters.validateForDelete();
     }

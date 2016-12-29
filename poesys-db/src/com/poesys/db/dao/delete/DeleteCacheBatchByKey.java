@@ -21,6 +21,7 @@ package com.poesys.db.dao.delete;
 import java.util.Collection;
 
 import com.poesys.db.dto.IDbDto;
+import com.poesys.db.dto.IDbDto.Status;
 import com.poesys.db.dto.IDtoCache;
 
 
@@ -57,9 +58,8 @@ public class DeleteCacheBatchByKey<T extends IDbDto> extends
     // Only remove from cache if collection exists and has objects.
     if (dtos != null && dtos.size() > 0) {
       for (IDbDto dto : dtos) {
-        // Only proceed if the dto is DELETED or CASCADE_DELETED.
-        if (dto.getStatus() == IDbDto.Status.DELETED
-            || dto.getStatus() == IDbDto.Status.CASCADE_DELETED) {
+        // Only proceed if the dto was actually deleted.
+        if (dto.getStatus() == Status.DELETED_FROM_DATABASE) {
           cache.remove(dto.getPrimaryKey());
         }
       }

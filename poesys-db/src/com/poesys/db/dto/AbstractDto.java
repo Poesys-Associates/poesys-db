@@ -31,6 +31,7 @@ import org.apache.log4j.Logger;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.Message;
 import com.poesys.db.dao.DataEvent;
+import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dao.insert.IInsert;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -142,6 +143,9 @@ public abstract class AbstractDto implements IDbDto {
   /** List of post-operation setters for the DTO */
   protected List<ISet> postSetters = null;
 
+  /** List of post-processing setters for the DTO */
+  protected List<ISet> postProcessSetters = null;
+
   /** List of query-related validator objects for the DTO */
   protected Collection<IValidate> queryValidators = null;
 
@@ -166,6 +170,10 @@ public abstract class AbstractDto implements IDbDto {
 
   /** Message string when attempting to mark a non-NEW object EXISTING */
   private static final String NOT_NEW_MSG = "com.poesys.db.dto.msg.not_new";
+
+  /** Message string when marking a non-DELETED object DELETED_FROM_DATABASE */
+  private static final String NOT_DELETED_MSG =
+    "com.poesys.db.dto.msg.not_deleted";
 
   /** Message string when attempting to DELETE an object with an invalid status */
   private static final String CANNOT_DELETE_MSG =
@@ -208,6 +216,22 @@ public abstract class AbstractDto implements IDbDto {
       // do nothing; it's already EXISTING
     } else {
       DtoStatusException e = new DtoStatusException(NOT_NEW_MSG);
+      List<String> parameters = new ArrayList<String>();
+      parameters.add(status.toString());
+      e.setParameters(parameters);
+    }
+  }
+
+  @Override
+  public void setDeletedFromDatabase() {
+    if (status == Status.DELETED || status == Status.CASCADE_DELETED) {
+      // Allow undo
+      previousStatus = status;
+      status = Status.DELETED_FROM_DATABASE;
+    } else if (status == Status.DELETED_FROM_DATABASE) {
+      // do nothing; it's already DELETED_FROM_DATABASE
+    } else {
+      DtoStatusException e = new DtoStatusException(NOT_DELETED_MSG);
       List<String> parameters = new ArrayList<String>();
       parameters.add(status.toString());
       e.setParameters(parameters);
@@ -414,7 +438,20 @@ public abstract class AbstractDto implements IDbDto {
   public void postprocessNestedObjects() {
     if (postSetters != null) {
       for (ISet set : postSetters) {
-        set.set();
+        if (!set.isSet()) {
+          set.set();
+        }
+      }
+    }
+    // After completing the post-processing, mark the DTO as processed, then
+    // recursively post-process any nested objects.
+    PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
+    thread.setProcessed(key, true);
+    if (postProcessSetters != null) {
+      for (ISet set : postProcessSetters) {
+        if (!set.isSet()) {
+          set.set();
+        }
       }
     }
   }

@@ -20,8 +20,12 @@ package com.poesys.db.dao;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
@@ -32,6 +36,7 @@ import com.poesys.db.Message;
 import com.poesys.db.connection.ConnectionFactoryFactory;
 import com.poesys.db.connection.IConnectionFactory;
 import com.poesys.db.dto.IDbDto;
+import com.poesys.db.pk.IPrimaryKey;
 
 
 /**
@@ -187,9 +192,9 @@ public class PoesysTrackingThread extends Thread {
    * @param key the globally unique primary key
    * @return the DTO, or null if not yet retrieved in this thread
    */
-  public IDbDto getDto(String key) {
+  public IDbDto getDto(IPrimaryKey key) {
     IDbDto dto = null;
-    DtoTrackingObject obj = history.get(key);
+    DtoTrackingObject obj = history.get(key.getStringKey());
     if (obj != null) {
       dto = obj.getDto();
     }
@@ -255,12 +260,12 @@ public class PoesysTrackingThread extends Thread {
    * Has a specified DTO been processed? If the DTO is not in the history, the
    * method returns false.
    * 
-   * @param key the identifier for the DTO to query
+   * @param key the primary key for the DTO to test
    * @return true if processed, false if not or not in history
    */
-  public boolean isProcessed(String key) {
+  public boolean isProcessed(IPrimaryKey key) {
     boolean processed = false;
-    DtoTrackingObject obj = history.get(key);
+    DtoTrackingObject obj = history.get(key.getStringKey());
     if (obj != null) {
       processed = obj.isProcessed;
     }
@@ -271,11 +276,11 @@ public class PoesysTrackingThread extends Thread {
    * Mark a DTO in the retrieval history as processed; ignore the request if the
    * DTO is not in the retrieval history.
    * 
-   * @param key the key identifying the DTO to mark
+   * @param key the primary key identifying the DTO to mark
    * @param processed true for processed, false for not processed
    */
-  public void setProcessed(String key, boolean processed) {
-    DtoTrackingObject obj = history.get(key);
+  public void setProcessed(IPrimaryKey key, boolean processed) {
+    DtoTrackingObject obj = history.get(key.getStringKey());
     if (obj != null) {
       obj.setProcessed(processed);
     }
@@ -328,5 +333,74 @@ public class PoesysTrackingThread extends Thread {
                      e);
       }
     }
+  }
+
+  /**
+   * Process any errors from a batch of DTOs of type T. The JDBC batch
+   * processing sets an array of integers with codes, and this method determines
+   * which DTOs have errors and sets the message in the DTO. The logic is a
+   * little involved because of the way JDBC constructs the array. It will have
+   * an empty array if processing fails on the first DTO; it will have an array
+   * shorter than the list of DTOs if the error caused batch processing to stop
+   * on a DTO other than the first DTO; or it will have an array equal to the
+   * length of the DTO list if processing completed but there were errors.
+   * 
+   * @param codes the JDBC error code array
+   * @param dtos the batch of DTOs
+   */
+  public void processErrors(int[] codes, Collection<IDbDto> dtos) {
+    // Process only if there are codes and DTOs.
+    if (codes != null && codes.length > 0 && dtos != null && dtos.size() > 0) {
+      // Check the sizes of the two arrays.
+      if (codes.length != dtos.size()) {
+        // Statement processing stopped at the first error, get failed DTO
+        IDbDto dto = (IDbDto)dtos.toArray()[codes.length];
+        failDto(dto, codes[codes.length - 1]);
+      } else {
+        // Statement processing continued, check for FAILED
+        int i = 0;
+        for (IDbDto dto : dtos) {
+          if (codes[i] == PreparedStatement.EXECUTE_FAILED) {
+            failDto(dto, codes[i]);
+          }
+          i++; // increment the counter to check the next code
+        }
+      }
+    } else if (codes != null && codes.length == 0 && dtos.size() > 0) {
+      IDbDto dto = (IDbDto)dtos.toArray()[0];
+      failDto(dto, codes[0]);
+    }
+  }
+
+  /**
+   * Mark the DTO failed by marking the actual DTO status FAILED and by setting
+   * the error code in the DTO tracking object.
+   * 
+   * @param dto the DTO to fail
+   * @param code the error code
+   */
+  private void failDto(IDbDto dto, int code) {
+    // Undo the last status change, which resets the DTO to its pre-execution status.
+    dto.undoStatus();
+    // Mark the DTO status as FAILED, with the original status as the undo target.
+    dto.setFailed();
+    // Mark the DTO as not processed because of the error.
+    setProcessed(dto.getPrimaryKey(), false);
+    history.get(dto.getPrimaryKey().getStringKey()).setBatchError(code);
+  }
+  
+  /**
+   * Return a list of DTO primary key strings for DTOs that had batch processing errors.
+   * 
+   * @return a list of DTO primary key strings, possibly empty
+   */
+  public List<String> getBatchErrors() {
+    List<String> errors = new ArrayList<String>();
+    for (DtoTrackingObject dto : history.values()) {
+      if (dto.getBatchError() != null) {
+        errors.add(dto.getPrimaryKeyValue());
+      }
+    }
+    return errors;    
   }
 }

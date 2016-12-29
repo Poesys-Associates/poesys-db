@@ -77,18 +77,18 @@ abstract public class AbstractListSetter<T extends IDbDto, S extends IDbDto, C e
     IQueryListWithParameters<T, S, C> dao =
       factory.getQueryListWithParameters(getSql(), subsystem, getFetchSize());
     // Query using the outer object as parameters (that is, the parent key).
-    C list = null;
+    C dtos = null;
     try {
-      list = dao.query(getParametersDto());
+      dtos = dao.query(getParametersDto());
     } catch (ConstraintViolationException e) {
       throw new DbErrorException(e.getMessage(), thread, e);
     } catch (Throwable t) {
       logger.error("Unexpected exception during list setting", t);
     }
-    if (list == null) {
-      list = (C)new ArrayList<T>();
+    if (dtos == null) {
+      dtos = (C)new ArrayList<T>();
     }
-    set(list);
+    set(dtos);
   }
 
   /**
@@ -128,6 +128,4 @@ abstract public class AbstractListSetter<T extends IDbDto, S extends IDbDto, C e
    * @param list the list to set into the data member
    */
   abstract protected void set(C list);
-
-  abstract public boolean isSet();
 }

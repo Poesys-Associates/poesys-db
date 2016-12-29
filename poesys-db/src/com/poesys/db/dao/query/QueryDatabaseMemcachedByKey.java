@@ -83,7 +83,7 @@ public class QueryDatabaseMemcachedByKey<T extends IDbDto> extends
         // Get the current tracking thread in which this is running.
         PoesysTrackingThread thread =
           (PoesysTrackingThread)Thread.currentThread();
-        dto = (T)thread.getDto(key.getStringKey());
+        dto = (T)thread.getDto(key);
         if (dto == null) {
           dto = queryDtoFromDatabase(key, thread);
         }

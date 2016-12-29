@@ -47,14 +47,12 @@ public class DeleteMemcachedCollectionByKey<T extends IDbDto> extends
 
   @Override
   public void delete(Collection<T> dtos) {
-    // Delete only happens for DELETED objects, not CASCADE_DELETED.
     super.delete(dtos);
     DaoManagerFactory.initMemcachedManager(subsystem);
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
     for (IDbDto dto : dtos) {
-      // Only proceed if the dto is DELETED or CASCADE_DELETED.
-      if (dto.getStatus() == IDbDto.Status.DELETED
-          || dto.getStatus() == IDbDto.Status.CASCADE_DELETED) {
+      // Only proceed if the DTO is DELETED_FROM_DATABASE.
+      if (dto.getStatus() == IDbDto.Status.DELETED_FROM_DATABASE) {
         manager.removeObjectFromCache(dto.getPrimaryKey().getCacheName(),
                                       dto.getPrimaryKey());
       }
