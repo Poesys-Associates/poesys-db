@@ -196,6 +196,11 @@ public abstract class AbstractLazyLoadingDtoProxy implements IDbDto {
   }
 
   @Override
+  public void setDeletedFromDatabase() {
+    dto.setDeletedFromDatabase();
+  }
+
+  @Override
   public void setFailed() {
     dto.setFailed();
   }
