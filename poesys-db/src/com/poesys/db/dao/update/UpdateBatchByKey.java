@@ -88,9 +88,6 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
   /** Error message when post-processing throws an exception */
   private static final String POST_PROCESSING_ERROR =
     "com.poesys.db.dao.update.msg.postprocessing";
-  /** Error message updating a DTO already processed */
-  private static final String ALREADY_PROCESSED_WARNING =
-    "com.poesys.db.dao.delete.msg.processed";
   /** Error message when insert throws exception */
   private static final String UPDATE_ERROR =
     "com.poesys.db.dao.update.msg.update";
@@ -280,14 +277,8 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
       // of parent object status.
       dto.preprocessNestedObjects();
 
-      // Check status; if not CHANGED, the DTO is already processed, which is
-      // probably some kind of unnecessary duplication, so skip processing and
-      // log a warning. Otherwise, process the update.
-      if (dto.getStatus() != Status.CHANGED) {
-        Object[] args = { dto.getPrimaryKey().getStringKey() };
-        String message = Message.getMessage(ALREADY_PROCESSED_WARNING, args);
-        logger.warn(message);
-      } else {
+      // Process only CHANGED DTOs.
+      if (dto.getStatus() == Status.CHANGED) {
         dto.validateForUpdate();
 
         // Everything is valid, so proceed to the main update.
