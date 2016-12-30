@@ -20,6 +20,8 @@ package com.poesys.db.dto;
 
 import java.util.Collection;
 
+import org.apache.log4j.Logger;
+
 import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -51,6 +53,9 @@ import com.poesys.db.pk.IPrimaryKey;
  */
 abstract public class AbstractPostProcessSetter extends AbstractSetter<IDbDto>
     implements ISet {
+  /** Logger for this class */
+  private static final Logger logger =
+    Logger.getLogger(AbstractPostProcessSetter.class);
 
   /** Serial version UID for Serializable object */
   private static final long serialVersionUID = 1L;
@@ -113,6 +118,8 @@ abstract public class AbstractPostProcessSetter extends AbstractSetter<IDbDto>
             set = thread.isProcessed(dto.getPrimaryKey());
           }
           if (!set) {
+            logger.debug("Post-processing class " + getClassName() + ", DTO "
+                         + dto.getPrimaryKey().getStringKey() + " not set");
             // At least one DTO not set, end check.
             break;
           }
@@ -123,6 +130,7 @@ abstract public class AbstractPostProcessSetter extends AbstractSetter<IDbDto>
         set = true;
       }
     }
+
     return set;
   }
 }

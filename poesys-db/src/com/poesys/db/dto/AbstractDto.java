@@ -436,6 +436,7 @@ public abstract class AbstractDto implements IDbDto {
 
   @Override
   public void postprocessNestedObjects() {
+    logger.debug("Post processing DTO " + getPrimaryKey().getStringKey());
     if (postSetters != null) {
       for (ISet set : postSetters) {
         if (!set.isSet()) {
