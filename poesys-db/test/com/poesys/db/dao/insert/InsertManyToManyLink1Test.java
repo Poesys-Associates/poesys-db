@@ -186,8 +186,7 @@ public class InsertManyToManyLink1Test extends ConnectionTest {
       conn.commit();
 
       // Insert the Link2 objects. There should be no exceptions from attempts
-      // to
-      // insert links.
+      // to insert links.
       cut2.insert(link21Dto);
       cut2.insert(link22Dto);
       cut2.insert(link23Dto);
@@ -199,6 +198,15 @@ public class InsertManyToManyLink1Test extends ConnectionTest {
       assertTrue("status not EXISTING for inserted Link1: "
                      + link1Dto.getStatus(),
                  link1Dto.getStatus() == IDbDto.Status.EXISTING);
+      assertTrue("status not EXISTING for inserted Link2-1: "
+                     + link21Dto.getStatus(),
+                 link21Dto.getStatus() == IDbDto.Status.EXISTING);
+      assertTrue("status not EXISTING for inserted Link2-2: "
+                     + link22Dto.getStatus(),
+                 link22Dto.getStatus() == IDbDto.Status.EXISTING);
+      assertTrue("status not EXISTING for inserted Link2-3: "
+                     + link23Dto.getStatus(),
+                 link23Dto.getStatus() == IDbDto.Status.EXISTING);
 
       // Query the Link1 row.
       pstmt = conn.prepareStatement(QUERY_LINK1);
@@ -225,7 +233,8 @@ public class InsertManyToManyLink1Test extends ConnectionTest {
         if (rs.next()) {
           queriedCol = rs.getString("col");
           assertTrue("Null column value for link", queriedCol != null);
-          assertTrue("Wrong link column value: " + queriedCol, COL_VALUE.equals(queriedCol));
+          assertTrue("Wrong link column value: " + queriedCol,
+                     COL_VALUE.equals(queriedCol));
         } else {
           fail("Not enough Link2 rows inserted--no row at index " + counter);
         }

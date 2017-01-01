@@ -216,12 +216,6 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
     int[] codes;
     try {
       codes = stmt.executeBatch();
-      // Set status of all processed DTOs from CHANGED to EXISTING
-      for (T dto : dtos) {
-        if (dto.getStatus() == Status.CHANGED) {
-          dto.setExisting();
-        }
-      }
     } catch (BatchUpdateException e) {
       codes = e.getUpdateCounts();
       thread.processErrors(codes, (Collection<IDbDto>)dtos);
@@ -292,6 +286,10 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
         stmt.addBatch();
         // Add the DTO to the current batch list for error processing.
         list.add(dto);
+        // Set status to existing to indicate DTO is fresh from the
+        // database; do this before adding to the thread so any further access
+        // from those places will get the right status.
+        dto.setExisting();
         // Add the DTO to the tracking thread.
         thread.addDto(dto);
 

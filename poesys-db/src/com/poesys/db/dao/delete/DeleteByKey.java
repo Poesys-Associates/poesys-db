@@ -161,10 +161,6 @@ public class DeleteByKey<T extends IDbDto> implements IDelete<T> {
 
         // Set the status to show database deletion.
         dto.setDeletedFromDatabase();
-        if (thread.getDto(key) == null) {
-          // DTO not in history, add it so we can track processing.
-          thread.addDto(dto);
-        }
       } catch (SQLException e) {
         Object[] args = { dto.getPrimaryKey().getStringKey() };
         String message = Message.getMessage(DELETE_ERROR, args);

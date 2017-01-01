@@ -221,13 +221,13 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
             logger.debug("SQL: " + sqlStr);
             // Add the DTO to the current batch list for error processing.
             list.add(dto);
+            // Set status to EXISTING before adding to tracking thread and doing
+            // any further processing that might access the DTO from the thread.
+            dto.setExisting();
             // Add the DTO to the tracking thread if not already tracked.
             if (thread.getDto(key) == null) {
-              // Not in thread yet, add it to set processed flag.
               thread.addDto(dto);
             }
-            // Set status to EXISTING.
-            dto.setExisting();
             if (count == size) {
               try {
                 stmt.executeBatch();

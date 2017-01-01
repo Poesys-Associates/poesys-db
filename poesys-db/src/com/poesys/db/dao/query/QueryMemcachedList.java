@@ -96,7 +96,7 @@ public class QueryMemcachedList<T extends IDbDto> extends QueryList<T> {
     } else {
       logger.debug("Retrieved DTO from tracking thread for memcached list: "
                    + key.getStringKey());
-      thread.setProcessed(key, true);
+      thread.setProcessed(dto, true);
     }
 
     return dto;
@@ -115,6 +115,9 @@ public class QueryMemcachedList<T extends IDbDto> extends QueryList<T> {
       if (!thread.isProcessed(dto.getPrimaryKey())) {
         dto.queryNestedObjects();
 
+        // Set the status to EXISTING before caching.
+        dto.setExisting();
+
         // Cache the object to ensure all nested object keys get serialized.
         if (dto.isQueried()) {
           manager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
@@ -122,7 +125,7 @@ public class QueryMemcachedList<T extends IDbDto> extends QueryList<T> {
                                    dto);
         }
         // After first-time nested objects are processed, set processed flag.
-        thread.setProcessed(dto.getPrimaryKey(), true);
+        thread.setProcessed(dto, true);
         // Set status to existing to indicate DTO is fresh from the database.
         dto.setExisting();
       }

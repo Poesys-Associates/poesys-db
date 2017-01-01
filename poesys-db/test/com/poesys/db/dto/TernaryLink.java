@@ -18,9 +18,6 @@
 package com.poesys.db.dto;
 
 
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.pk.AssociationPrimaryKey;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -44,30 +41,6 @@ public class TernaryLink extends AbstractTestDto {
   protected Link3 link3;
 
   /**
-   * Validate a TernaryLink about to be inserted. All linked objects must have
-   * primary keys to insert the link, or the insert will get a foreign key
-   * violation. Another way to say this: you must have already inserted all
-   * linked objects.
-   * 
-   * @author Robert J. Muller
-   */
-  private class LinkTargetIsNotNew implements IValidate {
-    /**  */
-    private static final long serialVersionUID = 1L;
-    private static final String ERROR_MSG = "com.poesys.db.ternary_link_is_new";
-
-    public synchronized void validate() {
-      Link1 link1 = TernaryLink.this.getLink1();
-      Link2 link2 = TernaryLink.this.getLink2();
-      Link3 link3 = TernaryLink.this.getLink3();
-      if (link1.getStatus() == Status.NEW || link2.getStatus() == Status.NEW
-          || link3.getStatus() == Status.NEW) {
-        throw new ConstraintViolationException(ERROR_MSG);
-      }
-    }
-  }
-
-  /**
    * 
    * Create a TernaryLink object.
    * 
@@ -77,26 +50,14 @@ public class TernaryLink extends AbstractTestDto {
   public TernaryLink(AssociationPrimaryKey key, String col) {
     this.key = key;
     this.col = col;
-
-    // Create the insert validator.
-    insertValidators = new CopyOnWriteArrayList<IValidate>();
-    insertValidators.add(new LinkTargetIsNotNew());
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.IDto#getPrimaryKey()
-   */
+  @Override
   public IPrimaryKey getPrimaryKey() {
     return key;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see java.lang.Comparable#compareTo(java.lang.Object)
-   */
+  @Override
   public int compareTo(IDbDto o) {
     int retVal = key.compareTo(o.getPrimaryKey());
     if (retVal == 0) {

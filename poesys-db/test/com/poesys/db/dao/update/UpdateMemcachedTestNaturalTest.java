@@ -35,6 +35,7 @@ import com.poesys.db.dao.MemcachedTest;
 import com.poesys.db.dao.insert.Insert;
 import com.poesys.db.dao.insert.InsertMemcached;
 import com.poesys.db.dao.insert.InsertSqlTestNatural;
+import com.poesys.db.dto.IDbDto.Status;
 import com.poesys.db.dto.TestNatural;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -59,29 +60,13 @@ public class UpdateMemcachedTestNaturalTest extends MemcachedTest {
    * @throws SQLException when can't get a connection
    * @throws BatchException when a problem happens during processing
    */
-  public void testDelete() throws IOException, SQLException, BatchException {
+  public void testUpdate() throws IOException, SQLException, BatchException {
     Connection conn;
     try {
       conn = getConnection();
     } catch (SQLException e) {
       throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
-
-    // Create an Inserter to add the row to update
-    Insert<TestNatural> inserter =
-      new InsertMemcached<TestNatural>(new InsertSqlTestNatural(),
-                                       getSubsystem(),
-                                       Integer.MAX_VALUE);
-
-    // Create the DTO.
-    BigDecimal col1 = new BigDecimal("1234.5678");
-    TestNatural dto = new TestNatural("A", "B", col1);
-    IPrimaryKey key = dto.getPrimaryKey();
-
-    // Create the Deleter.
-    UpdateMemcachedByKey<TestNatural> updater =
-      new UpdateMemcachedByKey<TestNatural>(new UpdateSqlTestNatural(),
-                                            getSubsystem());
 
     Statement stmt = null;
     try {
@@ -92,8 +77,24 @@ public class UpdateMemcachedTestNaturalTest extends MemcachedTest {
 
       conn.commit();
 
+      // Create an Inserter to add the row to update
+      Insert<TestNatural> inserter =
+        new InsertMemcached<TestNatural>(new InsertSqlTestNatural(),
+                                         getSubsystem(),
+                                         Integer.MAX_VALUE);
+
+      // Create the DTO.
+      BigDecimal col1 = new BigDecimal("1234.5678");
+      TestNatural dto = new TestNatural("A", "B", col1);
+      IPrimaryKey key = dto.getPrimaryKey();
+
       // Insert the row to update with the DAO class under test.
       inserter.insert(dto);
+
+      // Check status flag.
+      assertTrue("Inserted DTO does not have status EXISTING: "
+                     + dto.getStatus(),
+                 dto.getStatus() == Status.EXISTING);
 
       // Query the row using JDBC, no cache.
       stmt = conn.createStatement();
@@ -103,11 +104,16 @@ public class UpdateMemcachedTestNaturalTest extends MemcachedTest {
       }
       stmt.close();
       stmt = null;
-      
+
       conn.commit();
 
       // Update the test object.
+      // Create the Updater.
+      UpdateMemcachedByKey<TestNatural> updater =
+        new UpdateMemcachedByKey<TestNatural>(new UpdateSqlTestNatural(),
+                                              getSubsystem());
       BigDecimal col1Updated = new BigDecimal("100.3");
+      // Update the object.
       dto.setCol1(col1Updated);
       updater.update(dto);
 
@@ -119,8 +125,8 @@ public class UpdateMemcachedTestNaturalTest extends MemcachedTest {
       } else {
         // Test the update
         BigDecimal dbCol1 = rs.getBigDecimal("col1");
-        assertTrue("Col 1 not updated: " + dbCol1,
-                   dbCol1.compareTo(col1Updated) == 0);
+        assertTrue("Col 1 not updated from " + col1 + " to " + col1Updated
+                   + ": " + dbCol1, dbCol1.compareTo(col1Updated) == 0);
         logger.info("Successfully updated database TestNatural object");
       }
       stmt.close();

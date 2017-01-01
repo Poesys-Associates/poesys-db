@@ -354,18 +354,15 @@ public abstract class AbstractDto implements IDbDto {
   @Override
   public void insertNestedObjects() {
     if (insertSetters != null && !suppressNestedInserts) {
-      // As this method runs only for the last concrete class in a class
-      // hierarchy, this is the point at which the DTO gets set to EXISTING.
-      // This suppresses any further processing of the DTO in the nested
-      // objects, cutting any recursive or infinite loop.
-      setExisting();
       for (ISet set : insertSetters) {
         set.set();
       }
-    } else {
-      // no setters, or setters suppressed, set main object to EXISTING
-      setExisting();
     }
+    // As this method runs only for the last concrete class in a class
+    // hierarchy, this is the point at which the DTO gets set to EXISTING.
+    // This suppresses any further processing of the DTO in the nested
+    // objects, cutting any recursive or infinite loop.
+    setExisting();
   }
 
   @Override
@@ -447,7 +444,7 @@ public abstract class AbstractDto implements IDbDto {
     // After completing the post-processing, mark the DTO as processed, then
     // recursively post-process any nested objects.
     PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
-    thread.setProcessed(key, true);
+    thread.setProcessed(this, true);
     if (postProcessSetters != null) {
       for (ISet set : postProcessSetters) {
         if (!set.isSet()) {

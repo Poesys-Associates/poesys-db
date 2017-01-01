@@ -371,7 +371,7 @@ public final class MemcachedDaoManager implements IDaoManager {
             // object found, track and set processed so that no setters will
             // attempt to get it from the cache again.
             thread.addDto(dto);
-            thread.setProcessed(key, true);
+            thread.setProcessed(dto, true);
           }
           // Break out of loop after no-exception get
           break;
@@ -432,12 +432,6 @@ public final class MemcachedDaoManager implements IDaoManager {
       logger.debug("Cached object \"" + key + "\" of type "
                    + object.getClass().getName()
                    + " in memcached with expiration time " + expireTime + "ms");
-      // Register the object in the tracking thread.
-      if (Thread.currentThread() instanceof PoesysTrackingThread) {
-        PoesysTrackingThread thread =
-          (PoesysTrackingThread)Thread.currentThread();
-        thread.addDto(object);
-      }
     } catch (IllegalStateException e) {
       List<String> errors = new ArrayList<String>(1);
       errors.add(object.getPrimaryKey().getStringKey());

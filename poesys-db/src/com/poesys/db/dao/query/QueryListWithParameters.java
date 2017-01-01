@@ -231,7 +231,7 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
       for (T dto : list) {
         if (!thread.isProcessed(dto.getPrimaryKey())) {
           dto.queryNestedObjects();
-          thread.setProcessed(dto.getPrimaryKey(), true);
+          thread.setProcessed(dto, true);
         }
         // Set status to existing to indicate DTO is fresh from the database.
         dto.setExisting();
@@ -268,11 +268,16 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
       // Get the DTO from the result set.
       dto = sql.getData(rs);
       logger.debug("Retrieved DTO from database: " + key.getStringKey());
+      // Set status to existing to indicate DTO is fresh from the
+      // database; do this before caching and adding to the thread so
+      // any further access from those places will get the right status.
+      dto.setExisting();
+      // Add to the tracking thread to prevent infinite recursion.
       thread.addDto(dto);
     } else {
       logger.debug("Retrieved DTO from tracking thread: " + key.getStringKey());
       // Set the DTO as processed to prevent infinite recursion.
-      thread.setProcessed(key, true);
+      thread.setProcessed(dto, true);
     }
     return dto;
   }

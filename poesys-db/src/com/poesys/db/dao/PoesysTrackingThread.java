@@ -88,6 +88,8 @@ public class PoesysTrackingThread extends Thread {
   /** Invalid parameters to the connection factory */
   private static final String INVALID_PARAMETERS_ERROR =
     "com.poesys.db.dao.msg.connection_invalid_parameters";
+  private static final String NO_KEY_ERROR =
+    "com.poesys.db.dto.msg.no_primary_key";
 
   /**
    * Create a PoesysTrackingThread object with a task.
@@ -273,17 +275,28 @@ public class PoesysTrackingThread extends Thread {
   }
 
   /**
-   * Mark a DTO in the retrieval history as processed; ignore the request if the
-   * DTO is not in the retrieval history.
+   * Mark a DTO in the retrieval history as processed; if the DTO is not in the
+   * history, add it.
    * 
    * @param key the primary key identifying the DTO to mark
    * @param processed true for processed, false for not processed
    */
-  public void setProcessed(IPrimaryKey key, boolean processed) {
-    DtoTrackingObject obj = history.get(key.getStringKey());
-    if (obj != null) {
-      obj.setProcessed(processed);
+  public void setProcessed(IDbDto dto, boolean processed) {
+    IPrimaryKey key = dto.getPrimaryKey();
+    if (key == null) {
+      String message = Message.getMessage(NO_KEY_ERROR, null);
+      throw new DbErrorException(message);
     }
+    
+    DtoTrackingObject object = history.get(key.getStringKey());
+
+    if (object == null) {
+      // Not yet tracked, add dto to history before setting processed
+      addDto(dto);
+    }
+      object.setProcessed(processed);
+      logger.debug("Set processed flag in thread " + getId() + " for DTO "
+                   + key.getStringKey());
   }
 
   /**
@@ -380,17 +393,20 @@ public class PoesysTrackingThread extends Thread {
    * @param code the error code
    */
   private void failDto(IDbDto dto, int code) {
-    // Undo the last status change, which resets the DTO to its pre-execution status.
+    // Undo the last status change, which resets the DTO to its pre-execution
+    // status.
     dto.undoStatus();
-    // Mark the DTO status as FAILED, with the original status as the undo target.
+    // Mark the DTO status as FAILED, with the original status as the undo
+    // target.
     dto.setFailed();
     // Mark the DTO as not processed because of the error.
-    setProcessed(dto.getPrimaryKey(), false);
+    setProcessed(dto, false);
     history.get(dto.getPrimaryKey().getStringKey()).setBatchError(code);
   }
-  
+
   /**
-   * Return a list of DTO primary key strings for DTOs that had batch processing errors.
+   * Return a list of DTO primary key strings for DTOs that had batch processing
+   * errors.
    * 
    * @return a list of DTO primary key strings, possibly empty
    */
@@ -401,6 +417,6 @@ public class PoesysTrackingThread extends Thread {
         errors.add(dto.getPrimaryKeyValue());
       }
     }
-    return errors;    
+    return errors;
   }
 }

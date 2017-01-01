@@ -96,7 +96,7 @@ public class QueryMemcachedListWithParameters<T extends IDbDto, S extends IDbDto
       } else {
         logger.debug("Retrieved DTO from memcached for memcached parameterized list: "
                      + key.getStringKey());
-        thread.setProcessed(key, true);
+        thread.setProcessed(dto, true);
       }
     } else {
       dto.setQueried(false);
@@ -120,6 +120,10 @@ public class QueryMemcachedListWithParameters<T extends IDbDto, S extends IDbDto
     // that the statement and result set are closed before recursing.
     for (T dto : list) {
       dto.queryNestedObjects();
+      // Set status to existing to indicate DTO is fresh from the
+      // database; do this before caching and adding to the thread so
+      // any further access from those places will get the right status.
+      dto.setExisting();
       // Cache the object if not already cached.
       if (thread.getDto(dto.getPrimaryKey()) == null && dto.isQueried()) {
         manager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
@@ -129,11 +133,9 @@ public class QueryMemcachedListWithParameters<T extends IDbDto, S extends IDbDto
       }
 
       // object is complete, set it as processed.
-      thread.setProcessed(dto.getPrimaryKey(), true);
+      thread.setProcessed(dto, true);
       logger.debug("Retrieved all nested objects for "
                    + dto.getPrimaryKey().getStringKey());
-      // Set status to existing to indicate DTO is fresh from the database.
-      dto.setExisting();
     }
   }
 }

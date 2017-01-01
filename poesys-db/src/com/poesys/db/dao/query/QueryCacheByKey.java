@@ -112,10 +112,14 @@ public class QueryCacheByKey<T extends IDbDto> extends QueryByKey<T> implements
             dto = sql.getData(key, rs);
             // Only cache if successfully retrieved.
             if (dto != null) {
+              // Set status to existing to indicate DTO is fresh from the
+              // database; do this before caching and adding to the thread so
+              // any further access from those places will get the right status.
+              dto.setExisting();
               // Cache the object. This must be done here before processing
-              // nested
-              // objects to avoid infinite loops.
+              // nested objects to avoid infinite loops.
               cache.cache(dto);
+              // Add the DTO to the tracking thread to track processing.
               thread.addDto(dto);
             }
           }
@@ -148,12 +152,9 @@ public class QueryCacheByKey<T extends IDbDto> extends QueryByKey<T> implements
       // DTO, and thus already queried them.
       if (!thread.isProcessed(key)) {
         dto.queryNestedObjects();
-        thread.setProcessed(key, true);
+        thread.setProcessed(dto, true);
       }
     }
-    
-    // Set status to existing to indicate DTO is fresh from the database.
-    dto.setExisting();
 
     return dto;
   }

@@ -20,7 +20,6 @@ package com.poesys.db.dto;
 
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import com.poesys.db.ConstraintViolationException;
 import com.poesys.db.pk.AssociationPrimaryKey;
 import com.poesys.db.pk.IPrimaryKey;
 
@@ -41,31 +40,6 @@ public class ManyToManyLink extends AbstractTestDto {
   protected Link2 link2;
 
   /**
-   * Validate a ManyToManyLink about to be inserted. Both linked objects must
-   * have primary keys to insert the link, or the insert will get a foreign key
-   * violation. Another way to say this: you must have already inserted both
-   * linked objects. The validate method must be synchronized as it gets two
-   * synchronized values and does a test, a sequence that needs to be atomic.
-   * 
-   * @author Robert J. Muller
-   */
-  private class LinkTargetIsNotNew implements IValidate {
-    /**  */
-    private static final long serialVersionUID = 1L;
-    private static final String ERROR_MSG =
-      "com.poesys.db.many_to_many_link_is_new";
-
-    @Override
-    public void validate() {
-      Link1 link1 = ManyToManyLink.this.getLink1();
-      Link2 link2 = ManyToManyLink.this.getLink2();
-      if (link1.getStatus() == Status.NEW || link2.getStatus() == Status.NEW) {
-        throw new ConstraintViolationException(ERROR_MSG);
-      }
-    }
-  }
-
-  /**
    * Create a ManyToManyLink object.
    * 
    * @param key the primary key of the association
@@ -78,23 +52,14 @@ public class ManyToManyLink extends AbstractTestDto {
     // Create the primary-key and link-target validators for insert.
     this.insertValidators = new CopyOnWriteArrayList<IValidate>();
     insertValidators.add(new HasPrimaryKey<ManyToManyLink>(this));
-    insertValidators.add(new LinkTargetIsNotNew());
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.IDto#getPrimaryKey()
-   */
+  @Override
   public IPrimaryKey getPrimaryKey() {
     return key;
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see java.lang.Comparable#compareTo(java.lang.Object)
-   */
+  @Override
   public int compareTo(IDbDto o) {
     int retVal = key.compareTo(o.getPrimaryKey());
     if (retVal == 0) {

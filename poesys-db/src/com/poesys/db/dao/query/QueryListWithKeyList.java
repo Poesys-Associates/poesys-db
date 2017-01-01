@@ -218,7 +218,7 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
           dto.queryNestedObjects();
         }
         // Set processed after first nested-object query.
-        thread.setProcessed(dto.getPrimaryKey(), true);
+        thread.setProcessed(dto, true);
         // Set status to existing to indicate DTO is fresh from the database.
         dto.setExisting();
       }
@@ -247,7 +247,7 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
       logger.debug("Retrieved DTO from tracking thread: "
                    + dto.getPrimaryKey().getStringKey());
       // Set object as processed to prevent infinite recursion.
-      thread.setProcessed(key, true);
+      thread.setProcessed(dto, true);
     }
     return dto;
   }

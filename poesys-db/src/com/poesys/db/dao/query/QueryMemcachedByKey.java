@@ -106,8 +106,12 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
                      + key.getStringKey() + " in memcached ");
       }
 
-      // Add the DTO to the thread history before getting nested objects.
       if (dto != null) {
+        // Set status to existing to indicate DTO is fresh from the
+        // database; do this before caching and adding to the thread so
+        // any further access from those places will get the right status.
+        dto.setExisting();
+        // Add the DTO to the thread history before getting nested objects.
         thread.addDto(dto);
       }
 
@@ -119,8 +123,10 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
       if (dto != null) {
         if (!thread.isProcessed(key)) {
           dto.queryNestedObjects();
-          thread.setProcessed(key, true);
+          thread.setProcessed(dto, true);
         }
+        // Set the status before caching.
+        dto.setExisting();
         // Get the memcached cache manager.
         DaoManagerFactory.initMemcachedManager(subsystem);
         IDaoManager memcachedManager = DaoManagerFactory.getManager(subsystem);

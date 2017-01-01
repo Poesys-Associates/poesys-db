@@ -109,6 +109,8 @@ public class QueryMemcachedListWithKeyList<T extends IDbDto> extends
     if (list != null) {
       for (T dto : list) {
         dto.queryNestedObjects();
+        // Set the status to existing before caching.
+        dto.setExisting();
         // Cache the object to ensure all nested object keys get serialized.
         if (dto.isQueried()) {
           manager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
@@ -117,10 +119,10 @@ public class QueryMemcachedListWithKeyList<T extends IDbDto> extends
         }
 
         // object is complete, set it as processed.
-        thread.setProcessed(dto.getPrimaryKey(), true);
+        thread.setProcessed(dto, true);
         logger.debug("Retrieved all nested objects for "
                      + dto.getPrimaryKey().getStringKey());
-        
+
         // Set status to existing to indicate DTO is fresh from the database.
         dto.setExisting();
       }

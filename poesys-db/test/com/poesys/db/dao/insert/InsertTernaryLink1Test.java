@@ -219,8 +219,16 @@ public class InsertTernaryLink1Test extends ConnectionTest {
       cut1.insert(link1Dto);
 
       // Test the flags.
-      assertTrue("inserted link not EXISTING",
+      assertTrue("inserted link1 not EXISTING",
                  link1Dto.getStatus() == IDbDto.Status.EXISTING);
+      assertTrue("inserted link21 not EXISTING",
+                 link21Dto.getStatus() == IDbDto.Status.EXISTING);
+      assertTrue("inserted link22 not EXISTING",
+                 link22Dto.getStatus() == IDbDto.Status.EXISTING);
+      assertTrue("inserted link23 not EXISTING",
+                 link23Dto.getStatus() == IDbDto.Status.EXISTING);
+      assertTrue("inserted link3 not EXISTING",
+                 link3Dto.getStatus() == IDbDto.Status.EXISTING);
 
       // Commit for debugging.
       conn.commit();

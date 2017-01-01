@@ -31,6 +31,7 @@ import com.poesys.db.Message;
 import com.poesys.db.NoPrimaryKeyException;
 import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
+import com.poesys.db.dto.IDbDto.Status;
 import com.poesys.db.pk.IPrimaryKey;
 
 
@@ -66,7 +67,7 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
   protected final String subsystem;
 
   /** timeout for the query thread */
-  private static final int TIMEOUT = 1000 * 60;
+  private static final int TIMEOUT = 10000 * 60;
 
   /** Error on executing SQL query */
   private static final String SQL_ERROR =
@@ -198,6 +199,8 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
         dto = sql.getData(key, rs);
         // Only proceed if DTO retrieved.
         if (dto != null) {
+          // Set status to existing to indicate DTO is fresh from the database.
+          dto.setExisting();
           // Add the DTO to the tracking thread.
           thread.addDto(dto);
         }
@@ -233,12 +236,17 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
       if (!thread.isProcessed(key)) {
         dto.queryNestedObjects();
         // Mark the DTO fully processed.
-        thread.setProcessed(key, true);
+        if (thread.getDto(key) == null) {
+          // Add to tracking thread now.
+          thread.addDto(dto);
+        }
+        thread.setProcessed(dto, true);
+      }
+      // Undo any status changes due to nested-object processing.
+      if (dto.getStatus() != Status.EXISTING) {
+        dto.undoStatus();
       }
     }
-
-    // Set status to existing to indicate DTO is fresh from the database.
-    dto.setExisting();
 
     return dto;
   }

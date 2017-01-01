@@ -87,20 +87,26 @@ public class QueryDatabaseMemcachedByKey<T extends IDbDto> extends
         if (dto == null) {
           dto = queryDtoFromDatabase(key, thread);
         }
-        thread.addDto(dto);
 
-        // For queried objects, get the nested objects and cache the DTO.
-        // This is done outside the query method to ensure that the
-        // SQL resources are completely closed.
-        if (dto != null && dto.isQueried()) {
-          dto.queryNestedObjects();
-          // Get the memcached cache manager.
-          DaoManagerFactory.initMemcachedManager(subsystem);
-          IDaoManager memcachedManager =
-            DaoManagerFactory.getManager(subsystem);
-          memcachedManager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
-                                            expiration,
-                                            dto);
+        if (dto != null) {
+          // Set existing before adding to the tracking thread to ensure further
+          // access from the thread gets the right status.
+          dto.setExisting();
+          // Add the DTO to the tracking thread to prevent recursion.
+          thread.addDto(dto);
+          // For queried objects, get the nested objects and cache the DTO.
+          // This is done outside the query method to ensure that the
+          // SQL resources are completely closed.
+          if (dto.isQueried()) {
+            dto.queryNestedObjects();
+            // Get the memcached cache manager.
+            DaoManagerFactory.initMemcachedManager(subsystem);
+            IDaoManager memcachedManager =
+              DaoManagerFactory.getManager(subsystem);
+            memcachedManager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
+                                              expiration,
+                                              dto);
+          }
         }
       }
     };

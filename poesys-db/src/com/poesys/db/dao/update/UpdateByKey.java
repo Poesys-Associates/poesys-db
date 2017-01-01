@@ -150,6 +150,10 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
 
           stmt.executeUpdate();
 
+          // Set status to existing to indicate DTO is fresh from the
+          // database; do this before adding to the thread so any further access
+          // from those places will get the right status.
+          dto.setExisting();
           // Add the DTO to the tracking thread if not tracked.
           if (thread.getDto(dto.getPrimaryKey()) == null) {
             thread.addDto(dto);
