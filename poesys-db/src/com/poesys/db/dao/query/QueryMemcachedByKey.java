@@ -106,6 +106,11 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
                      + key.getStringKey() + " in memcached ");
       }
 
+      // For queried objects, get the nested objects and cache the DTO.
+      // This is done outside the query method to ensure that the
+      // SQL resources are completely closed. Note that the memcached
+      // retrieval processes nested objects regardless of whether the
+      // object comes from the cache or the database.
       if (dto != null) {
         // Set status to existing to indicate DTO is fresh from the
         // database; do this before caching and adding to the thread so
@@ -113,20 +118,10 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
         dto.setExisting();
         // Add the DTO to the thread history before getting nested objects.
         thread.addDto(dto);
-      }
-
-      // For queried objects, get the nested objects and cache the DTO.
-      // This is done outside the query method to ensure that the
-      // SQL resources are completely closed. Note that the memcached
-      // retrieval processes nested objects regardless of whether the
-      // object comes from the cache or the database.
-      if (dto != null) {
         if (!thread.isProcessed(key)) {
           dto.queryNestedObjects();
           thread.setProcessed(dto, true);
         }
-        // Set the status before caching.
-        dto.setExisting();
         // Get the memcached cache manager.
         DaoManagerFactory.initMemcachedManager(subsystem);
         IDaoManager memcachedManager = DaoManagerFactory.getManager(subsystem);
@@ -135,10 +130,7 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
                                           dto);
       }
     }
-    
-    // Set status to existing to indicate DTO is fresh from the database.
-    dto.setExisting();
-    
+
     return dto;
   }
 
@@ -215,7 +207,7 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
     if (key == null) {
       throw new NoPrimaryKeyException(NO_PRIMARY_KEY_ERROR);
     }
-    
+
     String keyString = key.getStringKey();
 
     // Check in memory for the object.
