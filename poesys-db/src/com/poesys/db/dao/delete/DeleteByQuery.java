@@ -86,6 +86,8 @@ public class DeleteByQuery implements IDeleteQuery {
                 (PoesysTrackingThread)Thread.currentThread();
             try {
               doDelete(thread);
+            } catch (Throwable e) {
+              thread.setThrowable(e);
             } finally {
               thread.closeConnection();
             }
@@ -98,6 +100,13 @@ public class DeleteByQuery implements IDeleteQuery {
         // until the query times out.
         try {
           thread.join(TIMEOUT);
+          // Check for problems.
+          if (thread.getThrowable() != null) {
+            Object[] args = { "delete", "collection of DTOs" };
+            String message = Message.getMessage(THREAD_ERROR, args);
+            logger.error(message, thread.getThrowable());
+            throw new DbErrorException(message, thread.getThrowable());
+          }
         } catch (InterruptedException e) {
           Object[] args = { "insert", sql.getSql() };
           String message = Message.getMessage(THREAD_ERROR, args);

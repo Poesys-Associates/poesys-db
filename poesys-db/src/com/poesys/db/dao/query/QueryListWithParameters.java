@@ -122,6 +122,12 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
       // until the query times out.
       try {
         thread.join(TIMEOUT);
+        // Check for problems.
+        if (thread.getThrowable() != null) {
+          String message = Message.getMessage(QUERY_ERROR, null);
+          logger.error(message, thread.getThrowable());
+          throw new DbErrorException(message, thread.getThrowable());
+        }
       } catch (InterruptedException e) {
         Object[] args =
           { "parameterized query", parameters.getPrimaryKey().getStringKey() };
@@ -152,10 +158,8 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
           (PoesysTrackingThread)Thread.currentThread();
         try {
           doQuery(parameters, thread);
-        } catch (Exception e) {
-          String message = Message.getMessage(QUERY_ERROR, null);
-          logger.error(message, e);
-          throw new DbErrorException(message, thread, e);
+        } catch (Throwable e) {
+          thread.setThrowable(e);
         } finally {
           thread.closeConnection();
         }

@@ -122,12 +122,8 @@ public class UpdateWithParameters<P extends IDbDto> implements
               (PoesysTrackingThread)Thread.currentThread();
             try {
               doUpdate(parameters, thread);
-            } catch (Exception e) {
-              Object[] args =
-                { "delete", parameters.getPrimaryKey().getStringKey() };
-              String message = Message.getMessage(THREAD_ERROR, args);
-              logger.error(message, e);
-              throw e;
+            } catch (Throwable e) {
+              thread.setThrowable(e);
             } finally {
               thread.closeConnection();
             }
@@ -141,6 +137,14 @@ public class UpdateWithParameters<P extends IDbDto> implements
         // until the query times out.
         try {
           thread.join(TIMEOUT);
+          // Check for problems.
+          if (thread.getThrowable() != null) {
+            Object[] args =
+              { "delete", parameters.getPrimaryKey().getStringKey() };
+            String message = Message.getMessage(THREAD_ERROR, args);
+            logger.error(message, thread.getThrowable());
+            throw new DbErrorException(message, thread.getThrowable());
+          }
         } catch (InterruptedException e) {
           Object[] args =
             { "delete", parameters.getPrimaryKey().getStringKey() };

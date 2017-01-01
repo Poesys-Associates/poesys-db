@@ -53,12 +53,14 @@ public class InsertCacheCollection<T extends IDbDto> extends
   @Override
   public void insert(Collection<T> dtos) {
     super.insert(dtos);
-    for (T dto : dtos) {
-      if (dto.getStatus() == IDbDto.Status.NEW
-          || dto.getStatus() == IDbDto.Status.EXISTING) {
-        // Cache NEW and EXISTING objects (those just inserted and those
-        // unchanged from what is already in the cache).
-        cache.cache(dto);
+    if (dtos != null) {
+      for (T dto : dtos) {
+        if (dto.getStatus() == IDbDto.Status.NEW
+            || dto.getStatus() == IDbDto.Status.EXISTING) {
+          // Cache NEW and EXISTING objects (those just inserted and those
+          // unchanged from what is already in the cache).
+          cache.cache(dto);
+        }
       }
     }
   }

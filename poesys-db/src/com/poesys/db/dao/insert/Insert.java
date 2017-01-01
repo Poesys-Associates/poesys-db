@@ -109,6 +109,8 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
               doInsert(dto, thread);
               // Process nested objects, as the caller is not in the tracking thread.
               dto.postprocessNestedObjects();
+            } catch (Throwable e) {
+              thread.setThrowable(e);
             } finally {
               thread.closeConnection();
             }
@@ -121,6 +123,13 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
         // until the query times out.
         try {
           thread.join(TIMEOUT);
+          // Check for problems.
+          if (thread.getThrowable() != null) {
+            Object[] args = { "insert", dto.getPrimaryKey().getStringKey() };
+            String message = Message.getMessage(THREAD_ERROR, args);
+            logger.error(message, thread.getThrowable());
+            throw new DbErrorException(message, thread.getThrowable());
+          }
         } catch (InterruptedException e) {
           Object[] args = { "insert", dto.getPrimaryKey().getStringKey() };
           String message = Message.getMessage(THREAD_ERROR, args);

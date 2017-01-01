@@ -47,12 +47,6 @@ public class ExecuteSql implements IExecuteSql {
   /** timeout for the query thread */
   private static final int TIMEOUT = 1000 * 60;
 
-  /**
-   * Error message when there is an unexpected SQL exception from the DDL
-   * statement
-   */
-  private static final String SQL_ERROR =
-    "com.poesys.db.dto.msg.unexpected_sql_error";
   /** Error message when thread is interrupted or timed out */
   private static final String THREAD_ERROR = "com.poesys.db.dao.msg.thread";
   /** Error message when instantiated with a null SQL object */
@@ -87,8 +81,15 @@ public class ExecuteSql implements IExecuteSql {
     // until the query times out.
     try {
       thread.join(TIMEOUT);
+      // Check for problems.
+      if (thread.getThrowable() != null) {
+        Object[] args = { "execute DDL", sql.getSql() };
+        String message = Message.getMessage(THREAD_ERROR, args);
+        logger.error(message, thread.getThrowable());
+        throw new DbErrorException(message, thread.getThrowable());
+      }
     } catch (InterruptedException e) {
-      Object[] args = { "update", sql.getSql() };
+      Object[] args = { "execute DDL", sql.getSql() };
       String message = Message.getMessage(THREAD_ERROR, args);
       logger.error(message, e);
     }
@@ -115,7 +116,7 @@ public class ExecuteSql implements IExecuteSql {
             statement.execute(sql.getSql());
           }
         } catch (SQLException e) {
-          throw new DbErrorException(Message.getMessage(SQL_ERROR, null), e);
+          thread.setThrowable(e);
         } finally {
           if (statement != null) {
             try {

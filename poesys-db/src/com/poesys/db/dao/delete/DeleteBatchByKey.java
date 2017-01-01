@@ -110,11 +110,8 @@ public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
               // thread.
               postProcessNestedObjects(dtos);
               notifySubscribers(dtos);
-            } catch (Exception e) {
-              Object[] args = { "delete", "collection of DTOs" };
-              String message = Message.getMessage(THREAD_ERROR, args);
-              logger.error(message, e);
-              throw e;
+            } catch (Throwable e) {
+              thread.setThrowable(e);
             } finally {
               thread.closeConnection();
             }
@@ -128,6 +125,13 @@ public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
         // until the query times out.
         try {
           thread.join(TIMEOUT);
+          // Check for problems.
+          if (thread.getThrowable() != null) {
+            Object[] args = { "delete", "collection of DTOs" };
+            String message = Message.getMessage(THREAD_ERROR, args);
+            logger.error(message, thread.getThrowable());
+            throw new DbErrorException(message, thread.getThrowable());
+          }
         } catch (InterruptedException e) {
           Object[] args = { "delete", "collection of DTOs" };
           String message = Message.getMessage(THREAD_ERROR, args);
@@ -157,68 +161,70 @@ public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
     int count = 0;
 
     try {
-      for (T dto : dtos) {
-        if (dto.getPrimaryKey() == null) {
-          // Something's very wrong, so abort the whole delete.
-          throw new NoPrimaryKeyException(Message.getMessage(NO_KEY_ERROR, null));
-        }
-
-        // Validate and preprocess children for either DELETED or
-        // CASCADE-DELETED objects.
-        if (dto.getStatus() == IDbDto.Status.DELETED
-            || dto.getStatus() == IDbDto.Status.CASCADE_DELETED) {
-          dto.validateForDelete();
-          dto.preprocessNestedObjects();
-          // Add the DTO to the tracking thread if not already tracked.
-          if (thread.getDto(dto.getPrimaryKey()) == null) {
-            thread.addDto(dto);
+      if (dtos != null) {
+        for (T dto : dtos) {
+          if (dto.getPrimaryKey() == null) {
+            // Something's very wrong, so abort the whole delete.
+            throw new NoPrimaryKeyException(Message.getMessage(NO_KEY_ERROR,
+                                                               null));
           }
-        }
 
-        // Only proceed to an actual delete if the dto is DELETED.
-        if (dto.getStatus() == IDbDto.Status.DELETED) {
-
-          count++;
-
-          IPrimaryKey key = dto.getPrimaryKey();
-          /*
-           * The first time through the loop, build the batched SQL statement
-           * and prepare it. The statement will track the batch and send it to
-           * the database when the size is reached.
-           */
-          String sqlStmt = sql.getSql(key).toString();
-          if (stmt == null) {
-            stmt = thread.getConnection().prepareStatement(sqlStmt);
-          }
-          // Set the updating fields first, then the key in the WHERE clause.
-          sql.setParams(stmt, 1, dto);
-          stmt.addBatch();
-          // Mark the DTO deleted from the database.
-          dto.setDeletedFromDatabase();
-          // Add the DTO to the current batch list for error processing.
-          list.add(dto);
-          logger.debug("Adding delete to batch with key " + key);
-          logger.debug("SQL: " + sqlStmt);
-          if (count == size) {
-            // end of batch, execute
-            try {
-              stmt.executeBatch();
-            } catch (BatchUpdateException e) {
-              codes = e.getUpdateCounts();
-              thread.processErrors(codes, (Collection<IDbDto>)list);
+          // Validate and preprocess children for either DELETED or
+          // CASCADE-DELETED objects.
+          if (dto.getStatus() == IDbDto.Status.DELETED
+              || dto.getStatus() == IDbDto.Status.CASCADE_DELETED) {
+            dto.validateForDelete();
+            dto.preprocessNestedObjects();
+            // Add the DTO to the tracking thread if not already tracked.
+            if (thread.getDto(dto.getPrimaryKey()) == null) {
+              thread.addDto(dto);
             }
-
-            // Reset the batch variables for the next batch.
-            count = 0;
-            list.clear();
           }
-        } else if (dto.getStatus() == IDbDto.Status.CASCADE_DELETED) {
-          logger.debug("Object marked as cascade-deleted, clearing cache but no database delete: "
-                       + dto.getPrimaryKey().getValueList());
-          // Mark the DTO deleted from the database.
-          dto.setDeletedFromDatabase();
-        }
 
+          // Only proceed to an actual delete if the dto is DELETED.
+          if (dto.getStatus() == IDbDto.Status.DELETED) {
+
+            count++;
+
+            IPrimaryKey key = dto.getPrimaryKey();
+            /*
+             * The first time through the loop, build the batched SQL statement
+             * and prepare it. The statement will track the batch and send it to
+             * the database when the size is reached.
+             */
+            String sqlStmt = sql.getSql(key).toString();
+            if (stmt == null) {
+              stmt = thread.getConnection().prepareStatement(sqlStmt);
+            }
+            // Set the updating fields first, then the key in the WHERE clause.
+            sql.setParams(stmt, 1, dto);
+            stmt.addBatch();
+            // Mark the DTO deleted from the database.
+            dto.setDeletedFromDatabase();
+            // Add the DTO to the current batch list for error processing.
+            list.add(dto);
+            logger.debug("Adding delete to batch with key " + key);
+            logger.debug("SQL: " + sqlStmt);
+            if (count == size) {
+              // end of batch, execute
+              try {
+                stmt.executeBatch();
+              } catch (BatchUpdateException e) {
+                codes = e.getUpdateCounts();
+                thread.processErrors(codes, (Collection<IDbDto>)list);
+              }
+
+              // Reset the batch variables for the next batch.
+              count = 0;
+              list.clear();
+            }
+          } else if (dto.getStatus() == IDbDto.Status.CASCADE_DELETED) {
+            logger.debug("Object marked as cascade-deleted, clearing cache but no database delete: "
+                         + dto.getPrimaryKey().getValueList());
+            // Mark the DTO deleted from the database.
+            dto.setDeletedFromDatabase();
+          }
+        }
       }
     } catch (SQLException e) {
       // Log and let the thread complete immediately
@@ -258,8 +264,10 @@ public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
    * @param dtos the collection of DTOs being deleted
    */
   private void postProcessNestedObjects(Collection<T> dtos) {
-    for (T dto : dtos) {
-      dto.postprocessNestedObjects();
+    if (dtos != null) {
+      for (T dto : dtos) {
+        dto.postprocessNestedObjects();
+      }
     }
   }
 
@@ -269,8 +277,10 @@ public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
    * @param dtos the collection of DTOs being deleted
    */
   private void notifySubscribers(Collection<T> dtos) {
-    for (T dto : dtos) {
-      dto.notify(DataEvent.DELETE);
+    if (dtos != null) {
+      for (T dto : dtos) {
+        dto.notify(DataEvent.DELETE);
+      }
     }
   }
 

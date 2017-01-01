@@ -324,9 +324,14 @@ public final class MemcachedDaoManager implements IDaoManager {
     } else {
       Runnable query = new Runnable() {
         public void run() {
-          // Just deserialize the object; the caller fills in
-          // any nested objects.
-          getFromMemcached(key);
+          PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
+          try {
+            // Just deserialize the object; the caller fills in any nested
+            // objects.
+            getFromMemcached(key);
+          } catch (Throwable e) {
+            thread.setThrowable(e);
+          }
         }
       };
       thread = new PoesysTrackingThread(query, subsystem);
@@ -335,6 +340,13 @@ public final class MemcachedDaoManager implements IDaoManager {
       // until the query times out.
       try {
         thread.join(TIMEOUT);
+        // Check for problems.
+        if (thread.getThrowable() != null) {
+          Object[] args = { "get cached object from memcached", key.getStringKey() };
+          String message = Message.getMessage(THREAD_ERROR, args);
+          logger.error(message, thread.getThrowable());
+          throw new DbErrorException(message, thread.getThrowable());
+        }
       } catch (InterruptedException e) {
         Object[] args = { "update", key.getStringKey() };
         String message = Message.getMessage(THREAD_ERROR, args);

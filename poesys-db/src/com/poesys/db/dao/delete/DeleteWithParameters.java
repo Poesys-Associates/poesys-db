@@ -108,12 +108,8 @@ public class DeleteWithParameters<T extends IDbDto, P extends IDbDto>
               (PoesysTrackingThread)Thread.currentThread();
             try {
               doDelete(parameters, thread);
-            } catch (Exception e) {
-              Object[] args =
-                { "delete", parameters.getPrimaryKey().getStringKey() };
-              String message = Message.getMessage(THREAD_ERROR, args);
-              logger.error(message, e);
-              throw e;
+            } catch (Throwable e) {
+              thread.setThrowable(e);
             } finally {
               thread.closeConnection();
             }
@@ -127,6 +123,13 @@ public class DeleteWithParameters<T extends IDbDto, P extends IDbDto>
         // until the query times out.
         try {
           thread.join(TIMEOUT);
+          // Check for problems.
+          if (thread.getThrowable() != null) {
+            Object[] args = { "delete", "collection of DTOs" };
+            String message = Message.getMessage(THREAD_ERROR, args);
+            logger.error(message, thread.getThrowable());
+            throw new DbErrorException(message, thread.getThrowable());
+          }
         } catch (InterruptedException e) {
           Object[] args =
             { "delete", parameters.getPrimaryKey().getStringKey() };

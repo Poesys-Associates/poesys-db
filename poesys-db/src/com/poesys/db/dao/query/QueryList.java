@@ -108,6 +108,12 @@ public class QueryList<T extends IDbDto> implements IQueryList<T> {
       // until the query times out.
       try {
         thread.join(TIMEOUT);
+        // Check for problems.
+        if (thread.getThrowable() != null) {
+          String message = Message.getMessage(QUERY_ERROR, null);
+          logger.error(message, thread.getThrowable());
+          throw new DbErrorException(message, thread.getThrowable());
+        }
       } catch (InterruptedException e) {
         Object[] args = { "list query", sql.getSql() };
         String message = Message.getMessage(THREAD_ERROR, args);
@@ -136,10 +142,8 @@ public class QueryList<T extends IDbDto> implements IQueryList<T> {
           (PoesysTrackingThread)Thread.currentThread();
         try {
           doQuery(thread);
-        } catch (Exception e) {
-          String message = Message.getMessage(QUERY_ERROR, null);
-          logger.error(message, e);
-          throw new DbErrorException(message, thread, e);
+        } catch (Throwable e) {
+          thread.setThrowable(e);
         } finally {
           thread.closeConnection();
         }
@@ -250,7 +254,8 @@ public class QueryList<T extends IDbDto> implements IQueryList<T> {
     if (dto == null) {
       // Get the queried object from the result set.
       dto = sql.getData(rs);
-      logger.debug("Retrieved DTO from database: " + dto.getPrimaryKey().getStringKey());
+      logger.debug("Retrieved DTO from database: "
+                   + dto.getPrimaryKey().getStringKey());
       // Set status to existing to indicate DTO is fresh from the
       // database; do this before caching and adding to the thread so
       // any further access from those places will get the right status.
@@ -258,7 +263,8 @@ public class QueryList<T extends IDbDto> implements IQueryList<T> {
       // Put the object into the tracking thread to prevent infinite recursion.
       thread.addDto(dto);
     } else {
-      logger.debug("Retrieved DTO from tracking thread: " + dto.getPrimaryKey().getStringKey());
+      logger.debug("Retrieved DTO from tracking thread: "
+                   + dto.getPrimaryKey().getStringKey());
       // Set object as processed to prevent infinite recursion.
       thread.setProcessed(dto, true);
     }

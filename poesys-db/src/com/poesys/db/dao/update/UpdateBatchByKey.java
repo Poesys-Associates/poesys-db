@@ -129,16 +129,20 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
             // Post process the DTOs here, as the client is not in the tracking
             // thread.
             postProcessNestedObjects(dtos);
+          } catch (Throwable e) {
+            thread.setThrowable(e);
           } finally {
             thread.closeConnection();
           }
         }
 
         private void postProcessNestedObjects(Collection<T> dtos) {
-          for (T dto : dtos) {
-            // Process nested objects, as the caller is not in the tracking
-            // thread.
-            dto.postprocessNestedObjects();
+          if (dtos != null) {
+            for (T dto : dtos) {
+              // Process nested objects, as the caller is not in the tracking
+              // thread.
+              dto.postprocessNestedObjects();
+            }
           }
         }
       };
@@ -150,6 +154,13 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
       // until the query times out.
       try {
         thread.join(TIMEOUT);
+        // Check for problems.
+        if (thread.getThrowable() != null) {
+          Object[] args = { "update", "batch of DTOs" };
+          String message = Message.getMessage(THREAD_ERROR, args);
+          logger.error(message, thread.getThrowable());
+          throw new DbErrorException(message, thread.getThrowable());
+        }
       } catch (InterruptedException e) {
         Object[] args = { "insert", "batch of DTOs" };
         String message = Message.getMessage(THREAD_ERROR, args);

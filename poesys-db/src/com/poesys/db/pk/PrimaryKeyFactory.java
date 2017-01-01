@@ -30,6 +30,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.apache.log4j.Logger;
 
+import com.poesys.db.DbErrorException;
 import com.poesys.db.DuplicateKeyNameException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.Message;
@@ -225,6 +226,15 @@ public class PrimaryKeyFactory {
     // until the query times out.
     try {
       thread.join(TIMEOUT);
+      // Check for problems.
+      if (thread.getThrowable() != null) {
+        Object[] args =
+          { "generate MySQL sequence key", sequenceName, name, className,
+           subsystem };
+        String message = Message.getMessage(THREAD_ERROR, args);
+        logger.error(message, thread.getThrowable());
+        throw new DbErrorException(message, thread.getThrowable());
+      }
     } catch (InterruptedException e) {
       Object[] args =
         { "generate MySQL sequence key", sequenceName, name, className,
@@ -294,7 +304,8 @@ public class PrimaryKeyFactory {
           list.add(finalName);
           list.add(e.getMessage());
           d.setParameters(list);
-          throw d;
+          PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
+          thread.setThrowable(d);
         } finally {
           // Close the statement if it is open.
           if (stmt != null) {
@@ -356,6 +367,15 @@ public class PrimaryKeyFactory {
     // until the query times out.
     try {
       thread.join(TIMEOUT);
+      // Check for problems.
+      if (thread.getThrowable() != null) {
+        Object[] args =
+          { "generate MySQL sequence key", sequenceName, name, className,
+           subsystem };
+        String message = Message.getMessage(THREAD_ERROR, args);
+        logger.error(message, thread.getThrowable());
+        throw new DbErrorException(message, thread.getThrowable());
+      }
     } catch (InterruptedException e) {
       Object[] args =
         { "generate MySQL sequence key", sequenceName, name, className,

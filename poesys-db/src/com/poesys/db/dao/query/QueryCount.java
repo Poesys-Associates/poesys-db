@@ -74,6 +74,13 @@ public class QueryCount<P extends IDbDto> implements IQueryCount<P> {
     // until the query times out.
     try {
       thread.join(TIMEOUT);
+      // Check for problems.
+      if (thread.getThrowable() != null) {
+        Object[] args = { "query", sql.getSql() };
+        String message = Message.getMessage(THREAD_ERROR, args);
+        logger.error(message, thread.getThrowable());
+        throw new DbErrorException(message, thread.getThrowable());
+      }
     } catch (InterruptedException e) {
       Object[] args = { "get query count", parameters, subsystem };
       String message = Message.getMessage(THREAD_ERROR, args);
@@ -122,11 +129,7 @@ public class QueryCount<P extends IDbDto> implements IQueryCount<P> {
             count = rs.getBigDecimal("count").toBigInteger();
           }
         } catch (SQLException e) {
-          // Log the message and the SQL statement, then rethrow the exception.
-          logger.error(e.getMessage());
-          logger.error(sql.getSql());
-          logger.debug("SQL statement in class: " + sql.getClass().getName());
-          throw new DbErrorException("Exception getting query count", thread, e);
+          thread.setThrowable(e);
         } finally {
           // Close the statement and result set as required.
           if (stmt != null) {

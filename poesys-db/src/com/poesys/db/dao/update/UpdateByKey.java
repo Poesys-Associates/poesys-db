@@ -96,6 +96,8 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
               doUpdate(dto);
               // Process nested objects, as the caller is not in the tracking thread.
               dto.postprocessNestedObjects();
+            } catch (Throwable e) {
+              thread.setThrowable(e);
             } finally {
               thread.closeConnection();
             }
@@ -108,6 +110,13 @@ public class UpdateByKey<T extends IDbDto> implements IUpdate<T> {
         // until the query times out.
         try {
           thread.join(TIMEOUT);
+          // Check for problems.
+          if (thread.getThrowable() != null) {
+            Object[] args = { "update", dto.getPrimaryKey().getStringKey() };
+            String message = Message.getMessage(THREAD_ERROR, args);
+            logger.error(message, thread.getThrowable());
+            throw new DbErrorException(message, thread.getThrowable());
+          }
         } catch (InterruptedException e) {
           Object[] args = { "update", dto.getPrimaryKey().getStringKey() };
           String message = Message.getMessage(THREAD_ERROR, args);

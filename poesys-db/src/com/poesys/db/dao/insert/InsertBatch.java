@@ -116,6 +116,8 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
             insertBatch(thread.getConnection(), dtos, size);
             // Post process here as the client is not in the tracking thread.
             postProcessNestedObjects(dtos);
+          } catch (Throwable e) {
+            thread.setThrowable(e);
           } finally {
             thread.closeConnection();
           }
@@ -127,9 +129,11 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
          * @param dtos the DTOs
          */
         private void postProcessNestedObjects(Collection<T> dtos) {
-          for (T dto : dtos) {
-            // Post process DTO, as client isn't in tracking thread.
-            dto.postprocessNestedObjects();
+          if (dtos != null) {
+            for (T dto : dtos) {
+              // Post process DTO, as client isn't in tracking thread.
+              dto.postprocessNestedObjects();
+            }
           }
         }
       };
@@ -141,6 +145,13 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
       // until the query times out.
       try {
         thread.join(TIMEOUT);
+        // Check for problems.
+        if (thread.getThrowable() != null) {
+          Object[] args = { "insert", "batch of DTOs" };
+          String message = Message.getMessage(THREAD_ERROR, args);
+          logger.error(message, thread.getThrowable());
+          throw new DbErrorException(message, thread.getThrowable());
+        }
       } catch (InterruptedException e) {
         Object[] args = { "insert", "batch of DTOs" };
         String message = Message.getMessage(THREAD_ERROR, args);

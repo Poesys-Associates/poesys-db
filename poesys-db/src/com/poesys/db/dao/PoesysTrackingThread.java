@@ -48,7 +48,10 @@ import com.poesys.db.pk.IPrimaryKey;
  * subclass thus provides a container for operations involving multiple objects
  * and provides a place outside the objects to track processing. The thread
  * class also contains a SQL exception that objects running in the thread can
- * use to query the database through Poesys/DB DAOs.
+ * use to query the database through Poesys/DB DAOs. It also contains a
+ * Throwable object that gets set if the tracking thread throws an exception;
+ * the thread itself finishes normally but sets this Throwable so the main
+ * thread can test for any problem and get the thrown exception.
  * </p>
  * <p>
  * Note: the Runnable you pass in must have a finally block in the run() method
@@ -70,6 +73,9 @@ public class PoesysTrackingThread extends Thread {
 
   /** the database connection */
   private final Connection connection;
+
+  /** the optional exception thrown by the thread before finishing */
+  private Throwable throwable = null;
 
   // Error messages
 
@@ -278,7 +284,7 @@ public class PoesysTrackingThread extends Thread {
    * Mark a DTO in the retrieval history as processed; if the DTO is not in the
    * history, add it.
    * 
-   * @param key the primary key identifying the DTO to mark
+   * @param dto the DTO to mark
    * @param processed true for processed, false for not processed
    */
   public void setProcessed(IDbDto dto, boolean processed) {
@@ -287,16 +293,18 @@ public class PoesysTrackingThread extends Thread {
       String message = Message.getMessage(NO_KEY_ERROR, null);
       throw new DbErrorException(message);
     }
-    
+
     DtoTrackingObject object = history.get(key.getStringKey());
 
     if (object == null) {
       // Not yet tracked, add dto to history before setting processed
       addDto(dto);
+      object = history.get(key.getStringKey());
     }
-      object.setProcessed(processed);
-      logger.debug("Set processed flag in thread " + getId() + " for DTO "
-                   + key.getStringKey());
+
+    object.setProcessed(processed);
+    logger.debug("Set processed flag in thread " + getId() + " for DTO "
+                 + key.getStringKey());
   }
 
   /**
@@ -418,5 +426,25 @@ public class PoesysTrackingThread extends Thread {
       }
     }
     return errors;
+  }
+
+  /**
+   * Get a Throwable exception thrown during the run() method. The main thread
+   * should check this value after the run completes to determine whether an
+   * error has occurred in the tracking thread processing.
+   * 
+   * @return the exception or null if there was no exception thrown
+   */
+  public Throwable getThrowable() {
+    return throwable;
+  }
+
+  /**
+   * Record a Throwable thrown during the run() method before finishing.
+   * 
+   * @param throwable a Throwable exception
+   */
+  public void setThrowable(Throwable throwable) {
+    this.throwable = throwable;
   }
 }

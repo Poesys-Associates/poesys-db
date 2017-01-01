@@ -107,6 +107,14 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
       // until the query times out.
       try {
         thread.join(TIMEOUT);
+        // Check for problems.
+        if (thread.getThrowable() != null) {
+          Object[] args = { sql.getKeyValues() };
+          String message =
+            Message.getMessage(QUERYING_LIST_WITH_KEY_ERROR, args);
+          logger.error(message, thread.getThrowable());
+          throw new DbErrorException(message, thread.getThrowable());
+        }
       } catch (InterruptedException e) {
         Object[] args = { "key list query", sql.getKeyValues() };
         String message = Message.getMessage(THREAD_ERROR, args);
@@ -136,10 +144,7 @@ public class QueryListWithKeyList<T extends IDbDto> implements IQueryList<T> {
         try {
           doQuery(thread);
         } catch (Exception e) {
-          Object[] args = { sql.getKeyValues() };
-          String message =
-            Message.getMessage(QUERYING_LIST_WITH_KEY_ERROR, args);
-          logger.error(message, e);
+          thread.setThrowable(e);
         } finally {
           thread.closeConnection();
         }

@@ -120,6 +120,13 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
       // until the query times out.
       try {
         thread.join(TIMEOUT);
+        // Check for problems.
+        if (thread.getThrowable() != null) {
+          Object[] args = { key.getStringKey() };
+          String message = Message.getMessage(GET_DTO_ERROR, args);
+          logger.error(message, thread.getThrowable());
+          throw new DbErrorException(message, thread.getThrowable());
+        }
       } catch (InterruptedException e) {
         Object[] args = { "update", key.getStringKey() };
         String message = Message.getMessage(THREAD_ERROR, args);
@@ -152,11 +159,8 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
           // level of a possible nested-object tree, so the tracking thread is
           // empty at this point. No need to check it for DTO existence.
           getDto(key, thread);
-        } catch (Exception e) {
-          Object[] args = { key.getStringKey() };
-          String message = Message.getMessage(GET_DTO_ERROR, args);
-          logger.error(message, e);
-          throw new DbErrorException(message, thread, e);
+        } catch (Throwable e) {
+          thread.setThrowable(e);
         } finally {
           if (thread != null) {
             thread.closeConnection();

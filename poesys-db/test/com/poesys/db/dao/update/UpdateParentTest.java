@@ -166,6 +166,8 @@ public class UpdateParentTest extends ConnectionTest {
             // post-processing from the DAO, so the client needs to run the DTO
             // method directly.
             dto.postprocessNestedObjects();
+          } catch (Throwable e) {
+            thread.setThrowable(e);
           } finally {
             thread.closeConnection();
           }
@@ -178,6 +180,11 @@ public class UpdateParentTest extends ConnectionTest {
       // Join the thread, blocking until the thread completes or
       // until the query times out.
       thread.join(TIMEOUT);
+      // Check for problems.
+      if (thread.getThrowable() != null) {
+        throw new DbErrorException("Exception updating Parent DTO",
+                                   thread.getThrowable());
+      }
 
       // Query the column directly for comparison.
       pstmt = conn.prepareStatement(QUERY_PARENT);

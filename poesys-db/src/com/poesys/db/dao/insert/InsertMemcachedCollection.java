@@ -57,14 +57,16 @@ public class InsertMemcachedCollection<T extends IDbDto> extends
     super.insert(dtos);
     DaoManagerFactory.initMemcachedManager(subsystem);
     IDaoManager manager = DaoManagerFactory.getManager(subsystem);
-    for (T dto : dtos) {
-      if (dto.getStatus() == IDbDto.Status.NEW
-          || dto.getStatus() == IDbDto.Status.EXISTING) {
-        // Cache NEW and EXISTING objects (those just inserted and those
-        // unchanged from what is already in the cache).
-        manager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
-                                 expiration,
-                                 dto);
+    if (dtos != null) {
+      for (T dto : dtos) {
+        if (dto.getStatus() == IDbDto.Status.NEW
+            || dto.getStatus() == IDbDto.Status.EXISTING) {
+          // Cache NEW and EXISTING objects (those just inserted and those
+          // unchanged from what is already in the cache).
+          manager.putObjectInCache(dto.getPrimaryKey().getCacheName(),
+                                   expiration,
+                                   dto);
+        }
       }
     }
   }

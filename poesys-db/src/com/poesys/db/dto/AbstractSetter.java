@@ -86,6 +86,13 @@ public abstract class AbstractSetter<T extends IDbDto> implements ISet {
       // until the query times out.
       try {
         thread.join(TIMEOUT);
+        // Check for problems.
+        if (thread.getThrowable() != null) {
+          Object[] args = { setterName };
+          String message = Message.getMessage(SET_DTO_FIELD_ERROR, args);
+          logger.error(message, thread.getThrowable());
+          throw new DbErrorException(message, thread.getThrowable());
+        }
       } catch (InterruptedException e) {
         Object[] args = { "set", setterName };
         String message = Message.getMessage(THREAD_ERROR, args);
@@ -107,11 +114,8 @@ public abstract class AbstractSetter<T extends IDbDto> implements ISet {
           (PoesysTrackingThread)Thread.currentThread();
         try {
           doSet(thread);
-        } catch (Exception e) {
-          Object[] args = { setterName };
-          String message = Message.getMessage(SET_DTO_FIELD_ERROR, args);
-          logger.error(message, e);
-          throw new DbErrorException(message, thread, e);
+        } catch (Throwable e) {
+          thread.setThrowable(e);
         } finally {
           if (thread != null) {
             thread.closeConnection();

@@ -96,10 +96,7 @@ public class DeleteByKey<T extends IDbDto> implements IDelete<T> {
             // Post process DTO, as client isn't in tracking thread.
             dto.postprocessNestedObjects();
           } catch (Exception e) {
-            Object[] args = { "delete", dto.getPrimaryKey().getStringKey() };
-            String message = Message.getMessage(THREAD_ERROR, args);
-            logger.error(message, e);
-            throw e;
+            thread.setThrowable(e);
           } finally {
             thread.closeConnection();
           }
@@ -113,6 +110,13 @@ public class DeleteByKey<T extends IDbDto> implements IDelete<T> {
       // until the query times out.
       try {
         thread.join(TIMEOUT);
+        // Check for problems.
+        if (thread.getThrowable() != null) {
+          Object[] args = { "delete", dto.getPrimaryKey().getStringKey() };
+          String message = Message.getMessage(THREAD_ERROR, args);
+          logger.error(message, thread.getThrowable());
+          throw new DbErrorException(message, thread.getThrowable());
+        }
       } catch (InterruptedException e) {
         Object[] args = { "delete", dto.getPrimaryKey().getStringKey() };
         String message = Message.getMessage(THREAD_ERROR, args);
