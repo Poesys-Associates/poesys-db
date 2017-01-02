@@ -270,7 +270,8 @@ public abstract class AbstractDto implements IDbDto {
       markChildrenDeleted();
       // Notify the parent of the marking.
       notify(DataEvent.MARKED_DELETED);
-    } else if (status == Status.DELETED || status == Status.CASCADE_DELETED) {
+    } else if (status == Status.DELETED || status == Status.CASCADE_DELETED
+               || status == Status.DELETED_FROM_DATABASE) {
       // do nothing, it's already DELETED
     } else if (status == Status.NEW) {
       // new object, just mark deleted, no notification required
