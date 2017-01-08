@@ -108,7 +108,10 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
     if (Thread.currentThread() instanceof PoesysTrackingThread) {
       thread = (PoesysTrackingThread)Thread.currentThread();
       IDbDto dto = thread.getDto(key);
-      // Only query if DTO not already queried in this thread.
+      // Only query if DTO not already queried in this thread. The getDto
+      // method puts the DTO into the tracking thread to be extracted later.
+      // This gets around the separate thread not being able to return a 
+      // value to the main thread.
       if (dto == null) {
         getDto(key, thread);
       }
@@ -134,6 +137,7 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
       }
     }
 
+    // Extract the DTO from the tracking thread.
     return (T)thread.getDto(key);
   }
 
@@ -173,12 +177,13 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
 
   /**
    * Get a DTO based on a primary key value using the current tracking thread.
+   * Store the DTO in the tracking thread.
    * 
    * @param key the key to look up
    * @param thread the tracking thread
    * @return the DTO corresponding to the primary key
    */
-  protected T getDto(IPrimaryKey key, PoesysTrackingThread thread) {
+  protected void getDto(IPrimaryKey key, PoesysTrackingThread thread) {
     PreparedStatement stmt = null;
     T dto = null;
 
@@ -251,8 +256,6 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
         dto.undoStatus();
       }
     }
-
-    return dto;
   }
 
   @Override

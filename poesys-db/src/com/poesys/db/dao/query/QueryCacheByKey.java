@@ -80,7 +80,7 @@ public class QueryCacheByKey<T extends IDbDto> extends QueryByKey<T> implements
   }
 
   @Override
-  protected T getDto(IPrimaryKey key, PoesysTrackingThread thread) {
+  protected void getDto(IPrimaryKey key, PoesysTrackingThread thread) {
     PreparedStatement stmt = null;
 
     // Make sure the key is there.
@@ -142,6 +142,9 @@ public class QueryCacheByKey<T extends IDbDto> extends QueryByKey<T> implements
             }
           }
         }
+      } else {
+        // Object cached but not in tracking thread, add it.
+        thread.addDto(dto);
       }
     }
 
@@ -155,7 +158,5 @@ public class QueryCacheByKey<T extends IDbDto> extends QueryByKey<T> implements
         thread.setProcessed(dto, true);
       }
     }
-
-    return dto;
   }
 }

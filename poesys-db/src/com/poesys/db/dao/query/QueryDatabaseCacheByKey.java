@@ -82,7 +82,7 @@ public class QueryDatabaseCacheByKey<T extends IDbDto> extends QueryByKey<T>
   }
 
   @Override
-  protected T getDto(IPrimaryKey key, PoesysTrackingThread thread) {
+  protected void getDto(IPrimaryKey key, PoesysTrackingThread thread) {
     PreparedStatement stmt = null;
 
     // Make sure the key is there.
@@ -154,7 +154,5 @@ public class QueryDatabaseCacheByKey<T extends IDbDto> extends QueryByKey<T>
         thread.setProcessed(dto, true);
       }
     }
-
-    return dto;
   }
 }

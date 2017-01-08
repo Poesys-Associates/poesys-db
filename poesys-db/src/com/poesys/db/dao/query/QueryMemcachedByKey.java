@@ -86,7 +86,7 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
    */
   @SuppressWarnings("unchecked")
   @Override
-  protected T getDto(IPrimaryKey key, PoesysTrackingThread thread) {
+  protected void getDto(IPrimaryKey key, PoesysTrackingThread thread) {
     // Make sure the key is there.
     if (key == null) {
       throw new NoPrimaryKeyException(NO_PRIMARY_KEY_ERROR);
@@ -130,8 +130,6 @@ public class QueryMemcachedByKey<T extends IDbDto> extends QueryByKey<T>
                                           dto);
       }
     }
-
-    return dto;
   }
 
   /**
