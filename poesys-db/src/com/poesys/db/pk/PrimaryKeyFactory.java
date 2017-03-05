@@ -431,7 +431,7 @@ public class PrimaryKeyFactory {
           stmt.setString(1, finalName);
           ResultSet rs = stmt.executeQuery();
           if (rs.next()) {
-            BigDecimal seqValue = rs.getBigDecimal("value");
+            BigDecimal seqValue = rs.getBigDecimal("sequence");
             // Set the static variable from the thread.
             sequenceKey =
               new SequencePrimaryKey(name, seqValue.toBigInteger(), className);
@@ -439,7 +439,7 @@ public class PrimaryKeyFactory {
             List<String> list = new ArrayList<String>();
             NoPrimaryKeyException x = new NoPrimaryKeyException(NO_SEQ_MSG);
             list.add(finalName);
-            list.add("No row for sequence in mysql_sequence table");
+            list.add("No row for sequence in Sequence table");
             x.setParameters(list);
             throw x;
           }
