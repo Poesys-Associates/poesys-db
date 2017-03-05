@@ -61,7 +61,7 @@ public class PrimaryKeyFactory {
     "UPDATE Sequence SET sequence = sequence + 1 WHERE name = ?";
   /** The MySQL sequence query */
   private static final String MYSQL_SEQ_QUERY =
-    "SELECT value FROM Sequence WHERE name = ?";
+    "SELECT sequence FROM Sequence WHERE name = ?";
 
   /**
    * the last sequence key generated; generate and access only in one reentrant
