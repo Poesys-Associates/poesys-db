@@ -58,10 +58,10 @@ public class PrimaryKeyFactory {
   private static final String ORA_SEQ2 = ".NEXTVAL AS VALUE FROM DUAL";
   /** The MySQL sequence update */
   private static final String MYSQL_SEQ_UPDATE =
-    "UPDATE mysql_sequence SET value = value + 1 WHERE name = ?";
+    "UPDATE Sequence SET value = value + 1 WHERE name = ?";
   /** The MySQL sequence query */
   private static final String MYSQL_SEQ_QUERY =
-    "SELECT value FROM mysql_sequence WHERE name = ?";
+    "SELECT value FROM Sequence WHERE name = ?";
 
   /**
    * the last sequence key generated; generate and access only in one reentrant
@@ -304,7 +304,8 @@ public class PrimaryKeyFactory {
           list.add(finalName);
           list.add(e.getMessage());
           d.setParameters(list);
-          PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
+          PoesysTrackingThread thread =
+            (PoesysTrackingThread)Thread.currentThread();
           thread.setThrowable(d);
         } finally {
           // Close the statement if it is open.
@@ -444,7 +445,7 @@ public class PrimaryKeyFactory {
           }
         } catch (SQLException e) {
           List<String> list = new ArrayList<String>();
-          NoPrimaryKeyException x = new NoPrimaryKeyException(NO_SEQ_MSG);
+          NoPrimaryKeyException x = new NoPrimaryKeyException(NO_SEQ_MSG, e);
           list.add(finalName);
           list.add(e.getMessage());
           x.setParameters(list);
