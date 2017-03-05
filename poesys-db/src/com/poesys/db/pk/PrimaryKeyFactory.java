@@ -58,7 +58,7 @@ public class PrimaryKeyFactory {
   private static final String ORA_SEQ2 = ".NEXTVAL AS VALUE FROM DUAL";
   /** The MySQL sequence update */
   private static final String MYSQL_SEQ_UPDATE =
-    "UPDATE Sequence SET value = value + 1 WHERE name = ?";
+    "UPDATE Sequence SET sequence = sequence + 1 WHERE name = ?";
   /** The MySQL sequence query */
   private static final String MYSQL_SEQ_QUERY =
     "SELECT value FROM Sequence WHERE name = ?";
