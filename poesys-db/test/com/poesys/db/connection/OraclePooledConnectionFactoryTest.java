@@ -29,6 +29,11 @@ import org.apache.log4j.Logger;
 import org.junit.Test;
 
 
+/**
+ * CUT: OraclePooledConnectionFactory
+ * 
+ * @author Robert J. Muller
+ */
 public class OraclePooledConnectionFactoryTest {
   private static final Logger logger =
     Logger.getLogger(OraclePooledConnectionFactoryTest.class);
@@ -39,10 +44,20 @@ public class OraclePooledConnectionFactoryTest {
   private static final String PW = "JU!Ebom7";
   private static final String TEST_SQL = "SELECT COUNT(*) FROM Locus";
 
+  /**
+   * Test getting a pooled connection.
+   */
   @Test
   public void testGetConnection() {
     IJdbcDriver driver = new OracleDriver(HOST, null, SERVICE);
-    PooledConnectionFactory pooledFactory = new PooledConnectionFactory(5, 1, 100, driver, USER, PW, "SELECT 1 FROM DUAL");
+    PooledConnectionFactory pooledFactory =
+      new PooledConnectionFactory(5,
+                                  1,
+                                  100,
+                                  driver,
+                                  USER,
+                                  PW,
+                                  "SELECT 1 FROM DUAL");
     pooledFactory.setHost(HOST);
     pooledFactory.setPort(PORT);
     pooledFactory.setUser(USER);

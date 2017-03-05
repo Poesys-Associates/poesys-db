@@ -56,4 +56,9 @@ public class InsertSqlSubClass implements IInsertSql<SubClass> {
       throw new DbErrorException("SQL error", e);
     }
   }
+
+  @Override
+  public String getParamString(SubClass dto) {
+    return dto.getPrimaryKey().getStringKey() + ", subCol: " + dto.getSubCol();
+  }
 }

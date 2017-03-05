@@ -230,6 +230,7 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
             logger.debug("Adding insert to batch with key " + key);
             String sqlStr = sql.getSql(key);
             logger.debug("SQL: " + sqlStr);
+            logger.debug("Parameters: " + sql.getParamString(dto));
             // Add the DTO to the current batch list for error processing.
             list.add(dto);
             // Set status to EXISTING before adding to tracking thread and doing

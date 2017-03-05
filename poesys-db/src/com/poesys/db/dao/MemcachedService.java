@@ -48,6 +48,7 @@ import com.poesys.db.pool.ObjectPool;
  * 
  * @author Robert J. Muller
  *
+ * @param <T> the type of the object to cache
  */
 public class MemcachedService<T extends IDbDto> {
   /** Logger for debugging */
@@ -155,6 +156,14 @@ public class MemcachedService<T extends IDbDto> {
       }
     };
 
+  /**
+   * Get the object of type T based on the primary key and update the object
+   * expiration time in the cache.
+   * 
+   * @param key the primary key value
+   * @param expireTime the time until cache expiration of the object touched
+   * @return the object of type T specified by primary key
+   */
   @SuppressWarnings("unchecked")
   public T getObject(IPrimaryKey key, int expireTime) {
     T object = null;
@@ -207,6 +216,12 @@ public class MemcachedService<T extends IDbDto> {
     return addresses;
   }
 
+  /**
+   * Put the object into the cache with specified expiration time.
+   * 
+   * @param expireTime the time until expiration of the object in the cache
+   * @param object the object to cache
+   */
   public void putObjectInCache(int expireTime, T object) {
     if (expireTime < 0) {
       // invalid, use default
@@ -242,6 +257,11 @@ public class MemcachedService<T extends IDbDto> {
     }
   }
 
+  /**
+   * Mark the object for deletion in the cache.
+   * 
+   * @param key the primary key of the object to mark for deletion
+   */
   public void removeObjectFromCache(IPrimaryKey key) {
     MemcachedClient client = clients.getObject();
 
@@ -259,6 +279,9 @@ public class MemcachedService<T extends IDbDto> {
     }
   }
 
+  /**
+   * Log the memcached meta data.
+   */
   public void logMetaData() {
     MemcachedClient client = clients.getObject();
     Map<SocketAddress, Map<String, String>> stats;

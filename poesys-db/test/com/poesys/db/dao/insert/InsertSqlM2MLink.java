@@ -56,4 +56,9 @@ public class InsertSqlM2MLink implements IInsertSql<ManyToManyLink> {
       throw new DbErrorException("SQL error", e);
     }
   }
+
+  @Override
+  public String getParamString(ManyToManyLink dto) {
+    return dto.getPrimaryKey().getStringKey() + ", col: " + dto.getCol();
+  }
 }

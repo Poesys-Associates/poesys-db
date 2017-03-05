@@ -56,7 +56,8 @@ public class TestObject {
 
   /**
    * Set the object to throw a runtime exception on closing.
-   *
+   * 
+   * @param exception
    */
   public void setCloseException(boolean exception) {
     closeException = exception;

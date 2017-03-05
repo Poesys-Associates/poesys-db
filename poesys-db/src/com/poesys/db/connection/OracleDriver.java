@@ -48,7 +48,12 @@ public class OracleDriver implements IJdbcDriver {
   public void setDatabase(String database) {
     this.database = database;
   }
-  
+
+  /**
+   * Set the Oracle service name.
+   * 
+   * @param service the service name
+   */
   public void setService(String service) {
     this.service = service;
   }

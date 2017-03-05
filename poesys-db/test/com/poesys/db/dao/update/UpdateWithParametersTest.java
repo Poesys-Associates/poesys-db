@@ -61,7 +61,7 @@ public class UpdateWithParametersTest extends ConnectionTest {
 
   /**
    * Test method for
-   * {@link com.poesys.db.dao.update.UpdateWithParameters#update(java.sql.Connection, com.poesys.db.dto.IDbDto)}
+   * {@link com.poesys.db.dao.update.UpdateWithParameters#update(com.poesys.db.dto.IDbDto)}
    * .
    * 
    * @throws IOException when can't get a property

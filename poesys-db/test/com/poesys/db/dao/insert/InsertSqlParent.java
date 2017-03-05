@@ -56,4 +56,9 @@ public class InsertSqlParent implements IInsertSql<Parent> {
       throw new DbErrorException("SQL error", e);
     }
   }
+
+  @Override
+  public String getParamString(Parent dto) {
+    return dto.getPrimaryKey().getStringKey() + ", col1: " + dto.getCol1();
+  }
 }

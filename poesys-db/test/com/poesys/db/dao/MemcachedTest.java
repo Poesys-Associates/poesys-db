@@ -111,6 +111,9 @@ public abstract class MemcachedTest extends ConnectionTest {
   /** Period in milliseconds to sleep before re-trying memcached get */
   private static final long RETRY_SLEEP_PERIOD = 5L * 1000L;
 
+  /**
+   * Create a MemcachedTest object.
+   */
   public MemcachedTest() {
     super();
 

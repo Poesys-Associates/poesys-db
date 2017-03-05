@@ -34,10 +34,17 @@ public class ConcreteSubClass extends GenericBaseClass<String> {
   private static final long serialVersionUID = 1L;
   private static Logger logger = Logger.getLogger(ConcreteSubClass.class);
 
+  /**
+   * Create a ConcreteSubClass object.
+   */
   public ConcreteSubClass() {
     super();
     logger.info("Concreted subobject constructed with default constructor");
   }
+  /**
+   * Create a ConcreteSubClass object.
+   * @param object the object
+   */
   public ConcreteSubClass(String object) {
     super(object);
     logger.info("Concrete subobject constructed with object constructor");

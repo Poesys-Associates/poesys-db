@@ -181,7 +181,6 @@ public class QueryByKey<T extends IDbDto> implements IQueryByKey<T> {
    * 
    * @param key the key to look up
    * @param thread the tracking thread
-   * @return the DTO corresponding to the primary key
    */
   protected void getDto(IPrimaryKey key, PoesysTrackingThread thread) {
     PreparedStatement stmt = null;

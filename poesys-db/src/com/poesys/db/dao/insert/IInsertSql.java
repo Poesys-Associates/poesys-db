@@ -99,4 +99,13 @@ public interface IInsertSql<T extends IDbDto> {
    *          into the statement
    */
   void setParams(PreparedStatement stmt, int next, T dto);
+  
+  /**
+   * Get the parameters of the query as a string for debugging.
+   * 
+   * @param dto the DTO containing the key and attributes that are the 
+   * parameters of the SQL INSERT statement
+   * @return a string with the key and attribute values
+   */
+  String getParamString(T dto);
 }

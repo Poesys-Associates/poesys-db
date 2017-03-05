@@ -56,4 +56,10 @@ public class InsertSqlRootClass implements IInsertSql<RootClass> {
       throw new DbErrorException("SQL error", e);
     }
   }
+
+  @Override
+  public String getParamString(RootClass dto) {
+    return dto.getPrimaryKey().getStringKey() + ", rootCol: "
+           + dto.getRootCol();
+  }
 }

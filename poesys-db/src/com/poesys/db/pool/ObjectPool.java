@@ -31,6 +31,8 @@ import java.util.concurrent.TimeUnit;
  * client objects in Poesys/DB
  * 
  * @author Robert J. Muller
+ * 
+ * @param <T> the type of object to pool
  */
 public abstract class ObjectPool<T> {
   /** the pool data structure */

@@ -26,6 +26,8 @@ import java.io.ObjectInputStream;
  * A helper class that provides shared code for deserializing cached objects
  * 
  * @author Robert J. Muller
+ * 
+ * @param <T> the type of DTO object
  */
 public class Deserializer<T extends IDbDto> {
 

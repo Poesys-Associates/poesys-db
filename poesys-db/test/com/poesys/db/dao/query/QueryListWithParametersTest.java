@@ -53,7 +53,7 @@ public class QueryListWithParametersTest extends ConnectionTest {
 
   /**
    * Test method for
-   * {@link com.poesys.db.dao.query.QueryList#query(java.sql.Connection)}.
+   * {@link com.poesys.db.dao.query.QueryList#query()}.
    * 
    * @throws IOException when can't get a property
    * @throws SQLException when can't get a connection

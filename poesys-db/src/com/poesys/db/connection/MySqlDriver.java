@@ -85,9 +85,11 @@ public class MySqlDriver implements IJdbcDriver {
     if (url.length() == 0) {
       url.append("jdbc:mysql://");
       url.append(host);
-      for (String failoverHost : failoverHosts) {
-        url.append(",");
-        url.append(failoverHost);
+      if (failoverHosts != null && failoverHosts.size() > 0) {
+        for (String failoverHost : failoverHosts) {
+          url.append(",");
+          url.append(failoverHost);
+        }
       }
       url.append(":");
       url.append(port);

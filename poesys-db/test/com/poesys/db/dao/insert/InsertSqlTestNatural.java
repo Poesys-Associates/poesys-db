@@ -56,4 +56,9 @@ public class InsertSqlTestNatural implements IInsertSql<TestNatural> {
       throw new DbErrorException("SQL error", e);
     }
   }
+
+  @Override
+  public String getParamString(TestNatural dto) {
+    return dto.getPrimaryKey().getStringKey() + ", col1: " + dto.getCol1();
+  }
 }

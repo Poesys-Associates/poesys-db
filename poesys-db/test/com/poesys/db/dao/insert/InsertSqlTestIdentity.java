@@ -57,4 +57,9 @@ public class InsertSqlTestIdentity implements IInsertSql<TestIdentity> {
       throw new DbErrorException("SQL error", e);
     }
   }
+
+  @Override
+  public String getParamString(TestIdentity dto) {
+    return dto.getPrimaryKey().getStringKey() + ", col1: " + dto.getCol1();
+  }
 }

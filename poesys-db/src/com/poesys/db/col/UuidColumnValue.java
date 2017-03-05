@@ -93,6 +93,11 @@ public class UuidColumnValue extends AbstractColumnValue {
     return value != null;
   }
 
+  /**
+   * Get the UUID column value.
+   * 
+   * @return the column value
+   */
   public UUID getValue() {
     return value;
   }

@@ -46,7 +46,7 @@ public class QueryCountTest extends ConnectionTest {
 
   /**
    * Test method for
-   * {@link com.poesys.db.dao.query.QueryCount#queryCount(java.sql.Connection, com.poesys.db.dto.IDbDto)}
+   * {@link com.poesys.db.dao.query.QueryCount#queryCount(com.poesys.db.dto.IDbDto, String)}
    * .
    * 
    * @throws IOException when can't get a property

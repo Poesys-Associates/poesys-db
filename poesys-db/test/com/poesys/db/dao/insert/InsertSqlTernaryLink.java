@@ -56,4 +56,9 @@ public class InsertSqlTernaryLink implements IInsertSql<TernaryLink> {
       throw new DbErrorException("SQL error", e);
     }
   }
+
+  @Override
+  public String getParamString(TernaryLink dto) {
+    return dto.getPrimaryKey().getStringKey() + ", col: " + dto.getCol();
+  }
 }

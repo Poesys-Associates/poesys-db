@@ -116,9 +116,7 @@ public class MemcachedTestReadWrite {
   }
 
   /**
-   * Test method for
-   * {@link com.poesys.db.dto.ConcreteSubClass#readObject(java.io.ObjectInputStream)}
-   * .
+   * Test method
    */
   @Test
   public void testReadObject() {
@@ -137,7 +135,8 @@ public class MemcachedTestReadWrite {
     ConcreteSubClass c2 = getCachedObject(TESTKEY);
     assertTrue("No concrete class object in cache", c2 != null);
     // test object contents
-    assertTrue("Object value not retrieved properly", c2.getNestedObject().equals(TEST_VALUE));
+    assertTrue("Object value not retrieved properly",
+               c2.getNestedObject().equals(TEST_VALUE));
   }
 
   /**

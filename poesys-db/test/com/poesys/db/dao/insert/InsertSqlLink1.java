@@ -56,4 +56,9 @@ public class InsertSqlLink1 implements IInsertSql<Link1> {
       throw new DbErrorException("SQL error", e);
     }
   }
+
+  @Override
+  public String getParamString(Link1 dto) {
+    return dto.getPrimaryKey().getStringKey() + ", col: " + dto.getCol();
+  }
 }

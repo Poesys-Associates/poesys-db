@@ -60,6 +60,9 @@ public class OracleConnectionFactoryTest {
   private static final String PW = properties.getString(PASSWORD);
   private static final String TEST_SQL = "SELECT COUNT(*) FROM Locus";
 
+  /**
+   * Test getting an Oracle connection.
+   */
   @Test
   public void testGetConnection() {
     OracleConnectionFactory oracleFactory = new OracleConnectionFactory();

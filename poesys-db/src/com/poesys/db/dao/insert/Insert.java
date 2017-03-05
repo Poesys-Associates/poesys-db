@@ -173,6 +173,7 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
       // Log the insert.
       logger.debug("Inserting object with key " + key);
       logger.debug("SQL: " + sql.getSql(key));
+      logger.debug("Parameters: " + sql.getParamString((T)dto));
       stmt.executeUpdate();
       // Finalize the insert by setting any auto-generated values.
       key.finalizeInsert(stmt);
