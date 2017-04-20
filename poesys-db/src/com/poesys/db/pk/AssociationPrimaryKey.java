@@ -176,9 +176,10 @@ public class AssociationPrimaryKey extends AbstractMultiValuedPrimaryKey {
     }
 
     if (setSize != union.size()) {
-      List<String> list = new ArrayList<String>();
+      List<String> parameters = new ArrayList<String>();
+      parameters.add(dupName);
       DuplicateKeyNameException e = new DuplicateKeyNameException(DUP_NAME);
-      list.add(dupName);
+      e.setParameters(parameters);
       throw e;
     }
     return union;
