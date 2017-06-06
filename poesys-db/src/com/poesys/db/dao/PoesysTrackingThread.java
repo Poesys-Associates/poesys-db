@@ -276,7 +276,12 @@ public class PoesysTrackingThread extends Thread {
     DtoTrackingObject obj = history.get(key.getStringKey());
     if (obj != null) {
       processed = obj.isProcessed;
+    } else {
+      logger.debug(key.getStringKey() + " not in history");
     }
+    logger.debug("Check processed flag in thread " + getId() + " for DTO "
+        + key.getStringKey() + ": " + processed);
+    
     return processed;
   }
 

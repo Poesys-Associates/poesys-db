@@ -87,8 +87,12 @@ abstract public class AbstractPostProcessSetter extends AbstractSetter<IDbDto>
 
         if (!thread.isProcessed(key)) {
           thread.setProcessed(dto, true);
+          logger.debug("Set " + key.getStringKey()
+                       + ", post-processing nested objects");
           // DTO post setters do the actual post processing.
           dto.postprocessNestedObjects();
+        } else {
+          logger.debug(key.getStringKey() + " already set, returning");
         }
       }
     }
@@ -118,8 +122,14 @@ abstract public class AbstractPostProcessSetter extends AbstractSetter<IDbDto>
             set = thread.isProcessed(dto.getPrimaryKey());
           }
           if (!set) {
-            logger.debug("Post-processing class " + getClassName() + ", DTO "
-                         + dto.getPrimaryKey().getStringKey() + " not set in thread " + thread.getId());
+            if (thread.getDto(dto.getPrimaryKey()) == null) {
+              // add the DTO to the thread history
+              logger.debug("Adding " + dto.getPrimaryKey().getStringKey()
+                           + " to thread history for thread " + thread.getId());
+              thread.addDto(dto);
+            }
+            logger.debug("DTO " + dto.getPrimaryKey().getStringKey()
+                         + " not set in thread " + thread.getId());
             // At least one DTO not set, end check.
             break;
           }
