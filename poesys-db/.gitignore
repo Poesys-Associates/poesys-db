@@ -6,3 +6,4 @@
 bin/
 src/log4j.xml
 
+/build.properties
