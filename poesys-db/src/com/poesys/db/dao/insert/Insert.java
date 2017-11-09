@@ -107,7 +107,8 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
               (PoesysTrackingThread)Thread.currentThread();
             try {
               doInsert(dto, thread);
-              // Process nested objects, as the caller is not in the tracking thread.
+              // Process nested objects, as the caller is not in the tracking
+              // thread.
               dto.postprocessNestedObjects();
             } catch (Throwable e) {
               thread.setThrowable(e);
@@ -151,65 +152,71 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
     PreparedStatement stmt = null;
     Connection connection = thread.getConnection();
 
-    try {
-      // Query nested objects to be able to use them in validation.
-      dto.queryNestedObjectsForValidation();
-      dto.validateForInsert();
+    // insert only if not tracked
+    if (thread.getDto(dto.getPrimaryKey()) == null) {
+      try {
+        // Query nested objects to be able to use them in validation.
+        dto.queryNestedObjectsForValidation();
+        dto.validateForInsert();
 
-      // Get the primary key.
-      IPrimaryKey key = dto.getPrimaryKey();
+        // Get the primary key.
+        IPrimaryKey key = dto.getPrimaryKey();
 
-      // Test the key to make sure there is one.
-      if (key == null) {
-        throw new InvalidParametersException(Message.getMessage(NO_KEY_ERROR,
-                                                                null));
-      }
+        // Test the key to make sure there is one.
+        if (key == null) {
+          throw new InvalidParametersException(Message.getMessage(NO_KEY_ERROR,
+                                                                  null));
+        }
 
-      stmt =
-        connection.prepareStatement(sql.getSql(key),
-                                    Statement.RETURN_GENERATED_KEYS);
-      int next = setKeyParams(stmt, key);
-      sql.setParams(stmt, next, (T)dto);
-      // Log the insert.
-      logger.debug("Inserting object with key " + key);
-      logger.debug("SQL: " + sql.getSql(key));
-      logger.debug("Parameters: " + sql.getParamString((T)dto));
-      stmt.executeUpdate();
-      // Finalize the insert by setting any auto-generated values.
-      key.finalizeInsert(stmt);
-      // Finalize the insert by setting any auto-generated attributes.
-      dto.finalizeInsert(stmt);
+        stmt =
+          connection.prepareStatement(sql.getSql(key),
+                                      Statement.RETURN_GENERATED_KEYS);
+        int next = setKeyParams(stmt, key);
+        sql.setParams(stmt, next, (T)dto);
+        // Log the insert.
+        logger.debug("Inserting object with key " + key);
+        logger.debug("SQL: " + sql.getSql(key));
+        logger.debug("Parameters: " + sql.getParamString((T)dto));
+        stmt.executeUpdate();
+        // Finalize the insert by setting any auto-generated values.
+        key.finalizeInsert(stmt);
+        // Finalize the insert by setting any auto-generated attributes.
+        dto.finalizeInsert(stmt);
 
-      // Add the DTO to the tracking thread.
-      if (thread.getDto(key) == null) {
-        // Not in thread yet, add it to enable processed flag.
-        thread.addDto(dto);
-      }
-    } catch (SQLException e) {
-      dto.setFailed();
-      Object[] args = { dto.getPrimaryKey().getStringKey() };
-      String message = Message.getMessage(INSERT_ERROR, args);
-      logger.error(message, e);
-      throw new DbErrorException(message, thread, e);
-    } catch (DbErrorException e) {
-      dto.setFailed();
-      throw e;
-    } finally {
-      // Close the statement as required.
-      if (stmt != null) {
-        try {
-          stmt.close();
-        } catch (SQLException e) {
-          // ignore
+        // Add the DTO to the tracking thread.
+        if (thread.getDto(key) == null) {
+          // Not in thread yet, add it to enable processed flag.
+          thread.addDto(dto);
+        }
+      } catch (SQLException e) {
+        dto.setFailed();
+        Object[] args = { dto.getPrimaryKey().getStringKey() };
+        String message = Message.getMessage(INSERT_ERROR, args);
+        logger.error(message, e);
+        throw new DbErrorException(message, thread, e);
+      } catch (DbErrorException e) {
+        dto.setFailed();
+        throw e;
+      } finally {
+        // Close the statement as required.
+        if (stmt != null) {
+          try {
+            stmt.close();
+          } catch (SQLException e) {
+            // ignore
+          }
         }
       }
+
+      // Process the nested inserts, a special post-processing loop. This
+      // method also sets the DTO to EXISTING status to indicate that the
+      // database and DTO are synchronized. The method takes inheritance
+      // into account.
+      dto.insertNestedObjects();
+    } else {
+      logger.debug("Skipped insert for NEW object, already tracked: "
+                   + dto.getPrimaryKey().getStringKey());
     }
-    
-    // Process the nested inserts, a special post-processing loop. This
-    // method also sets the DTO to EXISTING status to indicate that the
-    // database and DTO are synchronized. The method takes inheritance
-    // into account.
-    dto.insertNestedObjects();
   }
 
   /**

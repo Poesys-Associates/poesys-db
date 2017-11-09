@@ -194,10 +194,12 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
             // Can't process an identity key using this class.
             throw new InvalidParametersException(Message.getMessage(IDENTITY_KEY_ERROR,
                                                                     null));
-          } else if (dto.getStatus() == IDbDto.Status.NEW) {
+          } else if (thread.getDto(key) == null
+                     && dto.getStatus() == IDbDto.Status.NEW) {
             /*
-             * The DTO is NEW. Run any validation after querying nested objects
-             * to be able to use them in validation.
+             * The DTO is NEW and has not already been processed (as it is is
+             * not registered in the tracking thread). Run any validation after
+             * querying nested objects to be able to use them in validation.
              */
             dto.queryNestedObjectsForValidation();
             dto.validateForInsert();
