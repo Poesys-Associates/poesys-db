@@ -224,15 +224,14 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
             if (stmt == null) {
               stmt = connection.prepareStatement(sql.getSql(key).toString());
             }
+            logger.debug("Adding insert to batch with key " + key);
+            logger.debug("SQL: " + sql.getSql(key));
+            logger.debug("Parameters: " + sql.getParamString(dto));
             // Set the key value into the parameters as the first set of
             // parameters, then set the rest of the parameters.
             int next = key.setInsertParams(stmt, 1);
             sql.setParams(stmt, next, dto);
             stmt.addBatch();
-            logger.debug("Adding insert to batch with key " + key);
-            String sqlStr = sql.getSql(key);
-            logger.debug("SQL: " + sqlStr);
-            logger.debug("Parameters: " + sql.getParamString(dto));
             // Add the DTO to the current batch list for error processing.
             list.add(dto);
             // Add the DTO to the tracking thread if not already tracked.
@@ -246,6 +245,7 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
                 count = 0;
                 list.clear();
               } catch (BatchUpdateException e) {
+                logger.error("Batch insert exception", e);
                 codes = e.getUpdateCounts();
                 // Reset the batch variables for the next batch.
                 count = 0;
@@ -266,6 +266,7 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
           try {
             codes = stmt.executeBatch();
           } catch (BatchUpdateException e) {
+            logger.error("Batch insert exception", e);
             codes = e.getUpdateCounts();
             logger.error("Insert failed for DTO batch", e);
             thread.processErrors(codes, (Collection<IDbDto>)list);

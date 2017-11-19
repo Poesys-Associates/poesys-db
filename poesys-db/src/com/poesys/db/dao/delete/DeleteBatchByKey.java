@@ -210,6 +210,7 @@ public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
               try {
                 stmt.executeBatch();
               } catch (BatchUpdateException e) {
+                logger.error("Batch delete exception", e);
                 codes = e.getUpdateCounts();
                 thread.processErrors(codes, (Collection<IDbDto>)list);
               }
@@ -238,6 +239,7 @@ public class DeleteBatchByKey<T extends IDbDto> extends AbstractBatch<T>
         try {
           codes = stmt.executeBatch();
         } catch (BatchUpdateException e) {
+          logger.error("Batch delete exception", e);
           codes = e.getUpdateCounts();
           thread.processErrors(codes, (Collection<IDbDto>)list);
         } catch (SQLException e) {

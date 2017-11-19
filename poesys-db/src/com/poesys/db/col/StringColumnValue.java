@@ -21,6 +21,8 @@ package com.poesys.db.col;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import org.apache.log4j.Logger;
+
 import com.poesys.db.InvalidParametersException;
 import com.poesys.ms.col.ColumnValueImpl;
 import com.poesys.ms.col.IColumnValue;
@@ -32,6 +34,9 @@ import com.poesys.ms.col.IColumnValue;
  * @author Robert J. Muller
  */
 public class StringColumnValue extends AbstractColumnValue {
+  /** logger for this class */
+  private static final Logger logger = Logger.getLogger(StringColumnValue.class);
+
   /**
    * serial version UID for Serializable object
    */
@@ -77,6 +82,8 @@ public class StringColumnValue extends AbstractColumnValue {
     // Use the String setter for the value.
     try {
       stmt.setString(nextIndex, value);
+      logger.debug("Set key parameter " + nextIndex + " with column " + name
+                   + " with String value " + value);
     } catch (SQLException e) {
       throwDbError(e);
     }
