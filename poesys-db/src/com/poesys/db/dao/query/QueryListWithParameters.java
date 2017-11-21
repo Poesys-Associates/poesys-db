@@ -32,6 +32,7 @@ import com.poesys.db.Message;
 import com.poesys.db.NoRequiredValueException;
 import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
+import com.poesys.db.dto.IDbDto.Status;
 import com.poesys.db.pk.IPrimaryKey;
 
 
@@ -237,8 +238,12 @@ public class QueryListWithParameters<T extends IDbDto, S extends IDbDto, C exten
           dto.queryNestedObjects();
           thread.setProcessed(dto, true);
         }
-        // Set status to existing to indicate DTO is fresh from the database.
-        dto.setExisting();
+        // If status is not CHANGED or DELETED, set it to EXISTING to show that
+        // the DTO is fresh from the database.
+        if (dto.getStatus() != Status.CHANGED
+            && dto.getStatus() != Status.DELETED) {
+          dto.setExisting();
+        }
       }
     }
   }

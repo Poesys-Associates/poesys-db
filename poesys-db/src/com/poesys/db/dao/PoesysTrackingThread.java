@@ -250,6 +250,7 @@ public class PoesysTrackingThread extends Thread {
     DtoTrackingObject obj = new DtoTrackingObject(dto);
     try {
       history.put(dto.getPrimaryKey().getStringKey(), obj);
+      logger.debug("Tracked DTO " + dto.getPrimaryKey().getStringKey());
     } catch (Throwable e) {
       logger.warn("Warning: exception adding tracking object to history", e);
       if (history == null) {
@@ -276,7 +277,12 @@ public class PoesysTrackingThread extends Thread {
     DtoTrackingObject obj = history.get(key.getStringKey());
     if (obj != null) {
       processed = obj.isProcessed;
+    } else {
+      logger.debug(key.getStringKey() + " not in history");
     }
+    logger.debug("Check processed flag in thread " + getId() + " for DTO "
+                 + key.getStringKey() + ": " + processed);
+
     return processed;
   }
 

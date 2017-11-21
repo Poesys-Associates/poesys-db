@@ -228,6 +228,7 @@ public class UpdateBatchByKey<T extends IDbDto> extends AbstractBatch<T>
     try {
       codes = stmt.executeBatch();
     } catch (BatchUpdateException e) {
+      logger.error("Batch update exception", e);
       codes = e.getUpdateCounts();
       thread.processErrors(codes, (Collection<IDbDto>)dtos);
     } catch (SQLException e) {

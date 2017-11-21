@@ -178,6 +178,8 @@ public abstract class AbstractDto implements IDbDto {
   /** Message string when attempting to DELETE an object with an invalid status */
   private static final String CANNOT_DELETE_MSG =
     "com.poesys.db.dto.msg.cannot_delete";
+  private static final String CANNOT_CASCADE_DELETE_MSG =
+      "com.poesys.db.dto.msg.cannot_cascade_delete";
 
   /**
    * Create an AbstractDto object. This constructor takes no arguments (the
@@ -286,7 +288,7 @@ public abstract class AbstractDto implements IDbDto {
   @Override
   public synchronized void cascadeDelete() {
     if (status == Status.EXISTING || status == Status.CHANGED
-        || status == Status.DELETED) {
+        || status == Status.DELETED || status == Status.DELETED_FROM_DATABASE) {
       status = Status.CASCADE_DELETED;
       // Cascade the delete along the chain.
       markChildrenDeleted();
@@ -297,7 +299,7 @@ public abstract class AbstractDto implements IDbDto {
       status = Status.DELETED;
       markChildrenDeleted();
     } else {
-      logger.warn(Message.getMessage(CANNOT_DELETE_MSG, null) + " status "
+      logger.warn(Message.getMessage(CANNOT_CASCADE_DELETE_MSG, null) + ": status "
                   + status + " for " + getPrimaryKey().getStringKey());
       // throw new DtoStatusException(CANNOT_DELETE_MSG + " status " + status);
     }

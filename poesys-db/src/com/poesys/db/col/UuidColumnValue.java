@@ -22,6 +22,8 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.UUID;
 
+import org.apache.log4j.Logger;
+
 import com.poesys.db.InvalidParametersException;
 import com.poesys.ms.col.ColumnValueImpl;
 import com.poesys.ms.col.IColumnValue;
@@ -37,6 +39,9 @@ import com.poesys.ms.col.IColumnValue;
  * @author Robert J. Muller
  */
 public class UuidColumnValue extends AbstractColumnValue {
+  /** logger for this class */
+  private static final Logger logger = Logger.getLogger(UuidColumnValue.class);
+
   /**
    * serial version UID for Serializable object
    */
@@ -82,6 +87,8 @@ public class UuidColumnValue extends AbstractColumnValue {
     // database.
     try {
       stmt.setString(nextIndex, value.toString());
+      logger.debug("Set key parameter " + nextIndex + " with column " + name
+                   + " with UUID string value " + value);
     } catch (SQLException e) {
       throwDbError(e);
     }

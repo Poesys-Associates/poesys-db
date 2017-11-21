@@ -22,6 +22,8 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import org.apache.log4j.Logger;
+
 import com.poesys.db.InvalidParametersException;
 import com.poesys.ms.col.ColumnValueImpl;
 import com.poesys.ms.col.IColumnValue;
@@ -33,6 +35,9 @@ import com.poesys.ms.col.IColumnValue;
  * @author Robert J. Muller
  */
 public class DateColumnValue extends AbstractColumnValue {
+  /** logger for this class */
+  private static final Logger logger = Logger.getLogger(DateColumnValue.class);
+
   /**
    * serial version UID for Serializable object
    */
@@ -77,6 +82,8 @@ public class DateColumnValue extends AbstractColumnValue {
     // Use the Date setter for the value.
     try {
       stmt.setDate(nextIndex, value);
+      logger.debug("Set key parameter " + nextIndex + " with column " + name
+                   + " with Date value " + value);
     } catch (SQLException e) {
       throwDbError(e);
     }

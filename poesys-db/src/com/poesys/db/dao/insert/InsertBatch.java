@@ -72,6 +72,8 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
   /** The helper class for generating the SQL statement */
   private final IInsertSql<T> sql;
 
+  /** message string for exceptions */
+  private static final String BATCH_MSG = "com.poesys.db.dao.msg.batch_of_dtos";
   /** Error message when no primary key supplied */
   private static final String NO_KEY_ERROR =
     "com.poesys.db.dao.insert.msg.no_primary_key_for_insert";
@@ -147,13 +149,13 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
         thread.join(TIMEOUT);
         // Check for problems.
         if (thread.getThrowable() != null) {
-          Object[] args = { "insert", "batch of DTOs" };
+          Object[] args = { "insert", Message.getMessage(BATCH_MSG, null) };
           String message = Message.getMessage(THREAD_ERROR, args);
           logger.error(message, thread.getThrowable());
           throw new DbErrorException(message, thread.getThrowable());
         }
       } catch (InterruptedException e) {
-        Object[] args = { "insert", "batch of DTOs" };
+        Object[] args = { "insert", Message.getMessage(BATCH_MSG, null) };
         String message = Message.getMessage(THREAD_ERROR, args);
         logger.error(message, e);
       }
@@ -173,6 +175,7 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
   @SuppressWarnings("unchecked")
   private void insertBatch(Connection connection, Collection<T> dtos, int size) {
     PreparedStatement stmt = null;
+    String dtoType = null; // string for error messages
     int[] codes = null; // array of return codes from JDBC batch processing
     // Current DTOs for error processing
     List<T> list = new ArrayList<T>();
@@ -185,7 +188,6 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
         for (T dto : dtos) {
           // Check that the primary key is there.
           IPrimaryKey key = dto.getPrimaryKey();
-          // Check whether the object is in the thread history.
           if (key == null) {
             // Something's very wrong, so abort the whole insert.
             throw new NoPrimaryKeyException(Message.getMessage(NO_KEY_ERROR,
@@ -194,10 +196,13 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
             // Can't process an identity key using this class.
             throw new InvalidParametersException(Message.getMessage(IDENTITY_KEY_ERROR,
                                                                     null));
-          } else if (dto.getStatus() == IDbDto.Status.NEW) {
+          } else if (thread.getDto(key) == null
+                     && dto.getStatus() == IDbDto.Status.NEW) {
+            dtoType = dtoType == null ? key.getStringKey() : dtoType;
             /*
-             * The DTO is NEW. Run any validation after querying nested objects
-             * to be able to use them in validation.
+             * The DTO is NEW and has not already been processed (as it is is
+             * not registered in the tracking thread). Run any validation after
+             * querying nested objects to be able to use them in validation.
              */
             dto.queryNestedObjectsForValidation();
             dto.validateForInsert();
@@ -210,54 +215,55 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
              */
             dto.preprocessNestedObjects();
 
-            count++;
-
-            // Get the primary key.
-            key = dto.getPrimaryKey();
-            /*
-             * The first time through the loop, build the batched SQL statement
-             * and prepare it. The statement will track the batch and send it to
-             * the database when the size is reached.
-             */
-            if (stmt == null) {
-              stmt = connection.prepareStatement(sql.getSql(key).toString());
-            }
-            // Set the key value into the parameters as the first set of
-            // parameters, then set the rest of the parameters.
-            int next = key.setInsertParams(stmt, 1);
-            sql.setParams(stmt, next, dto);
-            stmt.addBatch();
-            logger.debug("Adding insert to batch with key " + key);
-            String sqlStr = sql.getSql(key);
-            logger.debug("SQL: " + sqlStr);
-            logger.debug("Parameters: " + sql.getParamString(dto));
-            // Add the DTO to the current batch list for error processing.
-            list.add(dto);
-            // Set status to EXISTING before adding to tracking thread and doing
-            // any further processing that might access the DTO from the thread.
-            dto.setExisting();
-            // Add the DTO to the tracking thread if not already tracked.
+            // Check again for the DTO in the thread as it may already have
+            // been inserted through the nested object preprocessing step.
             if (thread.getDto(key) == null) {
-              thread.addDto(dto);
-            }
-            if (count == size) {
-              try {
-                stmt.executeBatch();
-                // Reset the batch variables for the next batch.
-                count = 0;
-                list.clear();
-              } catch (BatchUpdateException e) {
-                codes = e.getUpdateCounts();
-                // Reset the batch variables for the next batch.
-                count = 0;
-                list.clear();
-                thread.processErrors(codes, (Collection<IDbDto>)list);
+              count++;
+
+              /*
+               * The first time through the loop, build the batched SQL
+               * statement and prepare it. The statement will track the batch
+               * and send it to the database when the size is reached.
+               */
+              if (stmt == null) {
+                stmt = connection.prepareStatement(sql.getSql(key).toString());
+              }
+              logger.debug("Adding insert to batch with key " + key
+                           + " in thread " + thread.getName());
+              logger.debug("SQL: " + sql.getSql(key));
+              logger.debug("Parameters: " + sql.getParamString(dto));
+              // Set the key value into the parameters as the first set of
+              // parameters, then set the rest of the parameters.
+              int next = key.setInsertParams(stmt, 1);
+              sql.setParams(stmt, next, dto);
+              stmt.addBatch();
+              // Add the DTO to the current batch list for error processing.
+              list.add(dto);
+              // Add the DTO to the tracking thread if not already tracked.
+              if (thread.getDto(key) == null) {
+                thread.addDto(dto);
+              }
+              if (count == size) {
+                try {
+                  stmt.executeBatch();
+                  // Reset the batch variables for the next batch.
+                  count = 0;
+                  list.clear();
+                } catch (BatchUpdateException e) {
+                  logger.error("Batch insert exception", e);
+                  codes = e.getUpdateCounts();
+                  // Reset the batch variables for the next batch.
+                  count = 0;
+                  list.clear();
+                  thread.processErrors(codes, (Collection<IDbDto>)list);
+                }
               }
             }
           }
         }
       } catch (SQLException e) {
-        Object[] args = { "batch of DTOs" };
+        Object[] args =
+          { Message.getMessage(BATCH_MSG, null) + ": batch example " + dtoType };
         String message = Message.getMessage(INSERT_ERROR, args);
         logger.error(message, e);
         throw new DbErrorException(message, thread, e);
@@ -269,10 +275,16 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
           } catch (BatchUpdateException e) {
             codes = e.getUpdateCounts();
             thread.processErrors(codes, (Collection<IDbDto>)list);
-          } catch (SQLException e) {
-            Object[] args = { "batch of DTOs" };
+            Object[] args =
+              { Message.getMessage(BATCH_MSG, null) + ": batch example "
+                + dtoType };
             String message = Message.getMessage(INSERT_ERROR, args);
-            logger.error(message, e);
+            throw new DbErrorException(message, thread, e);
+          } catch (SQLException e) {
+            Object[] args =
+              { Message.getMessage(BATCH_MSG, null) + ": batch example "
+                + dtoType };
+            String message = Message.getMessage(INSERT_ERROR, args);
             throw new DbErrorException(message, thread, e);
           }
         }

@@ -22,6 +22,8 @@ import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import org.apache.log4j.Logger;
+
 import com.poesys.db.InvalidParametersException;
 import com.poesys.ms.col.ColumnValueImpl;
 import com.poesys.ms.col.IColumnValue;
@@ -33,6 +35,10 @@ import com.poesys.ms.col.IColumnValue;
  * @author Robert J. Muller
  */
 public class BigDecimalColumnValue extends AbstractColumnValue {
+  /** logger for this class */
+  private static final Logger logger =
+    Logger.getLogger(BigDecimalColumnValue.class);
+
   /**
    * serial version UID for Serializable object
    */
@@ -77,6 +83,8 @@ public class BigDecimalColumnValue extends AbstractColumnValue {
     // Use the BigDecimal setter for the value.
     try {
       stmt.setBigDecimal(nextIndex, value);
+      logger.debug("Set key parameter " + nextIndex + " with column " + name
+                   + " with BigDecimal value " + value);
     } catch (SQLException e) {
       throwDbError(e);
     }
