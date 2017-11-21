@@ -172,7 +172,8 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
           connection.prepareStatement(sql.getSql(key),
                                       Statement.RETURN_GENERATED_KEYS);
         // Log the insert.
-        logger.debug("Inserting object with key " + key);
+        logger.debug("Inserting object with key " + key + " in thread "
+                     + thread.getName());
         logger.debug("SQL: " + sql.getSql(key));
         logger.debug("Parameters: " + sql.getParamString((T)dto));
         int next = setKeyParams(stmt, key);
@@ -185,7 +186,6 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
 
         // Add the DTO to the tracking thread.
         if (thread.getDto(key) == null) {
-          // Not in thread yet, add it to enable processed flag.
           thread.addDto(dto);
         }
       } catch (SQLException e) {
@@ -214,8 +214,8 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
       // into account.
       dto.insertNestedObjects();
     } else {
-      logger.debug("Skipped insert for NEW object, already tracked: "
-                   + dto.getPrimaryKey().getStringKey());
+      logger.debug("DTO already in thread " + thread.getName() + ": "
+          + dto.getPrimaryKey().getStringKey() + ", no insert");
     }
   }
 
