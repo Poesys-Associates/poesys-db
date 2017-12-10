@@ -78,10 +78,13 @@ abstract public class AbstractInsertSetter extends AbstractSetter<IDbDto>
                 if (i == last) {
                   // Restore the current suppression setting.
                   dto.setSuppressNestedInserts(savedSuppress);
+                } else {
+                  // subclasses to insert, reset status to NEW
+                  dto.undoStatus();
                 }
               }
               // After everything has inserted, set the DTO status to EXISTING.
-              dto.setExisting();
+              // dto.setExisting(); already existing, from dao.insert() post-processing
             }
           }
         }
