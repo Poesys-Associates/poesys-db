@@ -152,21 +152,19 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
     PreparedStatement stmt = null;
     Connection connection = thread.getConnection();
 
-    // insert only if not tracked
-    if (thread.getDto(dto.getPrimaryKey()) == null) {
+    IPrimaryKey key = dto.getPrimaryKey();
+    // Test the key to make sure there is one.
+    if (key == null) {
+      throw new InvalidParametersException(Message.getMessage(NO_KEY_ERROR,
+                                                              null));
+    }
+
+    // insert only if not tracked or tracked but not processed
+    if (thread.getDto(key) == null || !thread.isProcessed(key)) {
       try {
         // Query nested objects to be able to use them in validation.
         dto.queryNestedObjectsForValidation();
         dto.validateForInsert();
-
-        // Get the primary key.
-        IPrimaryKey key = dto.getPrimaryKey();
-
-        // Test the key to make sure there is one.
-        if (key == null) {
-          throw new InvalidParametersException(Message.getMessage(NO_KEY_ERROR,
-                                                                  null));
-        }
 
         stmt =
           connection.prepareStatement(sql.getSql(key),
@@ -208,10 +206,12 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
         }
       }
 
-      // Process the nested inserts, a special post-processing loop. This
-      // method also sets the DTO to EXISTING status to indicate that the
-      // database and DTO are synchronized. The method takes inheritance
-      // into account.
+      // Set the processed flag for the DTO in the tracking thread. If there is inheritance, the
+      // caller will need to reset that flag to false.
+      thread.setProcessed(dto, true);
+      // Process nested objects after processing the insert. This step sets the DTO status to
+      // EXISTING to indicate the object is in the database. If there is inheritance, the caller
+      // will need to undo this status change.
       dto.insertNestedObjects();
     } else {
       logger.debug("DTO already in thread " + thread.getName() + ": "
