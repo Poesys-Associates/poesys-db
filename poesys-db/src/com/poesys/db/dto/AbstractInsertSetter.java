@@ -74,14 +74,20 @@ abstract public class AbstractInsertSetter extends AbstractSetter<IDbDto>
               }
               for (IInsert<? extends IDbDto> dao : dto.getInserters()) {
                 dao.insert(dto);
+                // For all but last DAO, undo status and set the DTO to unprocessed for the next
+                // insert.
+                if (i < last) {
+                  dto.undoStatus();
+                  thread.setProcessed(dto, false);
+                }
+                // Increment counter to next dao.
                 i++;
                 if (i == last) {
-                  // Restore the current suppression setting.
+                  // Next DAO is the last one, restore suppression.
                   dto.setSuppressNestedInserts(savedSuppress);
                 }
               }
-              // After everything has inserted, set the DTO status to EXISTING.
-              dto.setExisting();
+              // After everything has inserted, DTO status is EXISTING.
             }
           }
         }

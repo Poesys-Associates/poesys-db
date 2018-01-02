@@ -1,0 +1,6 @@
+CREATE TABLE ConcreteChildSubClass (
+  parentId INTEGER NOT NULL REFERENCES ChildRootClass,
+  childId INTEGER NOT NULL,
+  childDataColumn VARCHAR(100) NOT NULL,
+  CONSTRAINT CnDSC_PK PRIMARY KEY (parentId, childId)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

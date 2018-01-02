@@ -23,13 +23,11 @@ import static org.junit.Assert.assertTrue;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 
-import org.junit.Test;
-
 import com.poesys.db.col.AbstractColumnValue;
 import com.poesys.db.col.StringColumnValue;
 import com.poesys.db.pk.IPrimaryKey;
 import com.poesys.db.pk.PrimaryKeyFactory;
-
+import org.junit.Test;
 
 /**
  * Test the DtoCache class.

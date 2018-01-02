@@ -229,7 +229,7 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
                 stmt = connection.prepareStatement(sql.getSql(key).toString());
               }
               logger.debug("Adding insert to batch with key " + key
-                           + " in thread " + thread.getName());
+                           + " in thread " + thread.getId());
               logger.debug("SQL: " + sql.getSql(key));
               logger.debug("Parameters: " + sql.getParamString(dto));
               // Set the key value into the parameters as the first set of
@@ -246,6 +246,11 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
               if (count == size) {
                 try {
                   stmt.executeBatch();
+                  // Set the processed flag for each DTO. If there is inheritance, the caller will
+                  // need to reset that flag to false.
+                  for (T persistedDto : list) {
+                    thread.setProcessed(persistedDto, true);
+                  }
                   // Reset the batch variables for the next batch.
                   count = 0;
                   list.clear();
@@ -272,6 +277,11 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
         if (count > 0 && stmt != null) {
           try {
             codes = stmt.executeBatch();
+            // Set the processed flag for each DTO. If there is inheritance, the caller will
+            // need to reset that flag to false.
+            for (T persistedDto : list) {
+              thread.setProcessed(persistedDto, true);
+            }
           } catch (BatchUpdateException e) {
             codes = e.getUpdateCounts();
             thread.processErrors(codes, (Collection<IDbDto>)list);
