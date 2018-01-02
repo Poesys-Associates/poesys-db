@@ -17,7 +17,6 @@
  */
 package com.poesys.db.dao.insert;
 
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -32,24 +31,19 @@ import com.poesys.db.dao.PoesysTrackingThread;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.pk.IPrimaryKey;
 
-
 /**
- * <p>
- * An implementation of the IInsert generic interface that contains the base
- * code for inserting a single object into the database. To use this class, you
- * must implement the IInsertSql interface for the concrete class that contains
- * the SQL INSERT statement and the JDBC code to set the fields in the DTO from
- * the JDBC result set, then pass that object into the Insert constructor. You
- * should supply a validator that checks for a primary key.
- * </p>
- * 
+ * <p> An implementation of the IInsert generic interface that contains the base code for inserting
+ * a single object into the database. To use this class, you must implement the IInsertSql interface
+ * for the concrete class that contains the SQL INSERT statement and the JDBC code to set the fields
+ * in the DTO from the JDBC result set, then pass that object into the Insert constructor. You
+ * should supply a validator that checks for a primary key. </p>
+ *
+ * @param <T> the type of IDbDto to insert
+ * @author Robert J. Muller
  * @see IInsertSql
  * @see com.poesys.db.dto.HasPrimaryKey
  * @see com.poesys.db.dto.AbstractDto
  * @see com.poesys.db.dto.IDbDto
- * 
- * @author Robert J. Muller
- * @param <T> the type of IDbDto to insert
  */
 public class Insert<T extends IDbDto> implements IInsert<T> {
   /** The logger for this class. */
@@ -57,14 +51,12 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
   /** The helper class for generating the SQL statement */
   private IInsertSql<T> sql;
   /** Error message when no DTO supplied */
-  private static final String NO_DTO_ERROR =
-    "com.poesys.db.dao.insert.msg.no_dto";
+  private static final String NO_DTO_ERROR = "com.poesys.db.dao.insert.msg.no_dto";
   /** Error message when DTO has no primary key */
   private static final String NO_KEY_ERROR =
     "com.poesys.db.dao.insert.msg.no_primary_key_for_insert";
   /** Error message when insert throws exception */
-  private static final String INSERT_ERROR =
-    "com.poesys.db.dao.insert.msg.insert";
+  private static final String INSERT_ERROR = "com.poesys.db.dao.insert.msg.insert";
   private static final String THREAD_ERROR = "com.poesys.db.dao.msg.thread";
 
   /** timeout for the query thread */
@@ -74,10 +66,10 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
   protected final String subsystem;
 
   /**
-   * Create an Insert object by supplying the concrete implementation of the
-   * SQL-statement generator and JDBC setter.
-   * 
-   * @param sql the SQL INSERT statement generator object for type T
+   * Create an Insert object by supplying the concrete implementation of the SQL-statement generator
+   * and JDBC setter.
+   *
+   * @param sql       the SQL INSERT statement generator object for type T
    * @param subsystem the subsystem of class T
    */
   public Insert(IInsertSql<T> sql, String subsystem) {
@@ -90,8 +82,7 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
 
     // Check that the DTO is there and is new.
     if (dto == null) {
-      throw new InvalidParametersException(Message.getMessage(NO_DTO_ERROR,
-                                                              null));
+      throw new InvalidParametersException(Message.getMessage(NO_DTO_ERROR, null));
     } else if (dto.getStatus() == IDbDto.Status.NEW) {
       // Process NEW DTOs only; no need to check thread processed flag for this
       // class because the DTO status gets set to EXISTING after insertion, so
@@ -103,8 +94,7 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
       } else {
         Runnable query = new Runnable() {
           public void run() {
-            PoesysTrackingThread thread =
-              (PoesysTrackingThread)Thread.currentThread();
+            PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
             try {
               doInsert(dto, thread);
               // Process nested objects, as the caller is not in the tracking
@@ -112,13 +102,13 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
               dto.postprocessNestedObjects();
             } catch (Throwable e) {
               thread.setThrowable(e);
-            } finally {
+            }
+            finally {
               thread.closeConnection();
             }
           }
         };
-        PoesysTrackingThread thread =
-          new PoesysTrackingThread(query, subsystem);
+        PoesysTrackingThread thread = new PoesysTrackingThread(query, subsystem);
         thread.start();
         // Join the thread, blocking until the thread completes or
         // until the query times out.
@@ -126,13 +116,13 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
           thread.join(TIMEOUT);
           // Check for problems.
           if (thread.getThrowable() != null) {
-            Object[] args = { "insert", dto.getPrimaryKey().getStringKey() };
+            Object[] args = {"insert", dto.getPrimaryKey().getStringKey()};
             String message = Message.getMessage(THREAD_ERROR, args);
             logger.error(message, thread.getThrowable());
             throw new DbErrorException(message, thread.getThrowable());
           }
         } catch (InterruptedException e) {
-          Object[] args = { "insert", dto.getPrimaryKey().getStringKey() };
+          Object[] args = {"insert", dto.getPrimaryKey().getStringKey()};
           String message = Message.getMessage(THREAD_ERROR, args);
           logger.error(message, e);
         }
@@ -141,37 +131,36 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
   }
 
   /**
-   * Insert a DTO into the database. You can call this only from within a
-   * PoesysTrackingThread.
-   * 
-   * @param dto the DTO to insert
+   * Insert a DTO into the database. You can call this only from within a PoesysTrackingThread.
+   *
+   * @param dto    the DTO to insert
    * @param thread the tracking thread
    */
   @SuppressWarnings("unchecked")
   private void doInsert(IDbDto dto, PoesysTrackingThread thread) {
     PreparedStatement stmt = null;
     Connection connection = thread.getConnection();
+    logger.debug("Inserting with connection " + connection.hashCode());
 
     IPrimaryKey key = dto.getPrimaryKey();
     // Test the key to make sure there is one.
     if (key == null) {
-      throw new InvalidParametersException(Message.getMessage(NO_KEY_ERROR,
-                                                              null));
+      throw new InvalidParametersException(Message.getMessage(NO_KEY_ERROR, null));
     }
 
     // insert only if not tracked or tracked but not processed
     if (thread.getDto(key) == null || !thread.isProcessed(key)) {
+      logger.debug("Inserting object, " + (thread.getDto(key) == null ?
+                                             "DTO not in " + thread.getId() :
+                                             "DTO processed flag is " + thread.isProcessed(key)));
       try {
         // Query nested objects to be able to use them in validation.
         dto.queryNestedObjectsForValidation();
         dto.validateForInsert();
 
-        stmt =
-          connection.prepareStatement(sql.getSql(key),
-                                      Statement.RETURN_GENERATED_KEYS);
+        stmt = connection.prepareStatement(sql.getSql(key), Statement.RETURN_GENERATED_KEYS);
         // Log the insert.
-        logger.debug("Inserting object with key " + key + " in thread "
-                     + thread.getName());
+        logger.debug("Inserting object with key " + key + " in thread " + thread.getId());
         logger.debug("SQL: " + sql.getSql(key));
         logger.debug("Parameters: " + sql.getParamString((T)dto));
         int next = setKeyParams(stmt, key);
@@ -188,14 +177,15 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
         }
       } catch (SQLException e) {
         dto.setFailed();
-        Object[] args = { dto.getPrimaryKey().getStringKey() };
+        Object[] args = {dto.getPrimaryKey().getStringKey()};
         String message = Message.getMessage(INSERT_ERROR, args);
         logger.error(message, e);
         throw new DbErrorException(message, thread, e);
       } catch (DbErrorException e) {
         dto.setFailed();
         throw e;
-      } finally {
+      }
+      finally {
         // Close the statement as required.
         if (stmt != null) {
           try {
@@ -214,17 +204,18 @@ public class Insert<T extends IDbDto> implements IInsert<T> {
       // will need to undo this status change.
       dto.insertNestedObjects();
     } else {
-      logger.debug("DTO already in thread " + thread.getName() + ": "
-          + dto.getPrimaryKey().getStringKey() + ", no insert");
+      logger.debug(
+        "DTO already in thread " + thread.getId() + ": " + dto.getPrimaryKey().getStringKey() +
+        ", no insert");
     }
   }
 
   /**
-   * Set the key parameters. This method can be overriden in a concrete subclass
-   * that does not set key parameters, for auto-generated keys for example.
-   * 
+   * Set the key parameters. This method can be overriden in a concrete subclass that does not set
+   * key parameters, for auto-generated keys for example.
+   *
    * @param stmt the prepared statement into which to set the parameters
-   * @param key the primary key object that contains the parameter-setting logic
+   * @param key  the primary key object that contains the parameter-setting logic
    * @return the next parameter number to set
    */
   protected int setKeyParams(PreparedStatement stmt, IPrimaryKey key) {

@@ -308,9 +308,12 @@ public class PoesysTrackingThread extends Thread {
       object = history.get(key.getStringKey());
     }
 
+    if (!processed && dto.getPrimaryKey().getStringKey().contains("Checking")) {
+      logger.debug("Setting Checking account processed flag false.");
+    }
     object.setProcessed(processed);
     logger.debug("Set processed flag in thread " + getId() + " for DTO "
-                 + key.getStringKey());
+                 + key.getStringKey() + " to value " + processed);
   }
 
   /**

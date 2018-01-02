@@ -1,0 +1,6 @@
+CREATE TABLE ChildRootClass (
+  parentId INTEGER NOT NULL REFERENCES CompositeParent,
+  childId INTEGER NOT NULL,
+  rootDataColumn VARCHAR(100) NOT NULL,
+  CONSTRAINT CHRC_PK PRIMARY KEY (parentId, childId)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

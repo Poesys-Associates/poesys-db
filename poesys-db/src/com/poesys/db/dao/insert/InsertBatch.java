@@ -229,7 +229,7 @@ public class InsertBatch<T extends IDbDto> extends AbstractBatch<T> implements
                 stmt = connection.prepareStatement(sql.getSql(key).toString());
               }
               logger.debug("Adding insert to batch with key " + key
-                           + " in thread " + thread.getName());
+                           + " in thread " + thread.getId());
               logger.debug("SQL: " + sql.getSql(key));
               logger.debug("Parameters: " + sql.getParamString(dto));
               // Set the key value into the parameters as the first set of

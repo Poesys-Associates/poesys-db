@@ -1,0 +1,4 @@
+CREATE TABLE CompositeParent(
+  parentId INTEGER NOT NULL PRIMARY KEY,
+  parentDataColumn VARCHAR(100) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
