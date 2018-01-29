@@ -26,24 +26,26 @@ import java.util.UUID;
 
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.dao.ConnectionTest;
+import org.junit.Test;
 
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 /**
  * 
  * @author Robert J. Muller
  */
 public class UuidColumnValueTest extends ConnectionTest {
-  String name1 = "name1";
-  String name2 = "name2";
-  String name3 = "name3";
-  UUID uuid1 = UUID.randomUUID();
-  UUID uuid2 = UUID.randomUUID();
+  private String name1 = "name1";
+  private UUID uuid1 = UUID.randomUUID();
+  private UUID uuid2 = UUID.randomUUID();
 
   /**
    * Test method for {@link com.poesys.db.col.UuidColumnValue#hashCode()}.
    * 
    * @throws InvalidParametersException when there is a null parameter
    */
+  @Test
   public void testHashCode() throws InvalidParametersException {
     UuidColumnValue colValue = new UuidColumnValue(name1, uuid1);
     assertTrue(uuid1.hashCode() == colValue.hashCode());
@@ -56,9 +58,12 @@ public class UuidColumnValueTest extends ConnectionTest {
    * 
    * @throws InvalidParametersException when there is a null parameter
    */
+  @Test
   public void testEqualsColumnValue() throws InvalidParametersException {
     UuidColumnValue colValue1 = new UuidColumnValue(name1, uuid1);
+    String name2 = "name2";
     UuidColumnValue colValue2 = new UuidColumnValue(name2, uuid2);
+    String name3 = "name3";
     UuidColumnValue colValue3 = new UuidColumnValue(name3, uuid2);
     UuidColumnValue colValue4 = new UuidColumnValue(name1, uuid1);
 
@@ -76,6 +81,7 @@ public class UuidColumnValueTest extends ConnectionTest {
    * @throws SQLException when can't get connection
    * @throws InvalidParametersException when there is a null parameter
    */
+  @Test
   public void testSetParam() throws SQLException, IOException,
       InvalidParametersException {
     Connection connection = null;
@@ -100,6 +106,7 @@ public class UuidColumnValueTest extends ConnectionTest {
    * 
    * @throws InvalidParametersException when there is a null parameter
    */
+  @Test
   public void testUuidColumnValue() throws InvalidParametersException {
     UuidColumnValue colValue1 = new UuidColumnValue(name1, uuid1);
     assertTrue(colValue1.getName().equals(name1));

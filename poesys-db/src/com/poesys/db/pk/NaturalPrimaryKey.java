@@ -18,15 +18,14 @@
 package com.poesys.db.pk;
 
 
+import com.poesys.db.DuplicateKeyNameException;
+import com.poesys.db.InvalidParametersException;
+import com.poesys.db.col.IColumnValue;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import com.poesys.db.DuplicateKeyNameException;
-import com.poesys.db.InvalidParametersException;
-import com.poesys.db.col.AbstractColumnValue;
-import com.poesys.ms.col.IColumnValue;
 
 
 /**
@@ -70,7 +69,7 @@ public class NaturalPrimaryKey extends AbstractMultiValuedPrimaryKey {
    *           list have the same name
    * @throws InvalidParametersException when the list has no columns in it
    */
-  public NaturalPrimaryKey(List<AbstractColumnValue> list, String className)
+  public NaturalPrimaryKey(List<IColumnValue> list, String className)
       throws DuplicateKeyNameException, InvalidParametersException {
     super(list, className);
   }
@@ -90,9 +89,9 @@ public class NaturalPrimaryKey extends AbstractMultiValuedPrimaryKey {
       InvalidParametersException {
     // Make the initial list null, then set it after extracting cols.
     super(className);
-    List<AbstractColumnValue> cols =
-      new ArrayList<AbstractColumnValue>(messageKey.getColumnValues().size());
-    for (IColumnValue<?> col : messageKey.getColumnValues()) {
+    List<IColumnValue> cols =
+      new ArrayList<>(messageKey.getColumnValues().size());
+    for (com.poesys.ms.col.IColumnValue<?> col : messageKey.getColumnValues()) {
       cols.add(MessageKeyFactory.getColumnValue(col));
     }
     setList(cols);
@@ -106,8 +105,8 @@ public class NaturalPrimaryKey extends AbstractMultiValuedPrimaryKey {
   @Override
   public com.poesys.ms.pk.IPrimaryKey getMessageObject() {
     // Extract columns from list and create DTO.
-    List<IColumnValue<?>> msgList = new ArrayList<IColumnValue<?>>();
-    for (AbstractColumnValue col : this) {
+    List<com.poesys.ms.col.IColumnValue<?>> msgList = new ArrayList<>();
+    for (IColumnValue col : this) {
       msgList.add(col.getMessageObject());
     }
     return new com.poesys.ms.pk.NaturalPrimaryKey(msgList, className);
@@ -115,14 +114,14 @@ public class NaturalPrimaryKey extends AbstractMultiValuedPrimaryKey {
 
   @Override
   public Set<String> getColumnNames() throws DuplicateKeyNameException {
-    Set<String> set = new HashSet<String>();
+    Set<String> set = new HashSet<>();
     int setSize = 0;
-    for (AbstractColumnValue c : this) {
+    for (IColumnValue c : this) {
       set.add(c.getName());
       setSize++;
       if (setSize != set.size()) {
         // Set eliminated a duplicate name.
-        List<String> list = new ArrayList<String>();
+        List<String> list = new ArrayList<>();
         DuplicateKeyNameException e = new DuplicateKeyNameException(DUP_NAME);
         list.add(c.getName());
         e.setParameters(list);

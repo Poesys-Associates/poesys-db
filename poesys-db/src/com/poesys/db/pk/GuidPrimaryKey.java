@@ -18,15 +18,14 @@
 package com.poesys.db.pk;
 
 
+import com.poesys.db.InvalidParametersException;
+import com.poesys.db.col.IColumnValue;
+import com.poesys.db.col.UuidColumnValue;
+
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import com.poesys.db.InvalidParametersException;
-import com.poesys.db.col.AbstractColumnValue;
-import com.poesys.db.col.UuidColumnValue;
 
 
 /**
@@ -58,9 +57,8 @@ public class GuidPrimaryKey extends AbstractSingleValuedPrimaryKey {
     // Call the default constructor in the superclass with no list.
     super(className);
     // Create a new list and populate it with a random UUID.
-    list = new ArrayList<AbstractColumnValue>();
+    list = new ArrayList<>();
     list.add(new UuidColumnValue(name, UUID.randomUUID()));
-    list = new CopyOnWriteArrayList<AbstractColumnValue>(list);
   }
 
   /**
@@ -77,16 +75,15 @@ public class GuidPrimaryKey extends AbstractSingleValuedPrimaryKey {
   public GuidPrimaryKey(String name, UUID value, String className)
       throws InvalidParametersException {
     // Call the default constructor in the superclass with no list.
-    super(null);
+    super(className);
     // Check the input value for being null.
     if (value == null) {
       throw new InvalidParametersException("Null UUID value");
     }
     // Create a new list and populate it with a UUID created from its string
     // representation.
-    this.list = new ArrayList<AbstractColumnValue>();
+    this.list = new ArrayList<>();
     list.add(new UuidColumnValue(name, value));
-    list = new CopyOnWriteArrayList<AbstractColumnValue>(list);
   }
 
   /**
@@ -97,7 +94,7 @@ public class GuidPrimaryKey extends AbstractSingleValuedPrimaryKey {
    * @param className the name of the IDbDto class of the object that the
    *          primary key identifies
    */
-  protected GuidPrimaryKey(List<AbstractColumnValue> list, String className) {
+  protected GuidPrimaryKey(List<IColumnValue> list, String className) {
     super(list, className);
   }
 
@@ -112,29 +109,19 @@ public class GuidPrimaryKey extends AbstractSingleValuedPrimaryKey {
     // Call the default constructor in the superclass with no list.
     super(className);
     // Create a new list and populate it from the DTO.
-    this.list = new ArrayList<AbstractColumnValue>();
+    this.list = new ArrayList<>();
     list.add(new UuidColumnValue(key.getName(), key.getUuid()));
-    list = new CopyOnWriteArrayList<AbstractColumnValue>(list);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.dto.IPrimaryKey#setParams(java.sql.PreparedStatement,
-   * int)
-   */
+  @Override
   public int setParams(PreparedStatement stmt, int nextIndex) {
     // Set the string parameter as the String representation of the UUID.
     return list.get(0).setParam(stmt, nextIndex);
   }
 
-  /*
-   * (non-Javadoc)
-   * 
-   * @see com.poesys.db.pk.IPrimaryKey#getValueList()
-   */
+  @Override
   public String getValueList() {
-    AbstractColumnValue col = list.get(0);
+    IColumnValue col = list.get(0);
     StringBuilder str = new StringBuilder();
     str.append(" (");
     str.append(col.getName());
@@ -163,7 +150,7 @@ public class GuidPrimaryKey extends AbstractSingleValuedPrimaryKey {
    * @return the GUID as a string value
    */
   public String getValue() {
-    AbstractColumnValue col = list.get(0);
+    IColumnValue col = list.get(0);
 
     return col.toString();
   }

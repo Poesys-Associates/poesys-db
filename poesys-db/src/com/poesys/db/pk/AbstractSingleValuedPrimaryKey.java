@@ -18,17 +18,11 @@
 package com.poesys.db.pk;
 
 
-import java.sql.PreparedStatement;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import com.poesys.db.DuplicateKeyNameException;
-import com.poesys.db.col.AbstractColumnValue;
+import com.poesys.db.col.IColumnValue;
 
+import java.sql.PreparedStatement;
+import java.util.*;
 
 /**
  * Implements the IPrimaryKey interface for a key constructed from a single
@@ -44,7 +38,7 @@ public abstract class AbstractSingleValuedPrimaryKey extends AbstractPrimaryKey 
    */
   private static final long serialVersionUID = -1193848306520394312L;
   /** List of column values */
-  protected List<AbstractColumnValue> list = null;
+  protected List<IColumnValue> list = null;
 
   /**
    * Create a primary key value that has no list of values at all.
@@ -63,7 +57,7 @@ public abstract class AbstractSingleValuedPrimaryKey extends AbstractPrimaryKey 
    * @param className the name of the IDbDto class of the object that the
    *          primary key identifies
    */
-  public AbstractSingleValuedPrimaryKey(List<AbstractColumnValue> list,
+  public AbstractSingleValuedPrimaryKey(List<IColumnValue> list,
                                         String className) {
     super(className);
     this.list = list;
@@ -76,16 +70,21 @@ public abstract class AbstractSingleValuedPrimaryKey extends AbstractPrimaryKey 
    */
   public boolean equals(IPrimaryKey key) {
     boolean ret = false;
-    if (key instanceof AbstractSingleValuedPrimaryKey) {
+
+    if (key != null && key instanceof AbstractSingleValuedPrimaryKey) {
       AbstractSingleValuedPrimaryKey other =
         (AbstractSingleValuedPrimaryKey)key;
       if (list != null && list.size() > 0) {
-        AbstractColumnValue thisCol = list.get(0);
-        AbstractColumnValue thatCol = other.list.get(0);
+        IColumnValue thisCol = list.get(0);
+        IColumnValue thatCol = other.list.get(0);
         ret = thisCol.equals(thatCol);
-      } else if (other.list == null | other.list.size() == 0)
-        // Nothing in either list, always return true
-        ret = true;
+      } else {
+        if (other.list == null) {
+          ret = true;
+        } else if (other.list.size() == 0) {
+          ret = true;
+        }
+      }
     } else {
       // this list empty, other list not, always false
       ret = false;
@@ -98,8 +97,8 @@ public abstract class AbstractSingleValuedPrimaryKey extends AbstractPrimaryKey 
    * 
    * @see com.poesys.db.dto.IPrimaryKey#getColumnValueList()
    */
-  public Iterator<AbstractColumnValue> iterator() {
-    return (Iterator<AbstractColumnValue>)list.iterator();
+  public Iterator<IColumnValue> iterator() {
+    return list.iterator();
   }
 
   /*
@@ -141,7 +140,7 @@ public abstract class AbstractSingleValuedPrimaryKey extends AbstractPrimaryKey 
   public int setParams(PreparedStatement stmt, int nextIndex) {
     int next = nextIndex;
     // Iterate through the natural key values, setting them into the statement.
-    for (AbstractColumnValue col : list) {
+    for (IColumnValue col : list) {
       col.setParam(stmt, nextIndex);
       next++;
     }
@@ -155,7 +154,7 @@ public abstract class AbstractSingleValuedPrimaryKey extends AbstractPrimaryKey 
    */
   public Set<String> getColumnNames() throws DuplicateKeyNameException {
     // Get the single-column name from the list.
-    Set<String> set = new HashSet<String>();
+    Set<String> set = new HashSet<>();
     if (list.size() > 0) {
       String columnName = list.get(0).getName();
       set.add(columnName);
@@ -168,11 +167,11 @@ public abstract class AbstractSingleValuedPrimaryKey extends AbstractPrimaryKey 
    * 
    * @return the copy of the internal list
    */
-  protected List<AbstractColumnValue> copyList() {
-    AbstractColumnValue col = list.get(0).copy();
-    List<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
+  protected List<IColumnValue> copyList() {
+    IColumnValue col = list.get(0).copy();
+    List<IColumnValue> list = new ArrayList<>();
     list.add(col);
 
-    return new CopyOnWriteArrayList<AbstractColumnValue>(list);
+    return list;
   }
 }

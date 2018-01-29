@@ -1,5 +1,6 @@
 com.poesys.db
 com.poesys.db.col
+com.poesys.db.col.json
 com.poesys.db.connection
 com.poesys.db.dao
 com.poesys.db.dao.ddl

@@ -18,22 +18,20 @@
 package com.poesys.db.dao.insert;
 
 
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import com.poesys.db.BatchException;
 import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dto.TestNatural;
+import org.junit.Test;
 
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Test the insert process for a collection using batching.
@@ -51,29 +49,28 @@ public class InsertBatchTestNaturalTest extends ConnectionTest {
    * 
    * @throws IOException when can't get a property
    * @throws SQLException when can't get a connection
-   * @throws BatchException when a problem happens during processing
    */
-  public void testInsert() throws IOException, SQLException, BatchException {
+  @Test
+  public void testInsert() throws IOException, SQLException {
     Connection conn;
     try {
       conn = getConnection();
     } catch (SQLException e) {
       throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
-    InsertBatch<TestNatural> cut =
-      new InsertBatch<TestNatural>(new InsertSqlTestNatural(), getSubsystem());
-    List<TestNatural> dtos = new CopyOnWriteArrayList<TestNatural>();
+    InsertBatch<TestNatural> cut = new InsertBatch<>(new InsertSqlTestNatural(), getSubsystem());
+    List<TestNatural> dtos = new ArrayList<>();
     BigDecimal col1 = new BigDecimal("1234.5678");
 
     for (int i = 0; i < OBJECT_COUNT; i++) {
-      Integer keyValue = new Integer(i);
+      Integer keyValue = i;
 
       // Create the DTO.
       dtos.add(new TestNatural(keyValue.toString(), keyValue.toString(), col1));
     }
 
     Statement stmt = null;
-    PreparedStatement query = null;
+    PreparedStatement query;
     try {
       // Delete any rows in the TestNatural table.
       stmt = conn.createStatement();
@@ -122,6 +119,7 @@ public class InsertBatchTestNaturalTest extends ConnectionTest {
    * @throws IOException when can't get a property
    * @throws SQLException when can't get a connection
    */
+  @Test
   public void testInsertError() throws IOException, SQLException {
     Connection conn;
     try {
@@ -129,18 +127,17 @@ public class InsertBatchTestNaturalTest extends ConnectionTest {
     } catch (SQLException e) {
       throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
-    InsertBatch<TestNatural> cut =
-      new InsertBatch<TestNatural>(new InsertSqlTestNatural(), getSubsystem());
-    List<TestNatural> errorDtos = new CopyOnWriteArrayList<TestNatural>();
-    Collection<TestNatural> goodDtos = new CopyOnWriteArrayList<TestNatural>();
+    InsertBatch<TestNatural> cut = new InsertBatch<>(new InsertSqlTestNatural(), getSubsystem());
+    List<TestNatural> errorDtos = new ArrayList<>();
+    Collection<TestNatural> goodDtos = new ArrayList<>();
     BigDecimal col1 = new BigDecimal("1234.5678");
 
     for (int i = 0; i < OBJECT_COUNT; i++) {
       // Create the primary key.
-      String keyValue = null;
+      String keyValue;
       if (i > 0 && i % 3 == 0) {
         // Put an invalid string (TOO LONG) key in for a few rows.
-        keyValue = "aaaaabbbbbccccc" + (new Integer(i)).toString();
+        keyValue = "a b c d" + (new Integer(i)).toString();
       } else {
         keyValue = (new Integer(i)).toString();
       }
@@ -150,7 +147,7 @@ public class InsertBatchTestNaturalTest extends ConnectionTest {
     }
 
     for (int i = 0; i < OBJECT_COUNT; i++) {
-      Integer keyValue = new Integer(i);
+      Integer keyValue = i;
 
       // Create the DTO.
       goodDtos.add(new TestNatural(keyValue.toString(),
@@ -159,7 +156,7 @@ public class InsertBatchTestNaturalTest extends ConnectionTest {
     }
 
     Statement stmt = null;
-    PreparedStatement query = null;
+    PreparedStatement query;
     try {
       // Delete any rows in the TestNatural table.
       stmt = conn.createStatement();
@@ -188,7 +185,7 @@ public class InsertBatchTestNaturalTest extends ConnectionTest {
 
         // Query the row.
         ResultSet rs = query.executeQuery();
-        BigDecimal queriedCol1 = null;
+        BigDecimal queriedCol1;
         if (rs.next()) {
           // Got the object, compare the value.
           queriedCol1 = rs.getBigDecimal("col1");
@@ -220,18 +217,16 @@ public class InsertBatchTestNaturalTest extends ConnectionTest {
    * 
    * @throws IOException when can't get a property
    * @throws SQLException when can't get a connection
-   * @throws BatchException when a problem happens during processing
    */
-  public void testInsertNull() throws IOException, SQLException, BatchException {
+  @Test
+  public void testInsertNull() throws IOException, SQLException {
     Connection conn;
     try {
       conn = getConnection();
     } catch (SQLException e) {
       throw new DbErrorException("Connect failed: " + e.getMessage(), e);
     }
-    InsertBatch<TestNatural> cut =
-      new InsertBatch<TestNatural>(new InsertSqlTestNatural(), getSubsystem());
-    List<TestNatural> dtos = null;
+    InsertBatch<TestNatural> cut = new InsertBatch<>(new InsertSqlTestNatural(), getSubsystem());
     Statement stmt = null;
 
     try {
@@ -243,7 +238,7 @@ public class InsertBatchTestNaturalTest extends ConnectionTest {
       conn.commit();
 
       // Insert the test batch, which is null.
-      cut.insert(dtos, BATCH_SIZE);
+      cut.insert(null, BATCH_SIZE);
       conn.commit();
     } catch (SQLException e) {
       fail("insert batch method with null input failed: " + e.getMessage());

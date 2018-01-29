@@ -1,33 +1,22 @@
 /*
  * Copyright (c) 2008 Poesys Associates. All rights reserved.
- * 
+ *
  * This file is part of Poesys-DB.
- * 
+ *
  * Poesys-DB is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
  * version.
- * 
+ *
  * Poesys-DB is distributed in the hope that it will be useful, but WITHOUT ANY
  * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
  * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
  */
 package com.poesys.db.dao.insert;
 
-
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import com.poesys.db.BatchException;
 import com.poesys.db.DbErrorException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.Message;
@@ -41,20 +30,25 @@ import com.poesys.db.pk.AbstractSingleValuedPrimaryKey;
 import com.poesys.db.pk.AssociationPrimaryKey;
 import com.poesys.db.pk.IPrimaryKey;
 import com.poesys.db.pk.PrimaryKeyFactory;
+import org.junit.Test;
 
+import java.io.IOException;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Test the specialization/inheritance insertion capability.
- * 
+ *
  * @author Robert J. Muller
  */
 public class InsertManyToManyLink1Test extends ConnectionTest {
-  private static final String QUERY_LINK1 =
-    "SELECT col FROM Link1 WHERE link1_id = ?";
-  private static final String QUERY_LINK2 =
-    "SELECT col FROM Link2 WHERE link2_id = ?";
-  private static final String QUERY_M2M_LINK =
-    "SELECT col FROM ManyToManyLink WHERE link1_id = ?";
+  private static final String QUERY_LINK1 = "SELECT col FROM Link1 WHERE link1_id = ?";
+  private static final String QUERY_LINK2 = "SELECT col FROM Link2 WHERE link2_id = ?";
+  private static final String QUERY_M2M_LINK = "SELECT col FROM ManyToManyLink WHERE link1_id = ?";
   private static final String KEY1_NAME = "link1_id";
   private static final String KEY2_NAME = "link2_id";
   private static final String COL_VALUE = "string";
@@ -63,12 +57,12 @@ public class InsertManyToManyLink1Test extends ConnectionTest {
   /**
    * Test the basic use case for a specialized object: insert the object with no
    * errors.
-   * 
-   * @throws IOException when can't get a property
+   *
+   * @throws IOException  when can't get a property
    * @throws SQLException when can't get a connection
-   * @throws BatchException when a problem happens during processing
    */
-  public void testInsert() throws IOException, SQLException, BatchException {
+  @Test
+  public void testInsert() throws IOException, SQLException {
     Connection conn;
     try {
       conn = getConnection();
@@ -77,10 +71,8 @@ public class InsertManyToManyLink1Test extends ConnectionTest {
     }
 
     // Create the insert commands (class under test) for the two linked tables.
-    Insert<Link1> cut1 =
-      new Insert<Link1>(new InsertSqlLink1(), getSubsystem());
-    Insert<Link2> cut2 =
-      new Insert<Link2>(new InsertSqlLink2(), getSubsystem());
+    Insert<Link1> cut1 = new Insert<>(new InsertSqlLink1(), getSubsystem());
+    Insert<Link2> cut2 = new Insert<>(new InsertSqlLink2(), getSubsystem());
 
     // Create the sequence primary keys for the objects.
     AbstractSingleValuedPrimaryKey key1 = null;
@@ -89,25 +81,13 @@ public class InsertManyToManyLink1Test extends ConnectionTest {
     AbstractSingleValuedPrimaryKey key23 = null;
     try {
       key1 =
-        PrimaryKeyFactory.createMySqlSequenceKey("link1",
-                                                 KEY1_NAME,
-                                                 CLASS_NAME,
-                                                 getSubsystem());
+        PrimaryKeyFactory.createMySqlSequenceKey("link1", KEY1_NAME, CLASS_NAME, getSubsystem());
       key21 =
-        PrimaryKeyFactory.createMySqlSequenceKey("link2",
-                                                 KEY2_NAME,
-                                                 CLASS_NAME,
-                                                 getSubsystem());
+        PrimaryKeyFactory.createMySqlSequenceKey("link2", KEY2_NAME, CLASS_NAME, getSubsystem());
       key22 =
-        PrimaryKeyFactory.createMySqlSequenceKey("link2",
-                                                 KEY2_NAME,
-                                                 CLASS_NAME,
-                                                 getSubsystem());
+        PrimaryKeyFactory.createMySqlSequenceKey("link2", KEY2_NAME, CLASS_NAME, getSubsystem());
       key23 =
-        PrimaryKeyFactory.createMySqlSequenceKey("link2",
-                                                 KEY2_NAME,
-                                                 CLASS_NAME,
-                                                 getSubsystem());
+        PrimaryKeyFactory.createMySqlSequenceKey("link2", KEY2_NAME, CLASS_NAME, getSubsystem());
     } catch (InvalidParametersException e1) {
       fail(e1.getMessage());
     } catch (NoPrimaryKeyException e1) {
@@ -121,45 +101,42 @@ public class InsertManyToManyLink1Test extends ConnectionTest {
     Link2 link23Dto = new Link2(key23, COL_VALUE);
 
     // Create the links and add them to the Link1 object.
-    List<IPrimaryKey> keylist1_2_1 = new CopyOnWriteArrayList<IPrimaryKey>();
-    keylist1_2_1.add(key1); // Link1 object
-    keylist1_2_1.add(key21); // first link2 object
-    AssociationPrimaryKey key1_2_1 =
-      new AssociationPrimaryKey(keylist1_2_1, CLASS_NAME);
+    List<IPrimaryKey> keyList1_2_1 = new ArrayList<>();
+    keyList1_2_1.add(key1); // Link1 object
+    keyList1_2_1.add(key21); // first link2 object
+    AssociationPrimaryKey key1_2_1 = new AssociationPrimaryKey(keyList1_2_1, CLASS_NAME);
     ManyToManyLink link1_2_1 = new ManyToManyLink(key1_2_1, COL_VALUE);
     link1_2_1.setLink1(link1Dto);
     link1_2_1.setLink2(link21Dto);
 
-    List<IPrimaryKey> keylist1_2_2 = new CopyOnWriteArrayList<IPrimaryKey>();
-    keylist1_2_2.add(key1); // Link1 object
-    keylist1_2_2.add(key22); // second link2 object
-    AssociationPrimaryKey key1_2_2 =
-      new AssociationPrimaryKey(keylist1_2_2, CLASS_NAME);
+    List<IPrimaryKey> keyList1_2_2 = new ArrayList<>();
+    keyList1_2_2.add(key1); // Link1 object
+    keyList1_2_2.add(key22); // second link2 object
+    AssociationPrimaryKey key1_2_2 = new AssociationPrimaryKey(keyList1_2_2, CLASS_NAME);
     ManyToManyLink link1_2_2 = new ManyToManyLink(key1_2_2, COL_VALUE);
     link1_2_2.setLink1(link1Dto);
     link1_2_2.setLink2(link22Dto);
 
-    List<IPrimaryKey> keylist1_2_3 = new CopyOnWriteArrayList<IPrimaryKey>();
-    keylist1_2_3.add(key1); // Link1 object
-    keylist1_2_3.add(key23); // third link2 object
-    AssociationPrimaryKey key1_2_3 =
-      new AssociationPrimaryKey(keylist1_2_3, CLASS_NAME);
+    List<IPrimaryKey> keyList1_2_3 = new ArrayList<>();
+    keyList1_2_3.add(key1); // Link1 object
+    keyList1_2_3.add(key23); // third link2 object
+    AssociationPrimaryKey key1_2_3 = new AssociationPrimaryKey(keyList1_2_3, CLASS_NAME);
     ManyToManyLink link1_2_3 = new ManyToManyLink(key1_2_3, COL_VALUE);
     link1_2_3.setLink1(link1Dto);
     link1_2_3.setLink2(link23Dto);
 
-    List<ManyToManyLink> links1 = new CopyOnWriteArrayList<ManyToManyLink>();
+    List<ManyToManyLink> links1 = new ArrayList<>();
     links1.add(link1_2_1);
     links1.add(link1_2_2);
     links1.add(link1_2_3);
 
-    List<ManyToManyLink> links21 = new CopyOnWriteArrayList<ManyToManyLink>();
+    List<ManyToManyLink> links21 = new ArrayList<>();
     links1.add(link1_2_1);
 
-    List<ManyToManyLink> links22 = new CopyOnWriteArrayList<ManyToManyLink>();
+    List<ManyToManyLink> links22 = new ArrayList<>();
     links1.add(link1_2_2);
 
-    List<ManyToManyLink> links23 = new CopyOnWriteArrayList<ManyToManyLink>();
+    List<ManyToManyLink> links23 = new ArrayList<>();
     links1.add(link1_2_3);
 
     // Add the links to the link objects.
@@ -169,7 +146,7 @@ public class InsertManyToManyLink1Test extends ConnectionTest {
     link23Dto.setM2mLinks(links23);
 
     Statement stmt = null;
-    PreparedStatement pstmt = null;
+    PreparedStatement pStmt = null;
     try {
       // Delete any rows in the tables.
       stmt = conn.createStatement();
@@ -195,61 +172,52 @@ public class InsertManyToManyLink1Test extends ConnectionTest {
       cut1.insert(link1Dto);
 
       // Test the flags.
-      assertTrue("status not EXISTING for inserted Link1: "
-                     + link1Dto.getStatus(),
+      assertTrue("status not EXISTING for inserted Link1: " + link1Dto.getStatus(),
                  link1Dto.getStatus() == IDbDto.Status.EXISTING);
-      assertTrue("status not EXISTING for inserted Link2-1: "
-                     + link21Dto.getStatus(),
+      assertTrue("status not EXISTING for inserted Link2-1: " + link21Dto.getStatus(),
                  link21Dto.getStatus() == IDbDto.Status.EXISTING);
-      assertTrue("status not EXISTING for inserted Link2-2: "
-                     + link22Dto.getStatus(),
+      assertTrue("status not EXISTING for inserted Link2-2: " + link22Dto.getStatus(),
                  link22Dto.getStatus() == IDbDto.Status.EXISTING);
-      assertTrue("status not EXISTING for inserted Link2-3: "
-                     + link23Dto.getStatus(),
+      assertTrue("status not EXISTING for inserted Link2-3: " + link23Dto.getStatus(),
                  link23Dto.getStatus() == IDbDto.Status.EXISTING);
 
       // Query the Link1 row.
-      pstmt = conn.prepareStatement(QUERY_LINK1);
-      key1.setParams(pstmt, 1);
-      ResultSet rs = pstmt.executeQuery();
+      pStmt = conn.prepareStatement(QUERY_LINK1);
+      key1.setParams(pStmt, 1);
+      ResultSet rs = pStmt.executeQuery();
       String queriedCol = null;
       if (rs.next()) {
         queriedCol = rs.getString("col");
       }
-      pstmt.close();
-      pstmt = null;
-      rs = null;
+      pStmt.close();
+      pStmt = null;
       assertTrue(queriedCol != null);
       assertTrue(COL_VALUE.equals(queriedCol));
 
       conn.commit();
 
       // Query the Link2 rows.
-      pstmt = conn.prepareStatement(QUERY_LINK2);
+      pStmt = conn.prepareStatement(QUERY_LINK2);
       for (int counter = 0; counter < 3; counter++) {
-        key21.setParams(pstmt, 1);
-        rs = pstmt.executeQuery();
-        queriedCol = null;
+        key21.setParams(pStmt, 1);
+        rs = pStmt.executeQuery();
         if (rs.next()) {
           queriedCol = rs.getString("col");
           assertTrue("Null column value for link", queriedCol != null);
-          assertTrue("Wrong link column value: " + queriedCol,
-                     COL_VALUE.equals(queriedCol));
+          assertTrue("Wrong link column value: " + queriedCol, COL_VALUE.equals(queriedCol));
         } else {
           fail("Not enough Link2 rows inserted--no row at index " + counter);
         }
       }
-      pstmt.close();
-      pstmt = null;
-      rs = null;
+      pStmt.close();
+      pStmt = null;
 
       conn.commit();
 
       // Query the many-to-many linking table rows.
-      pstmt = conn.prepareStatement(QUERY_M2M_LINK);
-      key1.setParams(pstmt, 1); // use Link1 key value for query
-      rs = pstmt.executeQuery();
-      queriedCol = null;
+      pStmt = conn.prepareStatement(QUERY_M2M_LINK);
+      key1.setParams(pStmt, 1); // use Link1 key value for query
+      rs = pStmt.executeQuery();
       int counter = 0;
       while (rs.next()) {
         counter++;
@@ -257,19 +225,19 @@ public class InsertManyToManyLink1Test extends ConnectionTest {
         assertTrue(queriedCol != null);
         assertTrue(COL_VALUE.equals(queriedCol));
       }
-      pstmt.close();
-      pstmt = null;
-      rs = null;
+      pStmt.close();
+      pStmt = null;
       assertTrue("Wrong number of rows inserted: " + counter, counter == 3);
       conn.commit();
     } catch (SQLException e) {
       fail("insert method failed with SQL error: " + e.getMessage());
-    } finally {
+    }
+    finally {
       if (stmt != null) {
         stmt.close();
       }
-      if (pstmt != null) {
-        pstmt.close();
+      if (pStmt != null) {
+        pStmt.close();
       }
       if (conn != null) {
         conn.close();

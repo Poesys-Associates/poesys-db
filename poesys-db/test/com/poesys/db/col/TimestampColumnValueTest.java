@@ -26,19 +26,20 @@ import java.sql.Timestamp;
 
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.dao.ConnectionTest;
+import org.junit.Test;
 
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 /**
  * 
  * @author Robert J. Muller
  */
 public class TimestampColumnValueTest extends ConnectionTest {
-  String name1 = "name1";
-  String name2 = "name2";
-  String name3 = "name3";
-  Timestamp value1 = new Timestamp(System.currentTimeMillis());
-  Timestamp value2 = new Timestamp(System.currentTimeMillis() + 24 * 60 * 60
-                                   * 1000); // current
+  private String name1 = "name1";
+  private Timestamp value1 = new Timestamp(System.currentTimeMillis());
+  private Timestamp value2 = new Timestamp(System.currentTimeMillis() + 24 * 60 * 60
+                                                                        * 1000); // current
                                             // + 1
                                             // day
 
@@ -47,6 +48,7 @@ public class TimestampColumnValueTest extends ConnectionTest {
    * 
    * @throws InvalidParametersException when there is a null parameter
    */
+  @Test
   public void testHashCode() throws InvalidParametersException {
     TimestampColumnValue colValue = new TimestampColumnValue(name1, value1);
     assertTrue(value1.hashCode() == colValue.hashCode());
@@ -59,9 +61,12 @@ public class TimestampColumnValueTest extends ConnectionTest {
    * 
    * @throws InvalidParametersException when there is a null parameter
    */
+  @Test
   public void testEqualsColumnValue() throws InvalidParametersException {
     TimestampColumnValue colValue1 = new TimestampColumnValue(name1, value1);
+    String name2 = "name2";
     TimestampColumnValue colValue2 = new TimestampColumnValue(name2, value2);
+    String name3 = "name3";
     TimestampColumnValue colValue3 = new TimestampColumnValue(name3, value1);
     TimestampColumnValue colValue4 = new TimestampColumnValue(name1, value1);
 
@@ -79,6 +84,7 @@ public class TimestampColumnValueTest extends ConnectionTest {
    * @throws IOException when can't get property
    * @throws SQLException when can't get connection
    */
+  @Test
   public void testSetParam() throws InvalidParametersException, SQLException,
       IOException {
     Connection connection = null;
@@ -104,6 +110,7 @@ public class TimestampColumnValueTest extends ConnectionTest {
    * 
    * @throws InvalidParametersException when there is a null parameter
    */
+  @Test
   public void testTimestampColumnValue() throws InvalidParametersException {
     TimestampColumnValue colValue1 = new TimestampColumnValue(name1, value1);
     assertTrue(colValue1.getName().equals(name1));

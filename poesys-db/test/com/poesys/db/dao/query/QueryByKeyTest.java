@@ -18,16 +18,6 @@
 package com.poesys.db.dao.query;
 
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import com.poesys.db.BatchException;
 import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.insert.Insert;
@@ -37,12 +27,19 @@ import com.poesys.db.dto.Child;
 import com.poesys.db.dto.IDbDto;
 import com.poesys.db.dto.Parent;
 import com.poesys.db.dto.TestSequence;
-import com.poesys.db.pk.CompositePrimaryKey;
-import com.poesys.db.pk.GuidPrimaryKey;
-import com.poesys.db.pk.NaturalPrimaryKey;
-import com.poesys.db.pk.PrimaryKeyFactory;
-import com.poesys.db.pk.SequencePrimaryKey;
+import com.poesys.db.pk.*;
+import org.junit.Test;
 
+import java.io.IOException;
+import java.math.BigInteger;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Test the QueryByKey class.
@@ -51,28 +48,23 @@ import com.poesys.db.pk.SequencePrimaryKey;
  */
 public class QueryByKeyTest extends ConnectionTest {
   private static final String PARENT_KEY_NAME = "parent_id";
-  private static final String CHILD_SUBKEY_NAME = "child_number";
+  private static final String CHILD_SUB_KEY_NAME = "child_number";
   private static final String COL1_VALUE = "string";
   private static final String CLASS_NAME = "com.poesys.test.TestSequence";
 
   /**
    * Test the query by key functionality using a sequence key object.
-   * 
-   * @throws IOException when can't get a property
-   * @throws SQLException when can't get a connection
-   * @throws BatchException when a problem happens during processing
    */
-  public void testQueryByKeySequenceTest() throws IOException, SQLException,
-      BatchException {
-    SequencePrimaryKey key = null;
-    TestSequence dto = null;
+  @Test
+  public void testQueryByKeySequenceTest() {
+    SequencePrimaryKey key;
+    TestSequence dto;
 
     // Create the sequence key and the object to insert.
-    Insert<TestSequence> inserter =
-      new Insert<TestSequence>(new InsertSqlTestSequence(), getSubsystem());
+    Insert<TestSequence> inserter = new Insert<>(new InsertSqlTestSequence(), getSubsystem());
     key =
       PrimaryKeyFactory.createMySqlSequenceKey("test",
-                                               "pkey",
+                                               "pKey",
                                                CLASS_NAME,
                                                getSubsystem());
     String col1 = "test";
@@ -83,8 +75,7 @@ public class QueryByKeyTest extends ConnectionTest {
     assertTrue(true);
 
     IKeyQuerySql<TestSequence> sql = new TestSequenceKeyQuerySql();
-    QueryByKey<TestSequence> query =
-      new QueryByKey<TestSequence>(sql, getSubsystem());
+    QueryByKey<TestSequence> query = new QueryByKey<>(sql, getSubsystem());
     IDbDto queriedDto = query.queryByKey(key);
     assertTrue("no object found", queriedDto != null);
     assertTrue("data not equal", dto.compareTo(queriedDto) == 0);
@@ -99,10 +90,10 @@ public class QueryByKeyTest extends ConnectionTest {
    * 
    * @throws IOException when can't get a property
    * @throws SQLException when can't get a connection
-   * @throws BatchException when a problem happens during processing
    */
-  public void testQueryByKeyParentTest() throws IOException, SQLException,
-      BatchException {
+  @Test
+  public void testQueryByKeyParentTest() throws IOException, SQLException
+       {
     Connection conn;
     try {
       conn = getConnection();
@@ -111,35 +102,33 @@ public class QueryByKeyTest extends ConnectionTest {
     }
 
     // Create the insert command for the parent.
-    Insert<Parent> inserter =
-      new Insert<Parent>(new InsertSqlParent(), getSubsystem());
+    Insert<Parent> inserter = new Insert<>(new InsertSqlParent(), getSubsystem());
 
     // Create the GUID primary key for the parent.
     GuidPrimaryKey key =
       PrimaryKeyFactory.createGuidKey(PARENT_KEY_NAME, CLASS_NAME);
 
     // Create the parent DTO with the key and the empty setters list.
-    String col1 = new String(COL1_VALUE);
-    Parent dto = new Parent(key, col1);
+         Parent dto = new Parent(key, COL1_VALUE);
 
     // Create three children in a list and set the children into the parent.
-    List<Child> children = new CopyOnWriteArrayList<Child>();
+    List<Child> children = new ArrayList<>();
     NaturalPrimaryKey subKey1 =
-      PrimaryKeyFactory.createSingleNumberKey(CHILD_SUBKEY_NAME,
+      PrimaryKeyFactory.createSingleNumberKey(CHILD_SUB_KEY_NAME,
                                               new BigInteger("1"),
                                               CLASS_NAME);
     CompositePrimaryKey key1 =
       new CompositePrimaryKey(key, subKey1, CLASS_NAME);
     children.add(new Child(key1, new BigInteger("1"), COL1_VALUE));
     NaturalPrimaryKey subKey2 =
-      PrimaryKeyFactory.createSingleNumberKey(CHILD_SUBKEY_NAME,
+      PrimaryKeyFactory.createSingleNumberKey(CHILD_SUB_KEY_NAME,
                                               new BigInteger("2"),
                                               CLASS_NAME);
     CompositePrimaryKey key2 =
       new CompositePrimaryKey(key, subKey2, CLASS_NAME);
     children.add(new Child(key2, new BigInteger("2"), COL1_VALUE));
     NaturalPrimaryKey subKey3 =
-      PrimaryKeyFactory.createSingleNumberKey(CHILD_SUBKEY_NAME,
+      PrimaryKeyFactory.createSingleNumberKey(CHILD_SUB_KEY_NAME,
                                               new BigInteger("3"),
                                               CLASS_NAME);
     CompositePrimaryKey key3 =
@@ -148,8 +137,7 @@ public class QueryByKeyTest extends ConnectionTest {
     dto.setChildren(children);
 
     Statement stmt = null;
-    PreparedStatement pstmt = null;
-    try {
+         try {
       // Delete any rows in the Parent and Child tables.
       stmt = conn.createStatement();
       stmt.executeUpdate("DELETE FROM Child");
@@ -169,9 +157,6 @@ public class QueryByKeyTest extends ConnectionTest {
       if (stmt != null) {
         stmt.close();
       }
-      if (pstmt != null) {
-        pstmt.close();
-      }
       if (conn != null) {
         conn.close();
       }
@@ -179,7 +164,7 @@ public class QueryByKeyTest extends ConnectionTest {
 
     // Query the object and test against the original.
     IKeyQuerySql<Parent> sql = new ParentKeyQuerySql();
-    QueryByKey<Parent> dao = new QueryByKey<Parent>(sql, getSubsystem());
+    QueryByKey<Parent> dao = new QueryByKey<>(sql, getSubsystem());
     IDbDto queriedDto = dao.queryByKey(key);
     assertTrue(queriedDto != null);
     assertTrue("data not equal", dto.compareTo(queriedDto) == 0);

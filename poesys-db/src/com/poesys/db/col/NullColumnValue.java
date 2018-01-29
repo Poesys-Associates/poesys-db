@@ -43,14 +43,13 @@ public class NullColumnValue extends AbstractColumnValue {
   private static final long serialVersionUID = 1L;
 
   /** The JDBC java.sql.type type for the column */
-  int jdbcType;
+  private int jdbcType;
 
   /**
    * Create a NullColumnValue object.
    * 
    * @param name the column name
-   * @param jdbcType the java.sql.type value corresponding to the actual data
-   *          type
+   * @param jdbcType the java.sql.type value corresponding to the actual data type
    * @throws InvalidParametersException when an input name or value is null
    */
   public NullColumnValue(String name, int jdbcType)
@@ -61,7 +60,7 @@ public class NullColumnValue extends AbstractColumnValue {
   }
 
   @Override
-  public boolean valueEquals(AbstractColumnValue value) {
+  public boolean valueEquals(com.poesys.db.col.IColumnValue value) {
     return false;
   }
 
@@ -89,7 +88,7 @@ public class NullColumnValue extends AbstractColumnValue {
   }
 
   @Override
-  protected void accept(IColumnVisitor visitor) {
+  public void accept(IColumnVisitor visitor) {
     visitor.visit(this);
   }
 
@@ -105,8 +104,6 @@ public class NullColumnValue extends AbstractColumnValue {
 
   @Override
   public IColumnValue<?> getMessageObject() {
-    IColumnValue<?> col =
-      new ColumnValueImpl<Long>(name, IColumnValue.ColumnType.Null, null);
-    return col;
+    return new ColumnValueImpl<>(name, IColumnValue.ColumnType.Null, "<null>");
   }
 }

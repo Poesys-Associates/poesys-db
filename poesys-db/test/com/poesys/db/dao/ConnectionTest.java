@@ -18,18 +18,14 @@
 package com.poesys.db.dao;
 
 
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.SQLException;
-
-import junit.framework.TestCase;
-
-import org.apache.log4j.Logger;
-
-import com.poesys.db.DbErrorException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.connection.ConnectionFactoryFactory;
 import com.poesys.db.connection.IConnectionFactory.DBMS;
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
 
 
 /**
@@ -39,19 +35,13 @@ import com.poesys.db.connection.IConnectionFactory.DBMS;
  * 
  * @author rmuller
  */
-public abstract class ConnectionTest extends TestCase {
+public abstract class ConnectionTest {
   /** Define a class logger. */
   private static Logger logger = Logger.getLogger(ConnectionTest.class);
-  /** I18N message name for no connection */
-  protected static final String noConnectionError =
-    "com.poesys.db.msg.noConnection";
 
   /**
    * Get a connection to the poesystest subsystem using MySQL JDBC. This method
    * calls a private method, getPassword(), to get the database password.
-   * 
-   * @param subsystem the subsystem to test; corresponds to the actual test
-   *          database
    * 
    * @return an open connection to the database
    * @throws SQLException when there is a database problem getting the
@@ -59,20 +49,14 @@ public abstract class ConnectionTest extends TestCase {
    * @throws IOException when there is a problem reading the database.properties
    *           file that initializes connections
    */
-  protected Connection getConnection() throws SQLException, IOException {
-    Connection connection = null;
+  protected Connection getConnection() throws SQLException, IOException, InvalidParametersException {
+    Connection connection;
     try {
       connection =
         ConnectionFactoryFactory.getInstance(getSubsystem(), DBMS.MYSQL).getConnection(getPassword());
-    } catch (SQLException e) {
+    } catch (SQLException | IOException e) {
       logger.error(e.getMessage(), e);
       throw e;
-    } catch (IOException e) {
-      logger.error(e.getMessage(), e);
-      throw e;
-    } catch (InvalidParametersException e) {
-      logger.error(e.getMessage(), e);
-      throw new DbErrorException("Couldn't get default connection", e);
     }
     return connection;
   }
@@ -86,7 +70,7 @@ public abstract class ConnectionTest extends TestCase {
    * 
    * @return a database password appropriate to the test suite being run
    */
-  protected String getPassword() {
+  private String getPassword() {
     return "test";
   }
 }

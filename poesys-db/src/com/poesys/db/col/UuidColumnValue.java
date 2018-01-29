@@ -48,7 +48,7 @@ public class UuidColumnValue extends AbstractColumnValue {
   private static final long serialVersionUID = 1L;
 
   /** The UUID value for the column */
-  private UUID value = null;
+  private UUID value;
 
   /**
    * Create a UuidColumnValue object.
@@ -68,7 +68,7 @@ public class UuidColumnValue extends AbstractColumnValue {
   }
 
   @Override
-  public boolean valueEquals(AbstractColumnValue value) {
+  public boolean valueEquals(com.poesys.db.col.IColumnValue value) {
     boolean ret = false;
     if (value instanceof UuidColumnValue) {
       ret = this.value.equals(((UuidColumnValue)value).value);
@@ -110,7 +110,7 @@ public class UuidColumnValue extends AbstractColumnValue {
   }
 
   @Override
-  protected void accept(IColumnVisitor visitor) {
+  public void accept(IColumnVisitor visitor) {
     visitor.visit(this);
   }
 
@@ -126,8 +126,6 @@ public class UuidColumnValue extends AbstractColumnValue {
 
   @Override
   public IColumnValue<?> getMessageObject() {
-    IColumnValue<?> col =
-      new ColumnValueImpl<UUID>(name, IColumnValue.ColumnType.Uuid, value);
-    return col;
+    return new ColumnValueImpl<>(name, IColumnValue.ColumnType.Uuid, value);
   }
 }

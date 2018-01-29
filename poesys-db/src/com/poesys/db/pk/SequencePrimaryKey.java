@@ -1,33 +1,29 @@
 /*
  * Copyright (c) 2008 Poesys Associates. All rights reserved.
- * 
+ *
  * This file is part of Poesys-DB.
- * 
+ *
  * Poesys-DB is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
  * version.
- * 
+ *
  * Poesys-DB is distributed in the hope that it will be useful, but WITHOUT ANY
  * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
  * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
  */
 package com.poesys.db.pk;
 
+import com.poesys.db.InvalidParametersException;
+import com.poesys.db.col.BigIntegerColumnValue;
+import com.poesys.db.col.IColumnValue;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import com.poesys.db.InvalidParametersException;
-import com.poesys.db.col.AbstractColumnValue;
-import com.poesys.db.col.BigIntegerColumnValue;
-import com.poesys.ms.col.IColumnValue;
-
 
 /**
  * <p>
@@ -52,11 +48,10 @@ import com.poesys.ms.col.IColumnValue;
  * is no other way to get that value. Other classes require having the value
  * first, this one comes from a value generator.
  * </p>
- * 
+ *
+ * @author Robert J. Muller
  * @see IdentityPrimaryKey
  * @see PrimaryKeyFactory
- * 
- * @author Robert J. Muller
  */
 public class SequencePrimaryKey extends AbstractSingleValuedPrimaryKey {
   /**
@@ -68,60 +63,55 @@ public class SequencePrimaryKey extends AbstractSingleValuedPrimaryKey {
 
   /**
    * Create a sequence primary key value with a BigInteger value.
-   * 
-   * @param name the name of the primary key column
-   * @param value the value of the primary key
+   *
+   * @param name      the name of the primary key column
+   * @param value     the value of the primary key
    * @param className the name of the IDbDto class of the object that the
-   *          primary key identifies
+   *                  primary key identifies
    * @throws InvalidParametersException when the name or value is null
    */
-  public SequencePrimaryKey(String name, BigInteger value, String className)
-      throws InvalidParametersException {
-    super(new ArrayList<AbstractColumnValue>(), className);
+  public SequencePrimaryKey(String name, BigInteger value, String className) throws
+    InvalidParametersException {
+    super(new ArrayList<>(), className);
     list.add(new BigIntegerColumnValue(name, value));
-    list = new CopyOnWriteArrayList<AbstractColumnValue>(list);
     this.value = value;
   }
 
   /**
    * Create a SequencePrimaryKey object.
-   * 
-   * @param list a thread-safe list of column values
-   * @param value the sequence value as an integer
+   *
+   * @param list      a thread-safe list of column values
+   * @param value     the sequence value as an integer
    * @param className the name of the IDbDto class of the object that the
-   *          primary key identifies
+   *                  primary key identifies
    */
-  public SequencePrimaryKey(List<AbstractColumnValue> list,
-                            BigInteger value,
-                            String className) {
+  public SequencePrimaryKey(List<IColumnValue> list, BigInteger value, String className) {
     super(list, className);
     this.value = value;
   }
 
   /**
    * Create a SequencePrimaryKey object from a messaging key object.
-   * 
-   * @param key the messaging key
+   *
+   * @param key       the messaging key
    * @param className the name of the IDbDto class of the object that the
-   *          primary key identifies
+   *                  primary key identifies
    */
-  public SequencePrimaryKey(com.poesys.ms.pk.SequencePrimaryKey key,
-                            String className) {
+  public SequencePrimaryKey(com.poesys.ms.pk.SequencePrimaryKey key, String className) {
     // Call the default constructor in the superclass with no list.
     super(className);
     // Create a new list and populate it from the DTO.
-    list = new ArrayList<AbstractColumnValue>();
+    list = new ArrayList<>();
     list.add(new BigIntegerColumnValue(key.getName(), key.getValue()));
-    list = new CopyOnWriteArrayList<AbstractColumnValue>(list);
   }
 
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see com.poesys.db.pk.IPrimaryKey#getValueList()
    */
   public String getValueList() {
-    AbstractColumnValue col = list.get(0);
+    IColumnValue col = list.get(0);
     StringBuilder str = new StringBuilder();
     str.append("(");
     str.append(col.getName());
@@ -134,7 +124,7 @@ public class SequencePrimaryKey extends AbstractSingleValuedPrimaryKey {
 
   /**
    * Get the sequence as a big integer.
-   * 
+   *
    * @return the sequence number
    */
   public BigInteger getValue() {
@@ -143,7 +133,7 @@ public class SequencePrimaryKey extends AbstractSingleValuedPrimaryKey {
 
   /*
    * (non-Javadoc)
-   * 
+   *
    * @see com.poesys.db.pk.IPrimaryKey#copy()
    */
   public IPrimaryKey copy() {
@@ -154,11 +144,9 @@ public class SequencePrimaryKey extends AbstractSingleValuedPrimaryKey {
   @Override
   public com.poesys.ms.pk.IPrimaryKey getMessageObject() {
     // Extract column from list and create DTO.
-    AbstractColumnValue col = list.get(0);
-    IColumnValue<BigInteger> msgCol =
-      (IColumnValue<BigInteger>)col.getMessageObject();
-    return new com.poesys.ms.pk.SequencePrimaryKey(msgCol.getName(),
-                                                   msgCol.getValue(),
-                                                   className);
+    IColumnValue col = list.get(0);
+    com.poesys.ms.col.IColumnValue<BigInteger> msgCol =
+      (com.poesys.ms.col.IColumnValue<BigInteger>)col.getMessageObject();
+    return new com.poesys.ms.pk.SequencePrimaryKey(msgCol.getName(), msgCol.getValue(), className);
   }
 }

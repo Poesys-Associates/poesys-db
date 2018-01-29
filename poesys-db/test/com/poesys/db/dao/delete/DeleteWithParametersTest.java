@@ -28,7 +28,9 @@ import java.sql.Statement;
 import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dto.TestMultipleParams;
+import org.junit.Test;
 
+import static org.junit.Assert.fail;
 
 /**
  * <p>
@@ -41,7 +43,7 @@ import com.poesys.db.dto.TestMultipleParams;
  * <pre>
  * <code>
  * CREATE TABLE TestMultiple (
- *   pkey int(12) PRIMARY KEY,
+ *   pKey int(12) PRIMARY KEY,
  *   col1 varchar(50) NOT NULL,
  *   colType varchar(10) NOT NULL
  * ) TYPE=InnoDb DEFAULT CHARSET=utf8;
@@ -55,7 +57,7 @@ public class DeleteWithParametersTest extends ConnectionTest {
   private static final String DELETE_FROM_TEST = "DELETE FROM TestMultipleDelete";
   /** SQL statement that inserts a test row into TestMultiple */
   private static final String INSERT =
-    "INSERT INTO TestMultipleDelete (pkey, col1, colType) VALUES (?, ?, ?)";
+    "INSERT INTO TestMultipleDelete (pKey, col1, colType) VALUES (?, ?, ?)";
   private static final String NEW = "new";
 
   /**
@@ -66,6 +68,7 @@ public class DeleteWithParametersTest extends ConnectionTest {
    * @throws IOException when can't get a property
    * @throws SQLException when can't get a connection
    */
+  @Test
   public void testDelete() throws IOException, SQLException {
     Connection conn = null;
     try {
@@ -74,16 +77,14 @@ public class DeleteWithParametersTest extends ConnectionTest {
       // Clear the test table. Bug: seems to encounter weird metadata locking.
       // Delete the "b" test rows.
       DeleteWithParameters<TestMultipleParams, TestMultipleParams> clearer =
-        new DeleteWithParameters<TestMultipleParams, TestMultipleParams>(new DeleteSqlTestMultiple(),
-                                                                         getSubsystem());
+        new DeleteWithParameters<>(new DeleteSqlTestMultiple(), getSubsystem());
       clearer.delete(new TestMultipleParams(NEW, "b"));
 
       // Delete any rows in the TestNatural table.
-      Statement stmt = null;
+      Statement stmt;
       stmt = conn.createStatement();
       stmt.executeUpdate(DELETE_FROM_TEST);
       stmt.close();
-      stmt = null;
 
       conn.commit();
 
@@ -112,8 +113,7 @@ public class DeleteWithParametersTest extends ConnectionTest {
 
       // Delete the "b" test rows.
       DeleteWithParameters<TestMultipleParams, TestMultipleParams> deleter =
-        new DeleteWithParameters<TestMultipleParams, TestMultipleParams>(new DeleteSqlTestMultiple(),
-                                                                         getSubsystem());
+        new DeleteWithParameters<>(new DeleteSqlTestMultiple(), getSubsystem());
       TestMultipleParams parameters = new TestMultipleParams(NEW, "b");
       deleter.delete(parameters);
 

@@ -18,14 +18,14 @@
 package com.poesys.db.dto;
 
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-
-import com.poesys.db.col.AbstractColumnValue;
+import com.poesys.db.col.IColumnValue;
 import com.poesys.db.col.StringColumnValue;
 import com.poesys.db.pk.IPrimaryKey;
 import com.poesys.db.pk.NaturalPrimaryKey;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -54,7 +54,7 @@ public class TestNatural extends AbstractTestDto {
   private final String key2;
 
   /** The BigDecimal/NUMBER column col1 */
-  private BigDecimal col1 = null;
+  private BigDecimal col1;
 
   /** Message for null compare object */
   private static final String NULL_COMP_MSG =
@@ -69,8 +69,7 @@ public class TestNatural extends AbstractTestDto {
    */
   public TestNatural(String key1, String key2, BigDecimal col1) {
     // No nested objects to set or constraints to validate
-    List<AbstractColumnValue> list =
-      new ArrayList<AbstractColumnValue>();
+    List<IColumnValue> list = new ArrayList<>();
     list.add(new StringColumnValue("key1", key1));
     list.add(new StringColumnValue("key2", key2));
     this.key = new NaturalPrimaryKey(list, "com.poesys.db.dto.TestNatural");
@@ -122,7 +121,12 @@ public class TestNatural extends AbstractTestDto {
 
   @Override
   public boolean equals(Object arg0) {
-    return this.compareTo((IDbDto)arg0) == 0;
+    boolean equals = false;
+    if (arg0 != null && arg0 instanceof TestNatural) {
+      equals = this.compareTo((IDbDto)arg0) == 0;
+    }
+
+    return equals;
   }
 
   @Override

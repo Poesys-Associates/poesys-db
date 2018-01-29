@@ -18,15 +18,6 @@
 package com.poesys.db.dao.query;
 
 
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.List;
-
-import org.junit.Test;
-
-import com.poesys.db.BatchException;
 import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.insert.Insert;
@@ -35,7 +26,16 @@ import com.poesys.db.dto.IDbDto;
 import com.poesys.db.dto.TestSequence;
 import com.poesys.db.pk.AbstractSingleValuedPrimaryKey;
 import com.poesys.db.pk.PrimaryKeyFactory;
+import org.junit.Test;
 
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.List;
+
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * 
@@ -49,12 +49,10 @@ public class QueryListTest extends ConnectionTest {
    * {@link com.poesys.db.dao.query.QueryList#query()}.
    * 
    * @throws IOException when can't get a property
-   * @throws SQLException when can't get a connection
-   * @throws BatchException when a problem happens during processing
    */
   @Test
-  public void testQuery() throws IOException, SQLException, BatchException {
-    Connection conn = null;
+  public void testQuery() throws IOException {
+    Connection conn;
     Statement stmt = null;
     try {
       try {
@@ -80,24 +78,23 @@ public class QueryListTest extends ConnectionTest {
       }
 
       // Create the sequence key and the objects to insert.
-      Insert<TestSequence> inserter =
-        new Insert<TestSequence>(new InsertSqlTestSequence(), getSubsystem());
+      Insert<TestSequence> inserter = new Insert<>(new InsertSqlTestSequence(), getSubsystem());
       AbstractSingleValuedPrimaryKey key1 =
         PrimaryKeyFactory.createMySqlSequenceKey("test",
-                                                 "pkey",
+                                                 "pKey",
                                                  CLASS_NAME,
                                                  getSubsystem());
       String col1 = "test";
       TestSequence dto1 = new TestSequence(key1, col1);
       AbstractSingleValuedPrimaryKey key2 =
         PrimaryKeyFactory.createMySqlSequenceKey("test",
-                                                 "pkey",
+                                                 "pKey",
                                                  CLASS_NAME,
                                                  getSubsystem());
       TestSequence dto2 = new TestSequence(key2, col1);
       AbstractSingleValuedPrimaryKey key3 =
         PrimaryKeyFactory.createMySqlSequenceKey("test",
-                                                 "pkey",
+                                                 "pKey",
                                                  CLASS_NAME,
                                                  getSubsystem());
       TestSequence dto3 = new TestSequence(key3, col1);
@@ -113,8 +110,7 @@ public class QueryListTest extends ConnectionTest {
 
     // Query the list of objects and test against the original.
     IQuerySql<TestSequence> sql = new TestSequenceQuerySql();
-    QueryList<TestSequence> dao =
-      new QueryList<TestSequence>(sql, getSubsystem(), 2);
+    QueryList<TestSequence> dao = new QueryList<>(sql, getSubsystem(), 2);
     List<TestSequence> queriedDtos = dao.query();
     assertTrue("null list queried", queriedDtos != null);
     assertTrue("wrong number of DTOs: " + queriedDtos.size(),

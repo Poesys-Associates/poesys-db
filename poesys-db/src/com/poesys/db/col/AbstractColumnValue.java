@@ -18,15 +18,14 @@
 package com.poesys.db.col;
 
 
-import java.io.Serializable;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-
 import com.poesys.db.DbErrorException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.Message;
+
+import java.io.Serializable;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -48,7 +47,7 @@ import com.poesys.db.Message;
  * @author Robert J. Muller
  */
 public abstract class AbstractColumnValue implements
-    Comparable<AbstractColumnValue>, Serializable {
+    Comparable<IColumnValue>, Serializable, IColumnValue {
 
   /**
    * serial version UID for Serializable object
@@ -66,6 +65,8 @@ public abstract class AbstractColumnValue implements
     "com.poesys.db.col.msg.null_name_or_value";
   /** Message stating there was an unexpected SQL exception */
   protected static final String SQL_ERROR = "com.poesys.db.dto.msg.unexpected_sql_error";
+  /** Message stating there was no SQL exception supplied */
+  private static final String REQUIRED_EXCEPTION_ERROR = "com.poesys.db.dto.msg.no_exception";
   
   /**
    * Create an AbstractColumnValue object with a required name.
@@ -83,41 +84,9 @@ public abstract class AbstractColumnValue implements
     }
   }
 
-  /**
-   * Indicates whether some other object is "equal to" this one.
-   * 
-   * The equals method implements an equivalence relation on non-null object
-   * references:
-   * 
-   * It is reflexive: for any non-null reference value IUpdate,
-   * IUpdate.equals(IUpdate) should return true. It is symmetric: for any
-   * non-null reference values IUpdate and y, IUpdate.equals(y) should return
-   * true if and only if y.equals(IUpdate) returns true. It is transitive: for
-   * any non-null reference values IUpdate, y, and z, if IUpdate.equals(y)
-   * returns true and y.equals(z) returns true, then IUpdate.equals(z) should
-   * return true. It is consistent: for any non-null reference values IUpdate
-   * and y, multiple invocations of IUpdate.equals(y) consistently return true
-   * or consistently return false, provided no information used in equals
-   * comparisons on the objects is modified. For any non-null reference value
-   * IUpdate, IUpdate.equals(null) should return false. The equals method for
-   * class Object implements the most discriminating possible equivalence
-   * relation on objects; that is, for any non-null reference values IUpdate and
-   * y, this method returns true if and only if IUpdate and y refer to the same
-   * object (IUpdate == y has the value true).
-   * 
-   * Note that it is generally necessary to override the hashCode method
-   * whenever this method is overridden, so as to maintain the general contract
-   * for the hashCode method, which states that equal objects must have equal
-   * hash codes.
-   * 
-   * The concrete subclass should call this method to test the equality of the
-   * column names and values.
-   * 
-   * @param value the other column value to which to compare this one
-   * @return true if the values are the same, false otherwise
-   */
-  public boolean equals(AbstractColumnValue value) {
-    return name.equals(value.name) && valueEquals(value);
+  @Override
+  public boolean equals(IColumnValue value) {
+    return name.equals(value.getName()) && valueEquals(value);
   }
 
   /**
@@ -129,11 +98,11 @@ public abstract class AbstractColumnValue implements
    * @param value the value of the column
    * @return true if the values are equal, false if not
    */
-  abstract protected boolean valueEquals(AbstractColumnValue value);
+  abstract protected boolean valueEquals(IColumnValue value);
 
   /**
    * Returns a hash code value for the object. This method is supported for the
-   * benefit of hashtables such as those provided by java.util.Hashtable.
+   * benefit of hash tables such as those provided by java.util.Hashtable.
    * 
    * The general contract of hashCode is:
    * 
@@ -149,7 +118,7 @@ public abstract class AbstractColumnValue implements
    * calling the hashCode method on each of the two objects must produce
    * distinct integer results. However, the programmer should be aware that
    * producing distinct integer results for unequal objects may improve the
-   * performance of hashtables. As much as is reasonably practical, the hashCode
+   * performance of hash tables. As much as is reasonably practical, the hashCode
    * method defined by class Object does return distinct integers for distinct
    * objects. (This is typically implemented by converting the internal address
    * of the object into an integer, but this implementation technique is not
@@ -163,10 +132,11 @@ public abstract class AbstractColumnValue implements
    * Compare two column values using standard compareTo semantics; if the column
    * names are not the same, the strings will not be comparable.
    */
-  public int compareTo(AbstractColumnValue col) {
-    int ret = 0;
+  @Override
+  public int compareTo(IColumnValue col) {
+    int ret;
     // Column must have the same name or its not comparable
-    if (name.equalsIgnoreCase(col.name)) {
+    if (name.equalsIgnoreCase(col.getName())) {
       // Use a visitor to compare the values. The first visit stores the first
       // object, the second does the comparison.
       CompareColumnVisitor visitor = new CompareColumnVisitor();
@@ -174,9 +144,9 @@ public abstract class AbstractColumnValue implements
       col.accept(visitor);
       ret = visitor.getComparison();
     } else {
-      List<String> list = new ArrayList<String>();
+      List<String> list = new ArrayList<>();
       list.add(name);
-      list.add(col.name);
+      list.add(col.getName());
       InvalidParametersException e =
         new InvalidParametersException(Message.getMessage(NOT_COMPARABLE_ERROR,
                                                           null));
@@ -191,6 +161,7 @@ public abstract class AbstractColumnValue implements
    * 
    * @return Returns the name.
    */
+  @Override
   public synchronized String getName() {
     return name;
   }
@@ -201,42 +172,17 @@ public abstract class AbstractColumnValue implements
    * 
    * @param visitor the visitor that will compare the column values
    */
-  abstract protected void accept(IColumnVisitor visitor);
+  abstract public void accept(IColumnVisitor visitor);
 
   /**
    * Set the name.
    * 
    * @param name The name to set.
    */
+  @Override
   public synchronized void setName(String name) {
     this.name = name;
   }
-
-  /**
-   * Does the column value have a value? This package method is for test classes
-   * to help determine whether a constructor has worked properly.
-   * 
-   * @return true if the column value has a value
-   */
-  public abstract boolean hasValue();
-
-  /**
-   * Get a deep copy of the column value, including all the content.
-   * 
-   * @return a deep copy of the column value
-   */
-  public abstract AbstractColumnValue copy();
-
-  /**
-   * Set a JDBC parameter with the value of the column. The concrete
-   * implementation of this method should call the appropriate JDBC set method
-   * based on the type of the value.
-   * 
-   * @param stmt the JDBC statement with parameters to set
-   * @param nextIndex the index of the parameter to set with the column value
-   * @return the next index value after the current one set
-   */
-  public abstract int setParam(PreparedStatement stmt, int nextIndex);
 
   /**
    * Create an invalid-parameter exception based on a null name or value. This
@@ -246,8 +192,8 @@ public abstract class AbstractColumnValue implements
    * @param value the string representing the value
    * @return the new exception
    */
-  protected synchronized InvalidParametersException getException(String value) {
-    List<String> list = new ArrayList<String>();
+  public synchronized InvalidParametersException getException(String value) {
+    List<String> list = new ArrayList<>();
     list.add(name);
     list.add(value);
     InvalidParametersException e =
@@ -257,16 +203,13 @@ public abstract class AbstractColumnValue implements
     return e;
   }
 
-  /**
-   * Get a Poesys/MS message object corresponding to a column value of unknown
-   * type. Each concrete subclass implements the method to return a column value
-   * with the appropriate data.
-   * 
-   * @return a column value
-   */
-  public abstract com.poesys.ms.col.IColumnValue<?> getMessageObject();
-  
-  protected void throwDbError(SQLException e) {
-    throw new DbErrorException(Message.getMessage(SQL_ERROR, null));
+  @Override
+  public void throwDbError(SQLException e) {
+    String messageProperty = SQL_ERROR;
+    if (e == null) {
+      // No exception supplied, throw that message instead of the SQL exception
+      messageProperty = REQUIRED_EXCEPTION_ERROR;
+    }
+    throw new DbErrorException(Message.getMessage(messageProperty, null), e);
   }
 }

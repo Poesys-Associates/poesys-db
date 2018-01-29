@@ -27,7 +27,12 @@ import java.sql.SQLException;
 
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.dao.ConnectionTest;
+import org.junit.Test;
 
+import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 /**
  * Test the BigIntegerColumnValue class.
@@ -45,6 +50,7 @@ public class BigIntegerColumnValueTest extends ConnectionTest {
    * @throws InvalidParametersException when the BigInteger can't be created
    *           properly
    */
+  @Test
   public void testHashCode() throws InvalidParametersException {
     BigIntegerColumnValue value =
       new BigIntegerColumnValue(NAME, new BigInteger(NUMBER));
@@ -63,6 +69,7 @@ public class BigIntegerColumnValueTest extends ConnectionTest {
    * @throws InvalidParametersException when the BigInteger can't be created
    *           properly
    */
+  @Test
   public void testEqualsColumnValue() throws InvalidParametersException {
     BigIntegerColumnValue value =
       new BigIntegerColumnValue(NAME, new BigInteger(NUMBER));
@@ -71,6 +78,7 @@ public class BigIntegerColumnValueTest extends ConnectionTest {
     BigDecimal testValue2 = new BigDecimal(NUMBER2);
 
     assertTrue(value.equals(testValue));
+    //noinspection EqualsBetweenInconvertibleTypes
     assertFalse(value.equals(testValue2));
   }
 
@@ -86,6 +94,7 @@ public class BigIntegerColumnValueTest extends ConnectionTest {
    * @throws InvalidParametersException when the BigInteger can't be created
    *           properly
    */
+  @Test
   public void testSetParam() throws SQLException, IOException,
       InvalidParametersException {
     Connection connection = null;
@@ -113,6 +122,7 @@ public class BigIntegerColumnValueTest extends ConnectionTest {
    * @throws InvalidParametersException when the BigInteger can't be created
    *           properly
    */
+  @Test
   public void testBigIntegerColumnValue() throws InvalidParametersException {
     @SuppressWarnings("unused")
     BigDecimalColumnValue value =
@@ -129,11 +139,9 @@ public class BigIntegerColumnValueTest extends ConnectionTest {
       @SuppressWarnings("unused")
       BigDecimalColumnValue value4 =
         new BigDecimalColumnValue(null, new BigDecimal(NUMBER));
-      assertTrue(false);
-    } catch (NumberFormatException e) {
-      assertTrue(true);
-    } catch (InvalidParametersException e) {
-      assertTrue(true);
+      fail("No exception from bad parameters");
+    } catch (NumberFormatException | InvalidParametersException e) {
+      // success
     }
   }
 

@@ -65,7 +65,7 @@ public class BigIntegerColumnValue extends AbstractColumnValue {
   }
 
   @Override
-  public boolean valueEquals(AbstractColumnValue value) {
+  protected boolean valueEquals(com.poesys.db.col.IColumnValue value) {
     boolean ret = false;
     if (value instanceof BigIntegerColumnValue) {
       ret = this.value.equals(((BigIntegerColumnValue)value).value);
@@ -107,7 +107,7 @@ public class BigIntegerColumnValue extends AbstractColumnValue {
   }
 
   @Override
-  protected void accept(IColumnVisitor visitor) {
+  public void accept(IColumnVisitor visitor) {
     visitor.visit(this);
   }
 
@@ -123,10 +123,6 @@ public class BigIntegerColumnValue extends AbstractColumnValue {
 
   @Override
   public IColumnValue<?> getMessageObject() {
-    IColumnValue<?> col =
-      new ColumnValueImpl<BigInteger>(name,
-                                      IColumnValue.ColumnType.BigInteger,
-                                      value);
-    return col;
+    return new ColumnValueImpl<>(name, IColumnValue.ColumnType.BigInteger, value);
   }
 }

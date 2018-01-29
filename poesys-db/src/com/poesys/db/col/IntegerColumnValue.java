@@ -44,7 +44,7 @@ public class IntegerColumnValue extends AbstractColumnValue {
   private static final long serialVersionUID = 1L;
   
   /** The Integer value */
-  private Integer value = null;
+  private Integer value;
 
   /**
    * Create an IntegerColumnValue object.
@@ -64,7 +64,7 @@ public class IntegerColumnValue extends AbstractColumnValue {
   }
 
   @Override
-  public boolean valueEquals(AbstractColumnValue value) {
+  public boolean valueEquals(com.poesys.db.col.IColumnValue value) {
     boolean ret = false;
     if (value instanceof IntegerColumnValue) {
       ret = this.value.equals(((IntegerColumnValue)value).value);
@@ -106,7 +106,7 @@ public class IntegerColumnValue extends AbstractColumnValue {
   }
 
   @Override
-  protected void accept(IColumnVisitor visitor) {
+  public void accept(IColumnVisitor visitor) {
     visitor.visit(this);
   }
 
@@ -122,10 +122,6 @@ public class IntegerColumnValue extends AbstractColumnValue {
 
   @Override
   public IColumnValue<?> getMessageObject() {
-    IColumnValue<?> col =
-      new ColumnValueImpl<Integer>(name,
-                                      IColumnValue.ColumnType.Integer,
-                                      value);
-    return col;
+    return new ColumnValueImpl<>(name, IColumnValue.ColumnType.Integer, value);
   }
 }

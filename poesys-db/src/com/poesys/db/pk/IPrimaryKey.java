@@ -18,14 +18,13 @@
 package com.poesys.db.pk;
 
 
+import com.poesys.db.DuplicateKeyNameException;
+import com.poesys.db.col.IColumnValue;
+
 import java.io.Serializable;
 import java.sql.PreparedStatement;
 import java.util.Iterator;
 import java.util.Set;
-
-import com.poesys.db.DuplicateKeyNameException;
-import com.poesys.db.col.AbstractColumnValue;
-
 
 /**
  * A generic interface for primary key classes that represent a set of columns
@@ -42,7 +41,7 @@ import com.poesys.db.col.AbstractColumnValue;
  * 
  * @author Robert J. Muller
  */
-public interface IPrimaryKey extends Iterable<AbstractColumnValue>,
+public interface IPrimaryKey extends Iterable<IColumnValue>,
     Comparable<IPrimaryKey>, Serializable {
   /**
    * <p>
@@ -284,7 +283,7 @@ public interface IPrimaryKey extends Iterable<AbstractColumnValue>,
    * 
    * @return a List of ColumnValue&lt;Object&gt; objects of different data types
    */
-  Iterator<AbstractColumnValue> iterator();
+  Iterator<IColumnValue> iterator();
 
   /**
    * Get a Poesys/DB messaging object that represents a primary key.

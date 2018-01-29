@@ -63,7 +63,7 @@ public class TestFactory {
     if (prefix == null) {
       prefix = "";
     }
-    java.util.ArrayList<com.poesys.db.col.AbstractColumnValue> list = new java.util.ArrayList<>();
+    java.util.ArrayList<com.poesys.db.col.IColumnValue> list = new java.util.ArrayList<>();
 
     list.add(new com.poesys.db.col.IntegerColumnValue(prefix + "parentId", rs.getInt("parentId")));
     key =
@@ -84,7 +84,7 @@ public class TestFactory {
     IPrimaryKey key = null;
     // Track generated inputs for nullity.
     boolean noNulls = true;
-    java.util.ArrayList<com.poesys.db.col.AbstractColumnValue> list = new java.util.ArrayList<>();
+    java.util.ArrayList<com.poesys.db.col.IColumnValue> list = new java.util.ArrayList<>();
     if (parentId != null) {
       list.add(new com.poesys.db.col.IntegerColumnValue("parentId", parentId));
     } else {
@@ -129,7 +129,7 @@ public class TestFactory {
     if (prefix == null) {
       prefix = "";
     }
-    java.util.ArrayList<com.poesys.db.col.AbstractColumnValue> list = new java.util.ArrayList<>();
+    java.util.ArrayList<com.poesys.db.col.IColumnValue> list = new java.util.ArrayList<>();
 
     list.add(new com.poesys.db.col.IntegerColumnValue(prefix + "parentId", rs.getInt("parentId")));
     list.add(new com.poesys.db.col.IntegerColumnValue(prefix + "childId", rs.getInt("childId")));
@@ -152,7 +152,7 @@ public class TestFactory {
     IPrimaryKey key = null;
     // Track generated inputs for nullity.
     boolean noNulls = true;
-    java.util.ArrayList<com.poesys.db.col.AbstractColumnValue> list = new java.util.ArrayList<>();
+    java.util.ArrayList<com.poesys.db.col.IColumnValue> list = new java.util.ArrayList<>();
     if (parentId != null) {
       list.add(new com.poesys.db.col.IntegerColumnValue("parentId", parentId));
       if (childId != null) {
@@ -203,7 +203,7 @@ public class TestFactory {
     if (prefix == null) {
       prefix = "";
     }
-    java.util.ArrayList<com.poesys.db.col.AbstractColumnValue> list = new java.util.ArrayList<>();
+    java.util.ArrayList<com.poesys.db.col.IColumnValue> list = new java.util.ArrayList<>();
 
     list.add(new com.poesys.db.col.IntegerColumnValue(prefix + "parentId", rs.getInt("parentId")));
     list.add(new com.poesys.db.col.IntegerColumnValue(prefix + "childId", rs.getInt("childId")));
@@ -226,7 +226,7 @@ public class TestFactory {
     IPrimaryKey key = null;
     // Track generated inputs for nullity.
     boolean noNulls = true;
-    java.util.ArrayList<com.poesys.db.col.AbstractColumnValue> list = new java.util.ArrayList<>();
+    java.util.ArrayList<com.poesys.db.col.IColumnValue> list = new java.util.ArrayList<>();
     if (parentId != null) {
       list.add(new com.poesys.db.col.IntegerColumnValue("parentId", parentId));
       if (childId != null) {

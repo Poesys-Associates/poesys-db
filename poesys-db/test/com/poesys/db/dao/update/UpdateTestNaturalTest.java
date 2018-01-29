@@ -1,22 +1,28 @@
 /*
  * Copyright (c) 2008 Poesys Associates. All rights reserved.
- * 
+ *
  * This file is part of Poesys-DB.
- * 
+ *
  * Poesys-DB is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
  * version.
- * 
+ *
  * Poesys-DB is distributed in the hope that it will be useful, but WITHOUT ANY
  * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
  * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
  */
 package com.poesys.db.dao.update;
 
+import com.poesys.db.DbErrorException;
+import com.poesys.db.dao.ConnectionTest;
+import com.poesys.db.dao.insert.Insert;
+import com.poesys.db.dao.insert.InsertSqlTestNatural;
+import com.poesys.db.dto.TestNatural;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -25,17 +31,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import com.poesys.db.BatchException;
-import com.poesys.db.DbErrorException;
-import com.poesys.db.dao.ConnectionTest;
-import com.poesys.db.dao.insert.Insert;
-import com.poesys.db.dao.insert.InsertSqlTestNatural;
-import com.poesys.db.dto.TestNatural;
-
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Test the update process for a natural-primary-key object.
- * 
+ *
  * @author Robert J. Muller
  */
 public class UpdateTestNaturalTest extends ConnectionTest {
@@ -44,12 +45,12 @@ public class UpdateTestNaturalTest extends ConnectionTest {
 
   /**
    * Test the update() method.
-   * 
-   * @throws IOException when can't get a property
+   *
+   * @throws IOException  when can't get a property
    * @throws SQLException when can't get a connection
-   * @throws BatchException when a problem happens during processing
    */
-  public void testUpdate() throws IOException, SQLException, BatchException {
+  @Test
+  public void testUpdate() throws IOException, SQLException {
     Connection conn;
     try {
       conn = getConnection();
@@ -58,8 +59,7 @@ public class UpdateTestNaturalTest extends ConnectionTest {
     }
 
     // Create an Inserter to add the row to update
-    Insert<TestNatural> inserter =
-      new Insert<TestNatural>(new InsertSqlTestNatural(), getSubsystem());
+    Insert<TestNatural> inserter = new Insert<>(new InsertSqlTestNatural(), getSubsystem());
 
     // Create the DTO.
     BigDecimal col1 = new BigDecimal("1234.5678");
@@ -67,7 +67,7 @@ public class UpdateTestNaturalTest extends ConnectionTest {
 
     // Create the Updater.
     UpdateByKey<TestNatural> updater =
-      new UpdateByKey<TestNatural>(new UpdateSqlTestNatural(), getSubsystem());
+      new UpdateByKey<>(new UpdateSqlTestNatural(), getSubsystem());
 
     Statement stmt = null;
     try {
@@ -114,7 +114,8 @@ public class UpdateTestNaturalTest extends ConnectionTest {
       conn.commit();
     } catch (SQLException e) {
       fail("update method failed: " + e.getMessage());
-    } finally {
+    }
+    finally {
       if (stmt != null) {
         stmt.close();
       }

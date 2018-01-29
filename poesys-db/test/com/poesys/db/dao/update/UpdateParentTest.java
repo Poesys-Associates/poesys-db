@@ -1,34 +1,22 @@
 /*
  * Copyright (c) 2008 Poesys Associates. All rights reserved.
- * 
+ *
  * This file is part of Poesys-DB.
- * 
+ *
  * Poesys-DB is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
  * version.
- * 
+ *
  * Poesys-DB is distributed in the hope that it will be useful, but WITHOUT ANY
  * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
  * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
  */
 package com.poesys.db.dao.update;
 
-
-import java.io.IOException;
-import java.math.BigInteger;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.List;
-
-import com.poesys.db.BatchException;
 import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.PoesysTrackingThread;
@@ -40,20 +28,28 @@ import com.poesys.db.pk.CompositePrimaryKey;
 import com.poesys.db.pk.GuidPrimaryKey;
 import com.poesys.db.pk.NaturalPrimaryKey;
 import com.poesys.db.pk.PrimaryKeyFactory;
+import org.junit.Test;
 
+import java.io.IOException;
+import java.math.BigInteger;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Test the update process for a parent-child complex.
- * 
+ *
  * @author Robert J. Muller
  */
 public class UpdateParentTest extends ConnectionTest {
-  private static final String QUERY_PARENT =
-    "SELECT col1 FROM Parent WHERE parent_id = ?";
+  private static final String QUERY_PARENT = "SELECT col1 FROM Parent WHERE parent_id = ?";
   private static final String QUERY_CHILD =
     "SELECT col1 FROM Child WHERE parent_id = ? AND child_number = 2";
   private static final String PARENT_KEY_NAME = "parent_id";
-  private static final String CHILD_SUBKEY_NAME = "child_number";
+  private static final String CHILD_SUB_KEY_NAME = "child_number";
   private static final String COL1_VALUE = "string";
   private static final String COL1_CHANGED = "changed";
   private static final String CLASS_NAME = "com.poesys.test.Child";
@@ -63,15 +59,14 @@ public class UpdateParentTest extends ConnectionTest {
 
   /**
    * Test the update() method.
-   * 
-   * @throws IOException when can't get a property
-   * @throws SQLException when can't get a connection
-   * @throws BatchException when a problem happens during processing
+   *
+   * @throws IOException          when can't get a property
+   * @throws SQLException         when can't get a connection
    * @throws InterruptedException when the tracking thread gets interrupted
-   *           unexpectedly
+   *                              unexpectedly
    */
-  public void testUpdate() throws IOException, SQLException, BatchException,
-      InterruptedException {
+  @Test
+  public void testUpdate() throws IOException, SQLException, InterruptedException {
     Connection conn;
     try {
       conn = getConnection();
@@ -80,43 +75,31 @@ public class UpdateParentTest extends ConnectionTest {
     }
 
     // Create the insert command (class under test) for the parent.
-    Insert<Parent> inserter =
-      new Insert<Parent>(new InsertSqlParent(), getSubsystem());
+    Insert<Parent> inserter = new Insert<>(new InsertSqlParent(), getSubsystem());
 
     // Create the GUID primary key for the parent.
-    GuidPrimaryKey key =
-      PrimaryKeyFactory.createGuidKey(PARENT_KEY_NAME, CLASS_NAME);
+    GuidPrimaryKey key = PrimaryKeyFactory.createGuidKey(PARENT_KEY_NAME, CLASS_NAME);
 
     // Create the parent DTO with the key and the empty setters list.
-    String col1 = new String(COL1_VALUE);
-    Parent dto = new Parent(key, col1);
+    Parent dto = new Parent(key, COL1_VALUE);
 
     // Create three children in a list and set the children into the parent.
-    List<Child> children = new ArrayList<Child>();
+    List<Child> children = new ArrayList<>();
     NaturalPrimaryKey subKey1 =
-      PrimaryKeyFactory.createSingleNumberKey(CHILD_SUBKEY_NAME,
-                                              new BigInteger("1"),
-                                              CLASS_NAME);
-    CompositePrimaryKey key1 =
-      new CompositePrimaryKey(key, subKey1, CLASS_NAME);
+      PrimaryKeyFactory.createSingleNumberKey(CHILD_SUB_KEY_NAME, new BigInteger("1"), CLASS_NAME);
+    CompositePrimaryKey key1 = new CompositePrimaryKey(key, subKey1, CLASS_NAME);
     children.add(new Child(key1, new BigInteger("1"), COL1_VALUE));
     NaturalPrimaryKey subKey2 =
-      PrimaryKeyFactory.createSingleNumberKey(CHILD_SUBKEY_NAME,
-                                              new BigInteger("2"),
-                                              CLASS_NAME);
-    CompositePrimaryKey key2 =
-      new CompositePrimaryKey(key, subKey2, CLASS_NAME);
+      PrimaryKeyFactory.createSingleNumberKey(CHILD_SUB_KEY_NAME, new BigInteger("2"), CLASS_NAME);
+    CompositePrimaryKey key2 = new CompositePrimaryKey(key, subKey2, CLASS_NAME);
 
     // Make a local variable so you can update this directly later.
     Child child2 = new Child(key2, new BigInteger("2"), COL1_VALUE);
     children.add(child2);
 
     NaturalPrimaryKey subKey3 =
-      PrimaryKeyFactory.createSingleNumberKey(CHILD_SUBKEY_NAME,
-                                              new BigInteger("3"),
-                                              CLASS_NAME);
-    CompositePrimaryKey key3 =
-      new CompositePrimaryKey(key, subKey3, CLASS_NAME);
+      PrimaryKeyFactory.createSingleNumberKey(CHILD_SUB_KEY_NAME, new BigInteger("3"), CLASS_NAME);
+    CompositePrimaryKey key3 = new CompositePrimaryKey(key, subKey3, CLASS_NAME);
     children.add(new Child(key3, new BigInteger("3"), COL1_VALUE));
     dto.setChildren(children);
 
@@ -134,10 +117,10 @@ public class UpdateParentTest extends ConnectionTest {
       conn.commit();
     } catch (SQLException e) {
       fail("delete failed: " + e.getMessage());
-    } finally {
+    }
+    finally {
       if (stmt != null) {
         stmt.close();
-        stmt = null;
       }
     }
 
@@ -145,10 +128,9 @@ public class UpdateParentTest extends ConnectionTest {
     inserter.insert(dto);
 
     // Create the Updater.
-    UpdateByKey<Parent> updater =
-      new UpdateByKey<Parent>(new UpdateSqlParent(), getSubsystem());
+    UpdateByKey<Parent> updater = new UpdateByKey<>(new UpdateSqlParent(), getSubsystem());
 
-    PreparedStatement pstmt = null;
+    PreparedStatement pStmt = null;
     try {
       // Change col1 in the parent and one of the children.
       dto.setCol1(COL1_CHANGED);
@@ -156,8 +138,7 @@ public class UpdateParentTest extends ConnectionTest {
 
       Runnable process = new Runnable() {
         public void run() {
-          PoesysTrackingThread thread =
-            (PoesysTrackingThread)Thread.currentThread();
+          PoesysTrackingThread thread = (PoesysTrackingThread)Thread.currentThread();
           try {
             // Update the test row.
             updater.update(dto);
@@ -168,13 +149,13 @@ public class UpdateParentTest extends ConnectionTest {
             dto.postprocessNestedObjects();
           } catch (Throwable e) {
             thread.setThrowable(e);
-          } finally {
+          }
+          finally {
             thread.closeConnection();
           }
         }
       };
-      PoesysTrackingThread thread =
-        new PoesysTrackingThread(process, getSubsystem());
+      PoesysTrackingThread thread = new PoesysTrackingThread(process, getSubsystem());
       thread.start();
 
       // Join the thread, blocking until the thread completes or
@@ -182,51 +163,48 @@ public class UpdateParentTest extends ConnectionTest {
       thread.join(TIMEOUT);
       // Check for problems.
       if (thread.getThrowable() != null) {
-        throw new DbErrorException("Exception updating Parent DTO",
-                                   thread.getThrowable());
+        throw new DbErrorException("Exception updating Parent DTO", thread.getThrowable());
       }
 
       // Query the column directly for comparison.
-      pstmt = conn.prepareStatement(QUERY_PARENT);
+      pStmt = conn.prepareStatement(QUERY_PARENT);
       // Use key to set query parameter 1 with GUID key value
-      key.setParams(pstmt, 1);
-      ResultSet rs = pstmt.executeQuery();
+      key.setParams(pStmt, 1);
+      ResultSet rs = pStmt.executeQuery();
       String queriedCol1 = null;
       if (rs.next()) {
         queriedCol1 = rs.getString("col1");
       }
-      pstmt.close();
-      pstmt = null;
+      pStmt.close();
+      pStmt = null;
       assertTrue("Queried parent column is null", queriedCol1 != null);
-      assertTrue("Queried parent column not updated, original value "
-                     + COL1_VALUE + ", queried value " + queriedCol1,
-                 COL1_CHANGED.equals(queriedCol1));
+      assertTrue(
+        "Queried parent column not updated, original value " + COL1_VALUE + ", queried value " +
+        queriedCol1, COL1_CHANGED.equals(queriedCol1));
 
       // Get the second child and see if the value has changed.
-      pstmt = conn.prepareStatement(QUERY_CHILD);
+      pStmt = conn.prepareStatement(QUERY_CHILD);
       // Use key to set query parameter 1 with GUID key value, child key is
       // constant 2
-      key.setParams(pstmt, 1);
-      rs = pstmt.executeQuery();
+      key.setParams(pStmt, 1);
+      rs = pStmt.executeQuery();
       queriedCol1 = null;
       if (rs.next()) {
         queriedCol1 = rs.getString("col1");
       }
       assertTrue("Queried child column is null", queriedCol1 != null);
-      assertTrue("Queried child column not updated from " + COL1_VALUE + " to "
-                     + COL1_CHANGED + ": " + queriedCol1,
-                 COL1_CHANGED.equals(queriedCol1));
+      assertTrue(
+        "Queried child column not updated from " + COL1_VALUE + " to " + COL1_CHANGED + ": " +
+        queriedCol1, COL1_CHANGED.equals(queriedCol1));
       conn.commit();
     } catch (SQLException e) {
       fail("update method failed with SQL exception: " + e.getMessage());
-    } finally {
-      if (pstmt != null) {
-        pstmt.close();
-        pstmt = null;
+    }
+    finally {
+      if (pStmt != null) {
+        pStmt.close();
       }
-      if (conn != null) {
-        conn.close();
-      }
+      conn.close();
     }
   }
 }

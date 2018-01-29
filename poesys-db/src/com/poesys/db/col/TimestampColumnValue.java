@@ -44,7 +44,7 @@ public class TimestampColumnValue extends AbstractColumnValue {
   private static final long serialVersionUID = 1L;
 
   /** The Timestamp value */
-  private Timestamp value = null;
+  private Timestamp value;
 
   /**
    * Create a TimestampColumnValue object.
@@ -66,11 +66,11 @@ public class TimestampColumnValue extends AbstractColumnValue {
   /*
    * (non-Javadoc)
    * 
-   * @seecom.poesys.db.dto.AbstractColumnValue#valueEquals(com.poesys.db.dto.
+   * @see com.poesys.db.dto.AbstractColumnValue#valueEquals(com.poesys.db.dto.
    * AbstractColumnValue)
    */
   @Override
-  public boolean valueEquals(AbstractColumnValue value) {
+  public boolean valueEquals(com.poesys.db.col.IColumnValue value) {
     boolean ret = false;
     if (value instanceof TimestampColumnValue) {
       ret = this.value.equals(((TimestampColumnValue)value).value);
@@ -134,7 +134,7 @@ public class TimestampColumnValue extends AbstractColumnValue {
    * )
    */
   @Override
-  protected void accept(IColumnVisitor visitor) {
+  public void accept(IColumnVisitor visitor) {
     visitor.visit(this);
   }
 
@@ -160,10 +160,6 @@ public class TimestampColumnValue extends AbstractColumnValue {
 
   @Override
   public IColumnValue<?> getMessageObject() {
-    IColumnValue<?> col =
-      new ColumnValueImpl<Timestamp>(name,
-                                     IColumnValue.ColumnType.Timestamp,
-                                     value);
-    return col;
+    return new ColumnValueImpl<>(name, IColumnValue.ColumnType.Timestamp, value);
   }
 }
