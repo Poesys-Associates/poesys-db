@@ -21,6 +21,8 @@ package com.poesys.db.col;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import com.poesys.db.col.json.IJsonColumnValue;
+import com.poesys.db.col.json.LongJsonColumnValue;
 import org.apache.log4j.Logger;
 
 import com.poesys.db.InvalidParametersException;
@@ -104,6 +106,11 @@ public class LongColumnValue extends AbstractColumnValue {
   @Override
   public void accept(IColumnVisitor visitor) {
     visitor.visit(this);
+  }
+
+  @Override
+  public IJsonColumnValue getJsonColumnValue() {
+    return new LongJsonColumnValue(name, getClass().getName(), value.toString());
   }
 
   @Override

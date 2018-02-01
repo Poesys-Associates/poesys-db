@@ -1,12 +1,10 @@
 /* Copyright (c) 2018 Poesys Associates. All rights reserved. */
 package com.poesys.db.col.json;
 
-import com.poesys.db.col.DateColumnValue;
 import com.poesys.db.col.IColumnValue;
 import com.poesys.db.col.TimestampColumnValue;
 import org.junit.Test;
 
-import java.sql.Date;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -23,8 +21,8 @@ public class TimestampJsonColumnValueTest {
   private static final String VALUE = "2018-01-28 11:17:00.000";
   private static final String INVALID_VALUE = "value";
 
-  private static final String pattern = "yyyy-MM-dd HH:mm:ss.SSS";
-  private static final SimpleDateFormat format = new SimpleDateFormat(pattern);
+  private static final String PATTERN = "yyyy-MM-dd HH:mm:ss.SSS";
+  private static final SimpleDateFormat format = new SimpleDateFormat(PATTERN);
 
   /**
    * Test field constructor and superclass getters.

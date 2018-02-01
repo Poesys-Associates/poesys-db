@@ -2,6 +2,7 @@
 package com.poesys.db.col;
 
 import com.poesys.db.InvalidParametersException;
+import com.poesys.db.col.json.IJsonColumnValue;
 
 import java.io.Serializable;
 import java.sql.PreparedStatement;
@@ -110,6 +111,13 @@ public interface IColumnValue extends Comparable<IColumnValue>, Serializable {
    * @param visitor the visitor that will compare the column values
    */
   void accept(IColumnVisitor visitor);
+
+  /**
+   * Convert the column value into an IJsonColumnValue object of the appropriate type, converting the value into the appropriate JSON string.
+   *
+   * @return an IJsonColumnValue object
+   */
+  IJsonColumnValue getJsonColumnValue();
 
   /**
    * Create an invalid-parameter exception based on a null name or value. This method decouples

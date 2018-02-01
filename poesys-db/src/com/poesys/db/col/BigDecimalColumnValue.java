@@ -19,6 +19,8 @@ package com.poesys.db.col;
 
 
 import com.poesys.db.InvalidParametersException;
+import com.poesys.db.col.json.BigDecimalJsonColumnValue;
+import com.poesys.db.col.json.IJsonColumnValue;
 import com.poesys.ms.col.ColumnValueImpl;
 import org.apache.log4j.Logger;
 
@@ -106,6 +108,11 @@ public class BigDecimalColumnValue extends AbstractColumnValue {
   @Override
   public void accept(IColumnVisitor visitor) {
     visitor.visit(this);
+  }
+
+  @Override
+  public IJsonColumnValue getJsonColumnValue() {
+    return new BigDecimalJsonColumnValue(name, getClass().getName(), value.toString());
   }
 
   @Override

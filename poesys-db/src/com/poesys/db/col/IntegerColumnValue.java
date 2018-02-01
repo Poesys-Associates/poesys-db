@@ -22,6 +22,8 @@ package com.poesys.db.col;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import com.poesys.db.col.json.IJsonColumnValue;
+import com.poesys.db.col.json.IntegerJsonColumnValue;
 import org.apache.log4j.Logger;
 
 import com.poesys.db.InvalidParametersException;
@@ -108,6 +110,11 @@ public class IntegerColumnValue extends AbstractColumnValue {
   @Override
   public void accept(IColumnVisitor visitor) {
     visitor.visit(this);
+  }
+
+  @Override
+  public IJsonColumnValue getJsonColumnValue() {
+    return new IntegerJsonColumnValue(name, getClass().getName(), value.toString());
   }
 
   @Override

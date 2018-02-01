@@ -22,6 +22,8 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.UUID;
 
+import com.poesys.db.col.json.IJsonColumnValue;
+import com.poesys.db.col.json.UuidJsonColumnValue;
 import org.apache.log4j.Logger;
 
 import com.poesys.db.InvalidParametersException;
@@ -112,6 +114,11 @@ public class UuidColumnValue extends AbstractColumnValue {
   @Override
   public void accept(IColumnVisitor visitor) {
     visitor.visit(this);
+  }
+
+  @Override
+  public IJsonColumnValue getJsonColumnValue() {
+    return new UuidJsonColumnValue(name, getClass().getName(), value.toString());
   }
 
   @Override

@@ -20,7 +20,10 @@ package com.poesys.db.col;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 
+import com.poesys.db.col.json.DateJsonColumnValue;
+import com.poesys.db.col.json.IJsonColumnValue;
 import org.apache.log4j.Logger;
 
 import com.poesys.db.InvalidParametersException;
@@ -35,6 +38,10 @@ import com.poesys.ms.col.IColumnValue;
 public class DateColumnValue extends AbstractColumnValue {
   /** logger for this class */
   private static final Logger logger = Logger.getLogger(DateColumnValue.class);
+  /** date pattern for JSON strings */
+  private static final String PATTERN = "yyyy-MM-dd HH:mm:ss.SSS";
+  /** simple date format object based on date pattern for JSON strings */
+  private static final SimpleDateFormat format = new SimpleDateFormat(PATTERN);
 
   /**
    * serial version UID for Serializable object
@@ -104,6 +111,11 @@ public class DateColumnValue extends AbstractColumnValue {
   @Override
   public void accept(IColumnVisitor visitor) {
     visitor.visit(this);
+  }
+
+  @Override
+  public IJsonColumnValue getJsonColumnValue() {
+    return new DateJsonColumnValue(name, getClass().getName(), format.format(value));
   }
 
   @Override

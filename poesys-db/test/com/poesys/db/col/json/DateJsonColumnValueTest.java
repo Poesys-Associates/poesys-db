@@ -21,8 +21,8 @@ public class DateJsonColumnValueTest {
   private static final String VALUE = "2018-01-28 11:17:00.000";
   private static final String INVALID_VALUE = "value";
 
-  private static final String pattern = "yyyy-MM-dd HH:mm:ss.SSS";
-  private static final SimpleDateFormat format = new SimpleDateFormat(pattern);
+  private static final String PATTERN = "yyyy-MM-dd HH:mm:ss.SSS";
+  private static final SimpleDateFormat format = new SimpleDateFormat(PATTERN);
 
   /**
    * Test field constructor and superclass getters.
