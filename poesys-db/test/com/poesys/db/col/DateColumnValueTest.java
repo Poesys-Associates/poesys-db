@@ -26,7 +26,10 @@ import java.sql.SQLException;
 
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.dao.ConnectionTest;
+import org.junit.Test;
 
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 /**
  * Test the DateColumnValue class.
@@ -34,11 +37,9 @@ import com.poesys.db.dao.ConnectionTest;
  * @author Robert J. Muller
  */
 public class DateColumnValueTest extends ConnectionTest {
-  String name1 = "name1";
-  String name2 = "name2";
-  String name3 = "name3";
-  Date value1 = new Date(System.currentTimeMillis());
-  Date value2 = new Date(System.currentTimeMillis() + 24 * 60 * 60 * 1000); // current
+  private String name1 = "name1";
+  private Date value1 = new Date(System.currentTimeMillis());
+  private Date value2 = new Date(System.currentTimeMillis() + 24 * 60 * 60 * 1000); // current
 
   // + 1
   // day
@@ -48,6 +49,7 @@ public class DateColumnValueTest extends ConnectionTest {
    * 
    * @throws InvalidParametersException when there is a null parameter
    */
+  @Test
   public void testHashCode() throws InvalidParametersException {
     DateColumnValue colValue = new DateColumnValue(name1, value1);
     assertTrue(value1.hashCode() == colValue.hashCode());
@@ -60,9 +62,12 @@ public class DateColumnValueTest extends ConnectionTest {
    * 
    * @throws InvalidParametersException when there is a null parameter
    */
+  @Test
   public void testEqualsColumnValue() throws InvalidParametersException {
     DateColumnValue colValue1 = new DateColumnValue(name1, value1);
+    String name2 = "name2";
     DateColumnValue colValue2 = new DateColumnValue(name2, value2);
+    String name3 = "name3";
     DateColumnValue colValue3 = new DateColumnValue(name3, value1);
     DateColumnValue colValue4 = new DateColumnValue(name1, value1);
 
@@ -80,6 +85,7 @@ public class DateColumnValueTest extends ConnectionTest {
    * @throws SQLException when can't get connection
    * @throws InvalidParametersException when there is a null parameter
    */
+  @Test
   public void testSetParam() throws SQLException, IOException,
       InvalidParametersException {
     Connection connection = null;
@@ -105,6 +111,7 @@ public class DateColumnValueTest extends ConnectionTest {
    * 
    * @throws InvalidParametersException when there is a null parameter
    */
+  @Test
   public void testDateColumnValue() throws InvalidParametersException {
     DateColumnValue colValue1 = new DateColumnValue(name1, value1);
     assertTrue(colValue1.getName().equals(name1));

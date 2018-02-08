@@ -18,22 +18,23 @@
 package com.poesys.db.pk;
 
 
+import com.poesys.db.DuplicateKeyNameException;
+import com.poesys.db.InvalidParametersException;
+import com.poesys.db.col.IColumnValue;
+import com.poesys.db.dao.ConnectionTest;
+import org.junit.Assert;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.junit.Test;
-
-import com.poesys.db.DuplicateKeyNameException;
-import com.poesys.db.InvalidParametersException;
-import com.poesys.db.col.AbstractColumnValue;
-import com.poesys.db.dao.ConnectionTest;
-
 
 /**
- * 
+ * CUT: IdentityPrimaryKey
+ *
  * @author Robert J. Muller
  */
 public class IdentityPrimaryKeyTest extends ConnectionTest {
@@ -54,7 +55,7 @@ public class IdentityPrimaryKeyTest extends ConnectionTest {
       DuplicateKeyNameException {
     IdentityPrimaryKey key1 = new IdentityPrimaryKey("col", CLASS_NAME);
     // Should get back the column name from getColumnNames
-    assertTrue(key1.getColumnNames().size() == 1);
+    Assert.assertTrue(key1.getColumnNames().size() == 1);
   }
 
   /**
@@ -67,7 +68,7 @@ public class IdentityPrimaryKeyTest extends ConnectionTest {
   public void testGetSqlInsertColumnList() throws InvalidParametersException {
     IdentityPrimaryKey key1 = new IdentityPrimaryKey("col", CLASS_NAME);
     String colList = key1.getSqlInsertColumnList();
-    assertTrue("".equalsIgnoreCase(colList));
+    Assert.assertTrue("".equalsIgnoreCase(colList));
   }
 
   /**
@@ -80,14 +81,13 @@ public class IdentityPrimaryKeyTest extends ConnectionTest {
    * @throws IOException when can't get a property
    */
   @Test
-  public void testSetInsertParams() throws SQLException,
-      InvalidParametersException, IOException {
+  public void testSetInsertParams() throws SQLException, InvalidParametersException, IOException {
     Connection connection = getConnection();
     IdentityPrimaryKey key1 = new IdentityPrimaryKey("col", CLASS_NAME);
     PreparedStatement stmt =
       connection.prepareStatement("INSERT INTO Test () VALUES ()");
     int next = key1.setInsertParams(stmt, 1);
-    assertTrue(next == 1);
+    Assert.assertTrue(next == 1);
 
   }
 
@@ -130,11 +130,11 @@ public class IdentityPrimaryKeyTest extends ConnectionTest {
       connection.prepareStatement("INSERT INTO TestIdentity () VALUES ()",
                                   Statement.RETURN_GENERATED_KEYS);
     int next = key1.setInsertParams(stmt, 1);
-    assertTrue(next == 1);
+    Assert.assertTrue(next == 1);
     stmt.execute();
     key1.finalizeInsert(stmt);
-    for (AbstractColumnValue col : key1) {
-      assertTrue(col.hasValue());
+    for (IColumnValue col : key1) {
+      Assert.assertTrue(col.hasValue());
     }
   }
 
@@ -145,13 +145,13 @@ public class IdentityPrimaryKeyTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when more than one column has the same
    *           name in the key
    */
+  @Test
   public void testGetValueListSingle() throws InvalidParametersException,
       DuplicateKeyNameException {
     IdentityPrimaryKey key1 = new IdentityPrimaryKey("col", CLASS_NAME);
-    assertTrue(key1 != null);
     String value = key1.getValueList();
     // Default value is null before auto-generated value set
     String shouldBe = "(col=null)";
-    assertTrue(value.equals(shouldBe));
+    Assert.assertTrue(value.equals(shouldBe));
   }
 }

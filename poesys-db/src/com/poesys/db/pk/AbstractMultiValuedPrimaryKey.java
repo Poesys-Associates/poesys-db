@@ -18,18 +18,15 @@
 package com.poesys.db.pk;
 
 
-import java.sql.PreparedStatement;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import com.poesys.db.DuplicateKeyNameException;
 import com.poesys.db.InvalidParametersException;
-import com.poesys.db.col.AbstractColumnValue;
 import com.poesys.db.col.ColumnNameComparator;
+import com.poesys.db.col.IColumnValue;
 
+import java.sql.PreparedStatement;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * Implements the IPrimaryKey interface for a key constructed from multiple
@@ -48,7 +45,7 @@ public abstract class AbstractMultiValuedPrimaryKey extends AbstractPrimaryKey {
    * List of column values comprising the key; must always be alphabetical, so
    * private with list operations implemented in this class as protected
    */
-  private List<AbstractColumnValue> list = null;
+  private List<IColumnValue> list = null;
 
   /** Error message for no primary keys supplied */
   private static final String NO_KEYS_MSG = "com.poesys.db.pk.msg.no_key";
@@ -75,7 +72,7 @@ public abstract class AbstractMultiValuedPrimaryKey extends AbstractPrimaryKey {
    *           list with the same name
    * @throws InvalidParametersException when there are no keys in the list
    */
-  public AbstractMultiValuedPrimaryKey(List<AbstractColumnValue> list,
+  public AbstractMultiValuedPrimaryKey(List<IColumnValue> list,
                                        String className)
       throws DuplicateKeyNameException, InvalidParametersException {
     super(className);
@@ -96,11 +93,10 @@ public abstract class AbstractMultiValuedPrimaryKey extends AbstractPrimaryKey {
    * 
    * @param newList the list to copy into the internal list
    */
-  protected void setList(List<AbstractColumnValue> newList) {
+  protected void setList(List<IColumnValue> newList) {
     // Ensure that the list is in alphabetical order.
-    Collections.sort(newList, new ColumnNameComparator());
-    // Ensure that the list is thread safe.
-    list = new CopyOnWriteArrayList<AbstractColumnValue>(newList);
+    newList.sort(new ColumnNameComparator());
+    list = newList;
   }
 
   @Override
@@ -109,7 +105,7 @@ public abstract class AbstractMultiValuedPrimaryKey extends AbstractPrimaryKey {
     String sep = "";
     StringBuilder prefix = getAlias(alias);
 
-    for (AbstractColumnValue col : this) {
+    for (IColumnValue col : this) {
       columnList.append(sep);
       columnList.append(prefix);
       columnList.append(col.getName());
@@ -125,7 +121,7 @@ public abstract class AbstractMultiValuedPrimaryKey extends AbstractPrimaryKey {
     StringBuilder prefix = getAlias(alias);
     String logicalOp = ""; // first time, no logical operator
 
-    for (AbstractColumnValue col : this) {
+    for (IColumnValue col : this) {
       expr.append(logicalOp);
       expr.append(prefix);
       expr.append(col.getName());
@@ -140,7 +136,7 @@ public abstract class AbstractMultiValuedPrimaryKey extends AbstractPrimaryKey {
   public String getValueList() {
     StringBuilder str = new StringBuilder("(");
     String sep = "";
-    for (AbstractColumnValue value : this) {
+    for (IColumnValue value : this) {
       str.append(sep);
       str.append(value.getName());
       str.append(EQUALS);
@@ -156,7 +152,7 @@ public abstract class AbstractMultiValuedPrimaryKey extends AbstractPrimaryKey {
   public int setParams(PreparedStatement stmt, int nextIndex) {
     int next = nextIndex;
     // Iterate through the multiple key values, setting them into the statement.
-    for (AbstractColumnValue col : this) {
+    for (IColumnValue col : this) {
       col.setParam(stmt, next);
       next++;
     }
@@ -171,7 +167,7 @@ public abstract class AbstractMultiValuedPrimaryKey extends AbstractPrimaryKey {
       // If the keys have the same number of elements, compare them.
       if (this.list.size() == other.list.size()) {
         int index = 0;
-        for (AbstractColumnValue col : list) {
+        for (IColumnValue col : list) {
           ret = col.equals(other.list.get(index));
           // Break out of the loop at the first failure to equate.
           if (!ret) {
@@ -186,12 +182,12 @@ public abstract class AbstractMultiValuedPrimaryKey extends AbstractPrimaryKey {
   }
 
   @Override
-  public Iterator<AbstractColumnValue> iterator() {
+  public Iterator<IColumnValue> iterator() {
     // List is always in alphabetical order
     if (list == null) {
-      list = new ArrayList<AbstractColumnValue>(1);
+      list = new ArrayList<>(1);
     }
-    return (Iterator<AbstractColumnValue>)list.iterator();
+    return list.iterator();
   }
 
   /**
@@ -199,14 +195,14 @@ public abstract class AbstractMultiValuedPrimaryKey extends AbstractPrimaryKey {
    * 
    * @return the copy of the list
    */
-  protected List<AbstractColumnValue> copyList() {
-    List<AbstractColumnValue> newList = new ArrayList<AbstractColumnValue>();
+  protected List<IColumnValue> copyList() {
+    List<IColumnValue> newList = new ArrayList<>();
 
     // Iterate using Iterable iterator, preserving order
-    for (AbstractColumnValue col : this) {
+    for (IColumnValue col : this) {
       newList.add(col);
     }
 
-    return new CopyOnWriteArrayList<AbstractColumnValue>(newList);
+    return newList;
   }
 }

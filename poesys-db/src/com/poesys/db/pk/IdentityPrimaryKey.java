@@ -18,6 +18,16 @@
 package com.poesys.db.pk;
 
 
+import com.poesys.db.DbErrorException;
+import com.poesys.db.InvalidParametersException;
+import com.poesys.db.Message;
+import com.poesys.db.col.AbstractColumnValue;
+import com.poesys.db.col.BigIntegerColumnValue;
+import com.poesys.db.col.IColumnValue;
+import com.poesys.db.col.NullColumnValue;
+import com.poesys.db.pk.json.IdentityJsonPrimaryKey;
+import com.poesys.db.pk.json.JsonPrimaryKey;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.PreparedStatement;
@@ -25,15 +35,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import com.poesys.db.DbErrorException;
-import com.poesys.db.InvalidParametersException;
-import com.poesys.db.Message;
-import com.poesys.db.col.AbstractColumnValue;
-import com.poesys.db.col.BigIntegerColumnValue;
-import com.poesys.db.col.NullColumnValue;
-import com.poesys.ms.col.IColumnValue;
 
 
 /**
@@ -70,10 +71,9 @@ public class IdentityPrimaryKey extends AbstractSingleValuedPrimaryKey {
    */
   public IdentityPrimaryKey(String name, String className)
       throws InvalidParametersException {
-    super(new ArrayList<AbstractColumnValue>(), className);
+    super(new ArrayList<>(), className);
     NullColumnValue col = new NullColumnValue(name, java.sql.Types.BIGINT);
     list.add(col);
-    list = new CopyOnWriteArrayList<AbstractColumnValue>(list);
   }
 
   /**
@@ -91,15 +91,14 @@ public class IdentityPrimaryKey extends AbstractSingleValuedPrimaryKey {
    */
   public IdentityPrimaryKey(String name, BigInteger value, String className)
       throws InvalidParametersException {
-    super(new ArrayList<AbstractColumnValue>(), className);
-    AbstractColumnValue col = null;
+    super(new ArrayList<>(), className);
+    AbstractColumnValue col;
     if (value != null) {
       col = new BigIntegerColumnValue(name, value);
     } else {
       col = new NullColumnValue(name, java.sql.Types.BIGINT);
     }
     list.add(col);
-    list = new CopyOnWriteArrayList<AbstractColumnValue>(list);
   }
 
   /**
@@ -110,7 +109,7 @@ public class IdentityPrimaryKey extends AbstractSingleValuedPrimaryKey {
    * @param className the name of the IDbDto class of the object that the
    *          primary key identifies
    */
-  protected IdentityPrimaryKey(List<AbstractColumnValue> list, String className) {
+  protected IdentityPrimaryKey(List<IColumnValue> list, String className) {
     super(list, className);
   }
 
@@ -126,9 +125,8 @@ public class IdentityPrimaryKey extends AbstractSingleValuedPrimaryKey {
     // Call the default constructor in the superclass with no list.
     super(className);
     // Create a new list and populate it from the DTO.
-    this.list = new ArrayList<AbstractColumnValue>();
+    this.list = new ArrayList<>();
     list.add(new BigIntegerColumnValue(key.getName(), key.getValue()));
-    list = new CopyOnWriteArrayList<AbstractColumnValue>(list);
   }
 
   /*
@@ -158,7 +156,7 @@ public class IdentityPrimaryKey extends AbstractSingleValuedPrimaryKey {
   @Override
   public void finalizeInsert(PreparedStatement stmt) {
     // Extract the column value to get the name.
-    AbstractColumnValue col = list.get(0);
+    IColumnValue col = list.get(0);
     BigInteger value = null;
 
     try {
@@ -176,11 +174,15 @@ public class IdentityPrimaryKey extends AbstractSingleValuedPrimaryKey {
         list.add(newCol);
       }
     } catch (InvalidParametersException e) {
-      List<String> list = new ArrayList<String>();
+      List<String> list = new ArrayList<>();
       DbErrorException d =
         new DbErrorException(Message.getMessage(INVALID_PARAMETER, null));
       list.add(col.getName());
-      list.add(value.toString());
+      if (value != null) {
+        list.add(value.toString());
+      } else {
+        list.add("");
+      }
       e.setParameters(list);
       throw d;
     } catch (SQLException e) {
@@ -190,7 +192,7 @@ public class IdentityPrimaryKey extends AbstractSingleValuedPrimaryKey {
 
   @Override
   public String getValueList() {
-    AbstractColumnValue col = list.get(0);
+    IColumnValue col = list.get(0);
     StringBuilder str = new StringBuilder();
     str.append("(");
     str.append(col.getName());
@@ -210,11 +212,35 @@ public class IdentityPrimaryKey extends AbstractSingleValuedPrimaryKey {
   @Override
   public com.poesys.ms.pk.IPrimaryKey getMessageObject() {
     // Extract column from list and create DTO.
-    AbstractColumnValue col = list.get(0);
-    IColumnValue<BigInteger> msgCol =
-      (IColumnValue<BigInteger>)col.getMessageObject();
+    IColumnValue col = list.get(0);
+    com.poesys.ms.col.IColumnValue<BigInteger> msgCol =
+      (com.poesys.ms.col.IColumnValue<BigInteger>)col.getMessageObject();
     return new com.poesys.ms.pk.IdentityPrimaryKey(msgCol.getName(),
                                                    msgCol.getValue(),
                                                    className);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    boolean equals = false;
+
+    if (o instanceof IdentityPrimaryKey) {
+      // Extract the BigInteger identity column value.
+      BigIntegerColumnValue thisCol = (BigIntegerColumnValue)list.get(0);
+      BigIntegerColumnValue thatCol = (BigIntegerColumnValue)((IdentityPrimaryKey)o).list.get(0);
+      // First compare column name.
+      equals = thisCol.getName().equals(thatCol.getName());
+      if (equals) {
+        // Then compare values.
+        equals = thisCol.getValue().compareTo(thatCol.getValue()) == 0;
+      }
+    }
+
+    return equals;
+  }
+
+  @Override
+  public JsonPrimaryKey getJsonPrimaryKey() {
+    return new IdentityJsonPrimaryKey(className, getJsonColumnValueList());
   }
 }

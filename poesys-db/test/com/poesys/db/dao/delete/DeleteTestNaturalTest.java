@@ -18,6 +18,14 @@
 package com.poesys.db.dao.delete;
 
 
+import com.poesys.db.DbErrorException;
+import com.poesys.db.dao.ConnectionTest;
+import com.poesys.db.dao.insert.Insert;
+import com.poesys.db.dao.insert.InsertSqlTestNatural;
+import com.poesys.db.dto.TestNatural;
+import org.apache.log4j.Logger;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -25,15 +33,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.apache.log4j.Logger;
-
-import com.poesys.db.BatchException;
-import com.poesys.db.DbErrorException;
-import com.poesys.db.dao.ConnectionTest;
-import com.poesys.db.dao.insert.Insert;
-import com.poesys.db.dao.insert.InsertSqlTestNatural;
-import com.poesys.db.dto.TestNatural;
-
+import static org.junit.Assert.fail;
 
 /**
  * Test the delete process for a simple object.
@@ -49,10 +49,9 @@ public class DeleteTestNaturalTest extends ConnectionTest {
    * Test the delete method.
    * 
    * @throws IOException when can't get a property
-   * @throws SQLException when can't get a connection
-   * @throws BatchException when a problem happens during processing
    */
-  public void testDelete() throws IOException, SQLException, BatchException {
+  @Test
+  public void testDelete() throws IOException, SQLException {
     Connection conn;
     try {
       conn = getConnection();
@@ -61,16 +60,14 @@ public class DeleteTestNaturalTest extends ConnectionTest {
     }
 
     // Create an Inserter to add the row to update
-    Insert<TestNatural> inserter =
-      new Insert<TestNatural>(new InsertSqlTestNatural(), getSubsystem());
+    Insert<TestNatural> inserter = new Insert<>(new InsertSqlTestNatural(), getSubsystem());
 
     // Create the DTO.
     BigDecimal col1 = new BigDecimal("1234.5678");
     TestNatural dto = new TestNatural("A", "B", col1);
 
     // Create the Deleter.
-    DeleteByKey<TestNatural> deleter =
-      new DeleteByKey<TestNatural>(new DeleteSqlTestNatural(), getSubsystem());
+    DeleteByKey<TestNatural> deleter = new DeleteByKey<>(new DeleteSqlTestNatural(), getSubsystem());
 
     Statement stmt = null;
     try {
@@ -103,8 +100,6 @@ public class DeleteTestNaturalTest extends ConnectionTest {
       rs = stmt.executeQuery(QUERY);
       if (rs.next()) {
         fail("Found row ostensibly deleted");
-      } else {
-        assertTrue(true);
       }
       conn.commit();
     } catch (SQLException e) {

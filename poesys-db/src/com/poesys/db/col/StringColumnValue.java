@@ -21,6 +21,8 @@ package com.poesys.db.col;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import com.poesys.db.col.json.IJsonColumnValue;
+import com.poesys.db.col.json.StringJsonColumnValue;
 import org.apache.log4j.Logger;
 
 import com.poesys.db.InvalidParametersException;
@@ -43,7 +45,7 @@ public class StringColumnValue extends AbstractColumnValue {
   private static final long serialVersionUID = 1L;
 
   /** The String value */
-  private String value = null;
+  private String value;
 
   /**
    * Create a StringColumnValue object.
@@ -63,7 +65,7 @@ public class StringColumnValue extends AbstractColumnValue {
   }
 
   @Override
-  public boolean valueEquals(AbstractColumnValue value) {
+  public boolean valueEquals(com.poesys.db.col.IColumnValue value) {
     boolean ret = false;
     if (value instanceof StringColumnValue) {
       // Case-sensitive comparison
@@ -105,13 +107,18 @@ public class StringColumnValue extends AbstractColumnValue {
   }
 
   @Override
-  protected void accept(IColumnVisitor visitor) {
+  public void accept(IColumnVisitor visitor) {
     visitor.visit(this);
   }
 
   @Override
+  public IJsonColumnValue getJsonColumnValue() {
+    return new StringJsonColumnValue(name, getClass().getName(), value);
+  }
+
+  @Override
   public String toString() {
-    return value.toString();
+    return value;
   }
 
   @Override
@@ -121,8 +128,6 @@ public class StringColumnValue extends AbstractColumnValue {
 
   @Override
   public IColumnValue<?> getMessageObject() {
-    IColumnValue<?> col =
-      new ColumnValueImpl<String>(name, IColumnValue.ColumnType.String, value);
-    return col;
+    return new ColumnValueImpl<>(name, IColumnValue.ColumnType.String, value);
   }
 }

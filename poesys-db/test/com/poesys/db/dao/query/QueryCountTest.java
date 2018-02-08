@@ -18,15 +18,6 @@
 package com.poesys.db.dao.query;
 
 
-import java.io.IOException;
-import java.math.BigInteger;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
-
-import org.junit.Test;
-
-import com.poesys.db.BatchException;
 import com.poesys.db.DbErrorException;
 import com.poesys.db.dao.ConnectionTest;
 import com.poesys.db.dao.insert.Insert;
@@ -34,7 +25,16 @@ import com.poesys.db.dao.insert.InsertSqlTestSequence;
 import com.poesys.db.dto.TestSequence;
 import com.poesys.db.pk.AbstractSingleValuedPrimaryKey;
 import com.poesys.db.pk.PrimaryKeyFactory;
+import org.junit.Test;
 
+import java.io.IOException;
+import java.math.BigInteger;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Test the QueryCount class.
@@ -51,11 +51,10 @@ public class QueryCountTest extends ConnectionTest {
    * 
    * @throws IOException when can't get a property
    * @throws SQLException when can't get a connection
-   * @throws BatchException when a problem happens during processing
    */
   @Test
-  public void testQuery() throws IOException, SQLException, BatchException {
-    Connection conn = null;
+  public void testQuery() throws IOException, SQLException {
+    Connection conn;
     Statement stmt = null;
     try {
       conn = getConnection();
@@ -80,24 +79,23 @@ public class QueryCountTest extends ConnectionTest {
     }
 
     // Create the sequence key and the objects to insert.
-    Insert<TestSequence> inserter =
-      new Insert<TestSequence>(new InsertSqlTestSequence(), getSubsystem());
+    Insert<TestSequence> inserter = new Insert<>(new InsertSqlTestSequence(), getSubsystem());
     AbstractSingleValuedPrimaryKey key1 =
       PrimaryKeyFactory.createMySqlSequenceKey("test",
-                                               "pkey",
+                                               "key",
                                                CLASS_NAME,
                                                getSubsystem());
     String col1 = "test";
     TestSequence dto1 = new TestSequence(key1, col1);
     AbstractSingleValuedPrimaryKey key2 =
       PrimaryKeyFactory.createMySqlSequenceKey("test",
-                                               "pkey",
+                                               "key",
                                                CLASS_NAME,
                                                getSubsystem());
     TestSequence dto2 = new TestSequence(key2, col1);
     AbstractSingleValuedPrimaryKey key3 =
       PrimaryKeyFactory.createMySqlSequenceKey("test",
-                                               "pkey",
+                                               "key",
                                                CLASS_NAME,
                                                getSubsystem());
     TestSequence dto3 = new TestSequence(key3, "no test");
@@ -110,7 +108,7 @@ public class QueryCountTest extends ConnectionTest {
     // Query the count of objects.
     IParameterizedCountSql<TestSequence> sql =
       new TestSequenceParameterizedCountSql();
-    QueryCount<TestSequence> dao = new QueryCount<TestSequence>(sql);
+    QueryCount<TestSequence> dao = new QueryCount<>(sql);
     BigInteger count = dao.queryCount(dto1, getSubsystem());
     assertTrue("null count queried", count != null);
     // Should get back 2 of the 3 DTOs

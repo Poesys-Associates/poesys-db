@@ -71,7 +71,7 @@ public class CacheDaoManager implements IDaoManager {
   public static IDaoManager getInstance(String subsystem) {
     if (manager == null) {
       manager = new CacheDaoManager(subsystem);
-      map = new ConcurrentHashMap<String, IDtoCache<IDbDto>>();
+      map = new ConcurrentHashMap<>();
     }
     return manager;
   }
@@ -80,7 +80,7 @@ public class CacheDaoManager implements IDaoManager {
   public <T extends IDbDto, C extends Collection<T>> IDaoFactory<T> getFactory(String name,
                                                                                String subsystem,
                                                                                Integer expiration) {
-    return new DaoCacheFactory<T>(name, manager, subsystem);
+    return new DaoCacheFactory<>(name, manager, subsystem);
   }
 
   @Override

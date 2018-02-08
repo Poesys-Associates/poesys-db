@@ -18,15 +18,15 @@
 package com.poesys.db.col;
 
 
+import com.poesys.db.InvalidParametersException;
+import com.poesys.db.col.json.BigDecimalJsonColumnValue;
+import com.poesys.db.col.json.IJsonColumnValue;
+import com.poesys.ms.col.ColumnValueImpl;
+import org.apache.log4j.Logger;
+
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-
-import org.apache.log4j.Logger;
-
-import com.poesys.db.InvalidParametersException;
-import com.poesys.ms.col.ColumnValueImpl;
-import com.poesys.ms.col.IColumnValue;
 
 
 /**
@@ -45,7 +45,7 @@ public class BigDecimalColumnValue extends AbstractColumnValue {
   private static final long serialVersionUID = 1L;
 
   /** The BigDecimal value */
-  private BigDecimal value = null;
+  private BigDecimal value;
 
   /**
    * Create a BigDecimalColumnValue object.
@@ -65,7 +65,7 @@ public class BigDecimalColumnValue extends AbstractColumnValue {
   }
 
   @Override
-  public boolean valueEquals(AbstractColumnValue value) {
+  public boolean valueEquals(IColumnValue value) {
     boolean ret = false;
     if (value instanceof BigDecimalColumnValue) {
       ret = this.value.equals(((BigDecimalColumnValue)value).value);
@@ -106,8 +106,13 @@ public class BigDecimalColumnValue extends AbstractColumnValue {
   }
 
   @Override
-  protected void accept(IColumnVisitor visitor) {
+  public void accept(IColumnVisitor visitor) {
     visitor.visit(this);
+  }
+
+  @Override
+  public IJsonColumnValue getJsonColumnValue() {
+    return new BigDecimalJsonColumnValue(name, getClass().getName(), value.toString());
   }
 
   @Override
@@ -121,11 +126,7 @@ public class BigDecimalColumnValue extends AbstractColumnValue {
   }
 
   @Override
-  public IColumnValue<?> getMessageObject() {
-    IColumnValue<?> col =
-      new ColumnValueImpl<BigDecimal>(name,
-                                      IColumnValue.ColumnType.BigDecimal,
-                                      value);
-    return col;
+  public com.poesys.ms.col.IColumnValue<?> getMessageObject() {
+    return new ColumnValueImpl<>(name, com.poesys.ms.col.IColumnValue.ColumnType.BigDecimal, value);
   }
 }

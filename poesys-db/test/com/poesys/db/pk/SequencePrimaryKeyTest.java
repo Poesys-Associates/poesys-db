@@ -18,17 +18,20 @@
 package com.poesys.db.pk;
 
 
+import com.poesys.db.DuplicateKeyNameException;
+import com.poesys.db.InvalidParametersException;
+import com.poesys.db.col.IColumnValue;
+import com.poesys.db.dao.ConnectionTest;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-import com.poesys.db.DuplicateKeyNameException;
-import com.poesys.db.InvalidParametersException;
-import com.poesys.db.col.AbstractColumnValue;
-import com.poesys.db.dao.ConnectionTest;
-
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 /**
  * Test the sequence primary key class, the abstract single value primary key
@@ -47,12 +50,12 @@ public class SequencePrimaryKeyTest extends ConnectionTest {
    * 
    * @throws InvalidParametersException when there is a constructor failure
    */
+  @Test
   public void testSequencePrimaryKey() throws InvalidParametersException {
     String colName = "col";
     AbstractSingleValuedPrimaryKey key =
       new SequencePrimaryKey(colName, new BigInteger("1"), CLASS_NAME);
-    assertTrue(key != null);
-    for (AbstractColumnValue value : key) {
+    for (IColumnValue value : key) {
       assertTrue(value.getName().equalsIgnoreCase(colName));
       assertTrue(value.hasValue());
     }
@@ -85,6 +88,7 @@ public class SequencePrimaryKeyTest extends ConnectionTest {
    * 
    * @throws InvalidParametersException when there is a constructor failure
    */
+  @Test
   public void testEqualsIPrimaryKey() throws InvalidParametersException {
     String colName1 = "col";
     String colName2 = "other";
@@ -108,12 +112,13 @@ public class SequencePrimaryKeyTest extends ConnectionTest {
    * 
    * @throws InvalidParametersException when a parameter is null
    */
+  @Test
   public void testIterator() throws InvalidParametersException {
     AbstractSingleValuedPrimaryKey key1 =
       new SequencePrimaryKey("col", new BigInteger("1"), CLASS_NAME);
     int i = 0;
     for (@SuppressWarnings("unused")
-    AbstractColumnValue colValue : key1) {
+      IColumnValue colValue : key1) {
       i++;
     }
     assertTrue(i == 1);
@@ -126,6 +131,7 @@ public class SequencePrimaryKeyTest extends ConnectionTest {
    * 
    * @throws InvalidParametersException when a parameter is null
    */
+  @Test
   public void testGetSqlColumnList() throws InvalidParametersException {
     AbstractSingleValuedPrimaryKey key1 =
       new SequencePrimaryKey("col", new BigInteger("1"), CLASS_NAME);
@@ -140,6 +146,7 @@ public class SequencePrimaryKeyTest extends ConnectionTest {
    * 
    * @throws InvalidParametersException when a parameter is null
    */
+  @Test
   public void testGetSqlInsertColumnList() throws InvalidParametersException {
     AbstractSingleValuedPrimaryKey key1 =
       new SequencePrimaryKey("col", new BigInteger("1"), CLASS_NAME);
@@ -154,6 +161,7 @@ public class SequencePrimaryKeyTest extends ConnectionTest {
    * 
    * @throws InvalidParametersException when a parameter is null
    */
+  @Test
   public void testGetSqlWhereExpression() throws InvalidParametersException {
     AbstractSingleValuedPrimaryKey key1 =
       new SequencePrimaryKey("col", new BigInteger("1"), CLASS_NAME);
@@ -170,6 +178,7 @@ public class SequencePrimaryKeyTest extends ConnectionTest {
    * @throws InvalidParametersException when a parameter is null
    * @throws IOException when can't get a property
    */
+  @Test
   public void testSetParams() throws SQLException, InvalidParametersException,
       IOException {
     Connection connection = getConnection();
@@ -190,6 +199,7 @@ public class SequencePrimaryKeyTest extends ConnectionTest {
    * @throws InvalidParametersException when a parameter is null
    * @throws IOException when can't get a property
    */
+  @Test
   public void testSetInsertParams() throws SQLException,
       InvalidParametersException, IOException {
     Connection connection = getConnection();
@@ -207,6 +217,7 @@ public class SequencePrimaryKeyTest extends ConnectionTest {
    * 
    * @throws InvalidParametersException when a parameter is null
    */
+  @Test
   public void testGetAlias() throws InvalidParametersException {
     AbstractSingleValuedPrimaryKey key1 =
       new SequencePrimaryKey("col", new BigInteger("1"), CLASS_NAME);
@@ -222,6 +233,7 @@ public class SequencePrimaryKeyTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when there is more than one column with
    *           the same name
    */
+  @Test
   public void testGetColumnNames() throws InvalidParametersException,
       DuplicateKeyNameException {
     AbstractSingleValuedPrimaryKey key1 =
@@ -236,11 +248,11 @@ public class SequencePrimaryKeyTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when there is more than one column with
    *           the same name
    */
+  @Test
   public void testGetValueListSingle() throws InvalidParametersException,
       DuplicateKeyNameException {
     AbstractSingleValuedPrimaryKey key1 =
       new SequencePrimaryKey("col", new BigInteger("1"), CLASS_NAME);
-    assertTrue(key1 != null);
     String value = key1.getValueList();
     String shouldBe = "(col=1)";
     assertTrue(value.equals(shouldBe));

@@ -1,32 +1,31 @@
 /*
  * Copyright (c) 2008 Poesys Associates. All rights reserved.
- * 
+ *
  * This file is part of Poesys-DB.
- * 
+ *
  * Poesys-DB is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
  * version.
- * 
+ *
  * Poesys-DB is distributed in the hope that it will be useful, but WITHOUT ANY
  * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
  * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
  */
 package com.poesys.db.pk;
 
+import com.poesys.db.DuplicateKeyNameException;
+import com.poesys.db.InvalidParametersException;
+import com.poesys.db.col.IColumnValue;
+import com.poesys.db.pk.json.JsonPrimaryKey;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import com.poesys.db.DuplicateKeyNameException;
-import com.poesys.db.InvalidParametersException;
-import com.poesys.db.col.AbstractColumnValue;
-
 
 /**
  * A concrete implementation of the IPrimaryKey interface that represents a
@@ -35,7 +34,7 @@ import com.poesys.db.col.AbstractColumnValue;
  * representing a sort order. You use a composite key when you have a parent
  * class that owns the objects of the child class in a composite aggregation
  * relationship.
- * 
+ *
  * @author Robert J. Muller
  */
 public class CompositePrimaryKey extends AbstractMultiValuedPrimaryKey {
@@ -44,13 +43,13 @@ public class CompositePrimaryKey extends AbstractMultiValuedPrimaryKey {
    */
   private static final long serialVersionUID = 7481773653672954407L;
   /** The parent primary key */
-  private IPrimaryKey parentKey = null;
+  private IPrimaryKey parentKey;
 
   /**
    * The child sub-key that identifies the child in combination with the parent
    * key; usually a natural key
    */
-  private IPrimaryKey subKey = null;
+  private IPrimaryKey subKey;
 
   /** No parent key message */
   private static final String NO_PARENT = "com.poesys.db.pk.msg.no_parent";
@@ -61,19 +60,17 @@ public class CompositePrimaryKey extends AbstractMultiValuedPrimaryKey {
 
   /**
    * Create a CompositePrimaryKey object.
-   * 
+   *
    * @param parentKey the key from the owning object
-   * @param subKey the key that completes the primary key
+   * @param subKey    the key that completes the primary key
    * @param className the name of the IDbDto class of the object that the
-   *          primary key identifies
+   *                  primary key identifies
    * @throws InvalidParametersException when there is no parent or sub key
-   * @throws DuplicateKeyNameException when there are multiple columns with the
-   *           same name
+   * @throws DuplicateKeyNameException  when there are multiple columns with the
+   *                                    same name
    */
-  public CompositePrimaryKey(IPrimaryKey parentKey,
-                             IPrimaryKey subKey,
-                             String className)
-      throws InvalidParametersException, DuplicateKeyNameException {
+  public CompositePrimaryKey(IPrimaryKey parentKey, IPrimaryKey subKey, String className) throws
+    InvalidParametersException, DuplicateKeyNameException {
     super(className);
     this.parentKey = parentKey;
     this.subKey = subKey;
@@ -85,13 +82,12 @@ public class CompositePrimaryKey extends AbstractMultiValuedPrimaryKey {
 
   /**
    * Create a CompositePrimaryKey object based on an input message primary key.
-   * 
+   *
    * @param messageKey a message primary key
-   * @param className the name of the IDbDto class of the object that the
-   *          primary key identifies
+   * @param className  the name of the IDbDto class of the object that the
+   *                   primary key identifies
    */
-  public CompositePrimaryKey(com.poesys.ms.pk.CompositePrimaryKey messageKey,
-                             String className) {
+  public CompositePrimaryKey(com.poesys.ms.pk.CompositePrimaryKey messageKey, String className) {
     super(className);
     parentKey = MessageKeyFactory.getKey(messageKey.getParentKey());
     subKey = MessageKeyFactory.getKey(messageKey.getSubKey());
@@ -121,11 +117,11 @@ public class CompositePrimaryKey extends AbstractMultiValuedPrimaryKey {
    * that the columns in the list are in alphabetical order.
    */
   private void buildColumnList() {
-    List<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
-    for (AbstractColumnValue value : parentKey) {
+    List<IColumnValue> list = new ArrayList<>();
+    for (IColumnValue value : parentKey) {
       list.add(value);
     }
-    for (AbstractColumnValue value : subKey) {
+    for (IColumnValue value : subKey) {
       list.add(value);
     }
     // The superclass setter ensures correct order and thread safety.
@@ -137,16 +133,15 @@ public class CompositePrimaryKey extends AbstractMultiValuedPrimaryKey {
     boolean ret = false;
     if (key instanceof CompositePrimaryKey) {
       // Compare the parent and sub-key values.
-      ret =
-        parentKey.equals(((CompositePrimaryKey)key).parentKey)
-            && subKey.equals(((CompositePrimaryKey)key).subKey);
+      ret = parentKey.equals(((CompositePrimaryKey)key).parentKey) &&
+            subKey.equals(((CompositePrimaryKey)key).subKey);
     }
     return ret;
   }
 
   /**
    * Get the parent portion of the primary key.
-   * 
+   *
    * @return the parent primary key
    */
   public IPrimaryKey getParentKey() {
@@ -155,7 +150,7 @@ public class CompositePrimaryKey extends AbstractMultiValuedPrimaryKey {
 
   /**
    * Get the sub-key of the composite primary key.
-   * 
+   *
    * @return the sub-key portion of the key
    */
   public IPrimaryKey getSubKey() {
@@ -170,23 +165,19 @@ public class CompositePrimaryKey extends AbstractMultiValuedPrimaryKey {
     Set<String> set2 = subKey.getColumnNames();
     // Union the two sets.
     int setSize = set1.size() + set2.size();
-    Set<String> union = new HashSet<String>(setSize);
+    Set<String> union = new HashSet<>(setSize);
     union.addAll(set1);
     union.addAll(set2);
     if (setSize != union.size()) {
       String duplicateName = null;
-      if (set1 != null) {
-        for (String name : set1) {
-          if (set2.contains(name)) {
-            duplicateName = name;
-            break;
-          }
+      for (String name : set1) {
+        if (set2.contains(name)) {
+          duplicateName = name;
+          break;
         }
       }
-      throw new DuplicateKeyNameException(DUP_NAME
-                                          + " "
-                                          + duplicateName
-                                          + " in composite key list");
+      throw new DuplicateKeyNameException(
+        DUP_NAME + " " + duplicateName + " in composite key list");
     }
 
     return union;
@@ -202,8 +193,17 @@ public class CompositePrimaryKey extends AbstractMultiValuedPrimaryKey {
     // Generate keys for the parent and sub-keys.
     com.poesys.ms.pk.IPrimaryKey msgParentKey = parentKey.getMessageObject();
     com.poesys.ms.pk.IPrimaryKey msgSubKey = subKey.getMessageObject();
-    return new com.poesys.ms.pk.CompositePrimaryKey(msgParentKey,
-                                                    msgSubKey,
-                                                    className);
+    return new com.poesys.ms.pk.CompositePrimaryKey(msgParentKey, msgSubKey, className);
+  }
+
+  @Override
+  public JsonPrimaryKey getJsonPrimaryKey() {
+    // Create the JSON parent primary key.
+    JsonPrimaryKey parentKey = getParentKey().getJsonPrimaryKey();
+    // Create the JSON child primary key.
+    JsonPrimaryKey childKey = getSubKey().getJsonPrimaryKey();
+
+    // Create the composite generic JSON primary key.
+    return new JsonPrimaryKey(className, parentKey, childKey);
   }
 }

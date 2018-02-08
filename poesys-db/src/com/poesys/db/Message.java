@@ -1,22 +1,21 @@
 /*
  * Copyright (c) 2008 Poesys Associates. All rights reserved.
- * 
+ *
  * This file is part of Poesys-DB.
- * 
+ *
  * Poesys-DB is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
  * version.
- * 
+ *
  * Poesys-DB is distributed in the hope that it will be useful, but WITHOUT ANY
  * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
  * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
  */
 package com.poesys.db;
-
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -27,7 +26,6 @@ import java.util.ResourceBundle;
 
 import org.apache.log4j.Logger;
 
-
 /**
  * Get the message from the PoesysDbBundle properties file or optionally from
  * user-specified files. These are I18N messages that the application can
@@ -35,7 +33,7 @@ import org.apache.log4j.Logger;
  * PoesysDbBundle.properties. The message class works as a Singleton pattern
  * class that has a list of message files set up when you first access the
  * class.
- * 
+ *
  * @author Robert J. Muller
  */
 public abstract class Message {
@@ -44,7 +42,7 @@ public abstract class Message {
    */
   private static Logger logger = Logger.getLogger(Message.class);
   /** Name of the properties file; app can use this name to open the file */
-  public static final String DEFAULT_FILE_NAME = "com.poesys.db.PoesysDbBundle";
+  private static final String DEFAULT_FILE_NAME = "com.poesys.db.PoesysDbBundle";
   /** Properties from Poesys DB subsystem */
   private static List<ResourceBundle> properties = null;
 
@@ -54,15 +52,15 @@ public abstract class Message {
    * the default Poesys/DB bundle last in the list. The application should call
    * this method once as a static initializer. Subsequent calls are logged and
    * ignored.
-   * 
+   *
    * @param names the property-file names in package format (for example,
-   *          com.poesys.db.PoesysDbBundle)
+   *              com.poesys.db.PoesysDbBundle)
    */
   public static void initializePropertiesFiles(List<String> names) {
     if (properties == null && names != null) {
       logger.debug("Initializing Poesys/DB messages file");
       // Initialize the empty array.
-      properties = new ArrayList<ResourceBundle>(names.size() + 1);
+      properties = new ArrayList<>(names.size() + 1);
       // Add the user-specified files to the list.
       for (String name : names) {
         ResourceBundle bundle;
@@ -78,7 +76,7 @@ public abstract class Message {
     } else if (properties == null) {
       logger.debug("Initializing Poesys/DB messages file with defaults only");
       // Initialize a single-element array.
-      properties = new ArrayList<ResourceBundle>(1);
+      properties = new ArrayList<>(1);
     } else {
       // Already initialized, log and ignore
       logger.warn("Message properties file already initialized");
@@ -87,7 +85,7 @@ public abstract class Message {
     // Add the Poesys DB bundle as the last (or only) file in the list.
     properties.add(ResourceBundle.getBundle(DEFAULT_FILE_NAME));
   }
-  
+
   /**
    * Reset the properties files to empty to allow reinitialization.
    */
@@ -101,8 +99,8 @@ public abstract class Message {
    * from the resource bundle with any arguments supplied in an array of object
    * arguments (String, Integer, and so on). This method uses the default
    * locale.
-   * 
-   * @param key the key in the resource bundle that identifies the message
+   *
+   * @param key  the key in the resource bundle that identifies the message
    * @param args an array of object values to substitute in as arguments
    * @return the completed message
    */
@@ -118,16 +116,16 @@ public abstract class Message {
    * There should be a localized resource bundle for the designated locale; if
    * not, the system uses the default locale. If the message is not a key from
    * the resource bundle, render the message directly as the completed message.
-   * 
-   * @param key the key in a resource bundle that identifies the message
-   * @param args an array of object values to substitute in as arguments
+   *
+   * @param key    the key in a resource bundle that identifies the message
+   * @param args   an array of object values to substitute in as arguments
    * @param locale the locale to use to look up the message
    * @return the completed message
    * @throws MissingResourceException when the method does not find the key in
-   *           any registered bundle
+   *                                  any registered bundle
    */
-  public static String getMessage(String key, Object[] args, Locale locale)
-      throws MissingResourceException {
+  public static String getMessage(String key, Object[] args, Locale locale) throws
+    MissingResourceException {
     String message = null;
     MissingResourceException exception = null;
 
@@ -139,7 +137,7 @@ public abstract class Message {
     }
 
     for (ResourceBundle bundle : properties) {
-      String pattern = null;
+      String pattern;
       try {
         pattern = bundle.getString(key);
       } catch (MissingResourceException e) {
@@ -147,32 +145,42 @@ public abstract class Message {
         // Not in this bundle, move on to next bundle.
         continue;
       }
-      if (pattern != null) {
-        if (args != null && args.length > 0) {
-          MessageFormat formatter = new MessageFormat("");
-          formatter.setLocale(locale);
-          formatter.applyPattern(pattern);
-          message = formatter.format(args);
-        } else {
-          message = pattern;
-        }
-        // Take the first instance of the key found.
-        break;
+      if (args != null && args.length > 0) {
+        MessageFormat formatter = new MessageFormat("");
+        formatter.setLocale(locale);
+        formatter.applyPattern(pattern);
+        message = formatter.format(args);
+      } else {
+        message = pattern;
       }
+      // Take the first instance of the key found.
+      break;
     }
 
-    // If there's no message at this point, and the input key is not null, make
-    // the key the message; otherwise, re-throw the missing-resource exception.
+    // If there's no message at this point, and the input key is not null, make the key the
+    // message; otherwise if the missing-resource exception is not null, re-throw the exception;
+    // otherwise, if the message is just null, throw a hard-coded runtime exception.
     if (message == null && key != null) {
       message = key;
-    } else if (message != null) {
-      // return message below
-    } else if (exception != null) {
+    } else if (message == null && exception != null) {
       throw exception;
-    } else {
+    } else if (message == null) {
       throw new RuntimeException("Can't get message for exception, null key");
     }
 
     return message;
+  }
+
+  /**
+   * Throw a JSON exception with a message created from the specified key and arguments, giving
+   * the specified Throwable as the causing exception.
+   *
+   * @param key   the Poesys/DB key property for the error message; must exist in a properties file
+   * @param args  the arguments for the message (must correspond to message variable, such as {0})
+   * @param cause the optional causing exception, such as a ParseException
+   */
+  public static void throwJsonException(String key, Object[] args, Throwable cause) {
+    String message = getMessage(key, args);
+    throw new JsonErrorException(message, cause);
   }
 }

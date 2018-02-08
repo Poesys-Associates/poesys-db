@@ -18,16 +18,19 @@
 package com.poesys.db.col;
 
 
+import com.poesys.db.InvalidParametersException;
+import com.poesys.db.dao.ConnectionTest;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-import com.poesys.db.InvalidParametersException;
-import com.poesys.db.col.BigDecimalColumnValue;
-import com.poesys.db.dao.ConnectionTest;
-
+import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 /**
  * Test the BigDecimalColumnValue class.
@@ -45,6 +48,7 @@ public class BigDecimalColumnValueTest extends ConnectionTest {
    * @throws InvalidParametersException when the BigDecimal can't be created
    *           properly
    */
+  @Test
   public void testHashCode() throws InvalidParametersException {
     BigDecimalColumnValue value =
       new BigDecimalColumnValue(NAME, new BigDecimal(NUMBER));
@@ -63,12 +67,14 @@ public class BigDecimalColumnValueTest extends ConnectionTest {
    * @throws InvalidParametersException when the BigDecimal can't be created
    *           properly
    */
+  @Test
   public void testEqualsColumnValue() throws InvalidParametersException {
     BigDecimalColumnValue value =
       new BigDecimalColumnValue(NAME, new BigDecimal(NUMBER));
     BigDecimalColumnValue testValue =
       new BigDecimalColumnValue(NAME, new BigDecimal(NUMBER));
-    BigDecimal testValue2 = new BigDecimal(NUMBER2);
+    BigDecimalColumnValue testValue2 =
+      new BigDecimalColumnValue(NAME, new BigDecimal(NUMBER2));
 
     assertTrue(value.equals(testValue));
     assertFalse(value.equals(testValue2));
@@ -86,6 +92,7 @@ public class BigDecimalColumnValueTest extends ConnectionTest {
    * @throws SQLException when the SQL statement with parameters fails to
    *           prepare
    */
+  @Test
   public void testSetParam() throws InvalidParametersException, SQLException,
       IOException {
     Connection connection = null;
@@ -113,6 +120,7 @@ public class BigDecimalColumnValueTest extends ConnectionTest {
    * @throws InvalidParametersException when the BigDecimal can't be created
    *           properly
    */
+  @Test
   public void testBigDecimalColumnValue() throws InvalidParametersException {
     @SuppressWarnings("unused")
     BigDecimalColumnValue value =
@@ -130,11 +138,8 @@ public class BigDecimalColumnValueTest extends ConnectionTest {
       BigDecimalColumnValue value4 =
         new BigDecimalColumnValue(null, new BigDecimal(NUMBER));
       assertTrue(false);
-    } catch (NumberFormatException e) {
-      assertTrue(true);
-    } catch (InvalidParametersException e) {
-      assertTrue(true);
+    } catch (NumberFormatException | InvalidParametersException e) {
+      // success
     }
   }
-
 }

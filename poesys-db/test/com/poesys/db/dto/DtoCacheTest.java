@@ -18,19 +18,19 @@
 package com.poesys.db.dto;
 
 
-import static org.junit.Assert.assertTrue;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-
-import com.poesys.db.col.AbstractColumnValue;
+import com.poesys.db.col.IColumnValue;
 import com.poesys.db.col.StringColumnValue;
 import com.poesys.db.pk.IPrimaryKey;
 import com.poesys.db.pk.PrimaryKeyFactory;
 import org.junit.Test;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+
+import static org.junit.Assert.assertTrue;
+
 /**
- * Test the DtoCache class.
+ * CUT: DtoCache
  * 
  * @author Robert J. Muller
  */
@@ -48,13 +48,12 @@ public class DtoCacheTest {
    */
   @Test
   public void testCache() {
-    IDtoCache<TestNatural> cache =
-      new DtoCache<TestNatural>(TestNatural.class.getName());
+    IDtoCache<TestNatural> cache = new DtoCache<>(TestNatural.class.getName());
     TestNatural test = new TestNatural(KEY1, KEY2, COL1);
     IPrimaryKey key = test.getPrimaryKey();
     cache.cache(test);
     assertTrue(true);
-    TestNatural test2 = (TestNatural)cache.get(key);
+    TestNatural test2 = cache.get(key);
     assertTrue("Cannot get test object from cache", test2 != null);
     assertTrue("Cached object not identical to original object",
                test.equals(test2));
@@ -69,16 +68,14 @@ public class DtoCacheTest {
    */
   @Test
   public void testCacheDiff() {
-    IDtoCache<TestNatural> cache =
-      new DtoCache<TestNatural>(TestNatural.class.getName());
+    IDtoCache<TestNatural> cache = new DtoCache<>(TestNatural.class.getName());
 
     // Create a Test Natural object with a primary key embedded.
     TestNatural test = new TestNatural(KEY1, KEY2, COL1);
     int hash1 = test.getPrimaryKey().hashCode();
 
     // Create a separate primary key using the key columns.
-    ArrayList<AbstractColumnValue> list =
-      new ArrayList<AbstractColumnValue>();
+    ArrayList<IColumnValue> list = new ArrayList<>();
     list.add(new StringColumnValue(KEY1, KEY1));
     list.add(new StringColumnValue(KEY2, KEY2));
     IPrimaryKey key =
@@ -94,7 +91,7 @@ public class DtoCacheTest {
 
     // Use the separately created key to get the object.
     System.out.println("Getting object " + key.getValueList());
-    TestNatural test2 = (TestNatural)cache.get(key);
+    TestNatural test2 = cache.get(key);
     assertTrue("Cannot get test object from cache", test2 != null);
     assertTrue("Cached object not identical to original object",
                test.equals(test2));
@@ -106,18 +103,17 @@ public class DtoCacheTest {
    */
   @Test
   public void testRemove() {
-    IDtoCache<TestNatural> cache =
-      new DtoCache<TestNatural>(TestNatural.class.getName());
+    IDtoCache<TestNatural> cache = new DtoCache<>(TestNatural.class.getName());
     TestNatural test = new TestNatural(KEY1, KEY2, COL1);
     IPrimaryKey key = test.getPrimaryKey();
     cache.cache(test);
     assertTrue(true);
-    TestNatural test2 = (TestNatural)cache.get(key);
+    TestNatural test2 = cache.get(key);
     assertTrue("Cannot get test object from cache", test2 != null);
     assertTrue("Cached object not identical to original object",
                test.equals(test2));
     cache.remove(key);
-    test2 = (TestNatural)cache.get(key);
+    test2 = cache.get(key);
     assertTrue("Cached object not removed", test2 == null);
   }
 

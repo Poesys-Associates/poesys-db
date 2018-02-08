@@ -21,6 +21,8 @@ package com.poesys.db.col;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import com.poesys.db.col.json.IJsonColumnValue;
+import com.poesys.db.col.json.LongJsonColumnValue;
 import org.apache.log4j.Logger;
 
 import com.poesys.db.InvalidParametersException;
@@ -41,7 +43,7 @@ public class LongColumnValue extends AbstractColumnValue {
   private static final long serialVersionUID = 1L;
 
   /** The Long value */
-  private Long value = null;
+  private Long value;
 
   /**
    * Create a LongColumnValue object.
@@ -61,7 +63,7 @@ public class LongColumnValue extends AbstractColumnValue {
   }
 
   @Override
-  public boolean valueEquals(AbstractColumnValue value) {
+  public boolean valueEquals(com.poesys.db.col.IColumnValue value) {
     boolean ret = false;
     if (value instanceof LongColumnValue) {
       ret = this.value.equals(((LongColumnValue)value).value);
@@ -102,8 +104,13 @@ public class LongColumnValue extends AbstractColumnValue {
   }
 
   @Override
-  protected void accept(IColumnVisitor visitor) {
+  public void accept(IColumnVisitor visitor) {
     visitor.visit(this);
+  }
+
+  @Override
+  public IJsonColumnValue getJsonColumnValue() {
+    return new LongJsonColumnValue(name, getClass().getName(), value.toString());
   }
 
   @Override
@@ -118,8 +125,6 @@ public class LongColumnValue extends AbstractColumnValue {
 
   @Override
   public IColumnValue<?> getMessageObject() {
-    IColumnValue<?> col =
-      new ColumnValueImpl<Long>(name, IColumnValue.ColumnType.Long, value);
-    return col;
+    return new ColumnValueImpl<>(name, IColumnValue.ColumnType.Long, value);
   }
 }

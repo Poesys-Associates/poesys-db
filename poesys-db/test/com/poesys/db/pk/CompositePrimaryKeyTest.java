@@ -18,6 +18,14 @@
 package com.poesys.db.pk;
 
 
+import com.poesys.db.DuplicateKeyNameException;
+import com.poesys.db.InvalidParametersException;
+import com.poesys.db.col.BigIntegerColumnValue;
+import com.poesys.db.col.IColumnValue;
+import com.poesys.db.dao.ConnectionTest;
+import org.junit.Before;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.math.BigInteger;
 import java.sql.Connection;
@@ -27,12 +35,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import com.poesys.db.DuplicateKeyNameException;
-import com.poesys.db.InvalidParametersException;
-import com.poesys.db.col.AbstractColumnValue;
-import com.poesys.db.col.BigIntegerColumnValue;
-import com.poesys.db.dao.ConnectionTest;
-
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 /**
  * Test the CompositePrimaryKey class.
@@ -42,7 +47,6 @@ import com.poesys.db.dao.ConnectionTest;
 public class CompositePrimaryKeyTest extends ConnectionTest {
   private String col1Name = "col1";
   private String col2Name = "col2";
-  private String col3Name = "col3";
   private AbstractSingleValuedPrimaryKey key1 = null;
   private AbstractSingleValuedPrimaryKey key2 = null;
   private AbstractSingleValuedPrimaryKey key3 = null;
@@ -50,9 +54,9 @@ public class CompositePrimaryKeyTest extends ConnectionTest {
 
   private static final String CLASS_NAME = "com.poesys.db.dto.TestSequence";
 
-  @Override
-  protected void setUp() throws Exception {
-    super.setUp();
+
+  @Before
+  public void setUp() throws Exception {
     try {
       // Define two primary keys with different column names and values.
       key1 = new SequencePrimaryKey(col1Name, new BigInteger("1"), CLASS_NAME);
@@ -61,6 +65,7 @@ public class CompositePrimaryKeyTest extends ConnectionTest {
       // Define primary key with key1 name and key2 value
       key3 =
         new SequencePrimaryKey(col1Name, new BigInteger("200"), CLASS_NAME);
+      String col3Name = "col3";
       key5 =
         new SequencePrimaryKey(col3Name, new BigInteger("200"), CLASS_NAME);
 
@@ -77,11 +82,11 @@ public class CompositePrimaryKeyTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when more than one column in the key has
    *           the same name
    */
+  @Test
   public void testCompositePrimaryKey() throws InvalidParametersException,
       DuplicateKeyNameException {
-    NaturalPrimaryKey subKey = createSubkey(col1Name, new BigInteger("1"));
-    CompositePrimaryKey key = new CompositePrimaryKey(key2, subKey, CLASS_NAME);
-    assertTrue(key != null);
+    NaturalPrimaryKey subKey = createSubKey(col1Name, new BigInteger("1"));
+    new CompositePrimaryKey(key2, subKey, CLASS_NAME);
   }
 
   /**
@@ -94,28 +99,29 @@ public class CompositePrimaryKeyTest extends ConnectionTest {
    * @throws InvalidParametersException when the key has incorrect values
    * @throws DuplicateKeyNameException when the key has duplicate names
    */
-  private NaturalPrimaryKey createSubkey(String colName, BigInteger value)
+  private NaturalPrimaryKey createSubKey(String colName, BigInteger value)
       throws InvalidParametersException, DuplicateKeyNameException {
-    AbstractColumnValue columnValue = new BigIntegerColumnValue(colName, value);
-    List<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
+    IColumnValue columnValue = new BigIntegerColumnValue(colName, value);
+    List<IColumnValue> list = new ArrayList<>();
     list.add(columnValue);
     return new NaturalPrimaryKey(list, CLASS_NAME);
   }
 
   /**
-   * Test method for CompositePrimaryKey constructor with invalid subkey
+   * Test method for CompositePrimaryKey constructor with invalid sub-key
    * parameter
    * 
    * @throws InvalidParametersException when there is a null parameter
    * @throws DuplicateKeyNameException when more than one column in the key has
    *           the same name
    */
+  @Test
   public void testCompositePrimaryKeyInvalidParametersSub()
       throws DuplicateKeyNameException {
     @SuppressWarnings("unused")
     CompositePrimaryKey key;
     try {
-      key = new CompositePrimaryKey(key1, null, CLASS_NAME);
+      new CompositePrimaryKey(key1, null, CLASS_NAME);
       fail();
     } catch (InvalidParametersException e) {
       assertTrue(true);
@@ -129,13 +135,14 @@ public class CompositePrimaryKeyTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when more than one column in the key has
    *           the same name
    */
+  @Test
   public void testCompositePrimaryKeyInvalidParametersPrimary()
       throws DuplicateKeyNameException {
     try {
       @SuppressWarnings("unused")
       CompositePrimaryKey key =
         new CompositePrimaryKey(null,
-                                createSubkey(col1Name, new BigInteger("1")),
+                                createSubKey(col1Name, new BigInteger("1")),
                                 CLASS_NAME);
       fail();
     } catch (InvalidParametersException e) {
@@ -150,13 +157,14 @@ public class CompositePrimaryKeyTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when more than one column in the key has
    *           the same name
    */
+  @Test
   public void testCompositePrimaryKeyDupName()
       throws InvalidParametersException {
     try {
       @SuppressWarnings("unused")
       CompositePrimaryKey key =
         new CompositePrimaryKey(key1,
-                                createSubkey(col1Name, new BigInteger("1")),
+                                createSubKey(col1Name, new BigInteger("1")),
                                 CLASS_NAME);
       fail("Duplicate key name not detected");
     } catch (DuplicateKeyNameException e) {
@@ -173,16 +181,17 @@ public class CompositePrimaryKeyTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when more than one column in the key has
    *           the same name
    */
+  @Test
   public void testEqualsIPrimaryKey() throws InvalidParametersException,
       DuplicateKeyNameException {
     // same key columns and values
     CompositePrimaryKey firstKey =
       new CompositePrimaryKey(key1,
-                              createSubkey(col2Name, new BigInteger("1")),
+                              createSubKey(col2Name, new BigInteger("1")),
                               CLASS_NAME);
     CompositePrimaryKey secondKey =
       new CompositePrimaryKey(key1,
-                              createSubkey(col2Name, new BigInteger("1")),
+                              createSubKey(col2Name, new BigInteger("1")),
                               CLASS_NAME);
     assertTrue(firstKey.equals(secondKey));
   }
@@ -196,16 +205,17 @@ public class CompositePrimaryKeyTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when more than one column in the key has
    *           the same name
    */
+  @Test
   public void testNotEqualsIPrimaryKey() throws InvalidParametersException,
       DuplicateKeyNameException {
     // same key columns and values
     CompositePrimaryKey firstKey =
       new CompositePrimaryKey(key1,
-                              createSubkey(col2Name, new BigInteger("1")),
+                              createSubKey(col2Name, new BigInteger("1")),
                               CLASS_NAME);
     CompositePrimaryKey secondKey =
       new CompositePrimaryKey(key2,
-                              createSubkey(col1Name, new BigInteger("1")),
+                              createSubKey(col1Name, new BigInteger("1")),
                               CLASS_NAME);
     assertFalse(firstKey.equals(secondKey));
   }
@@ -219,16 +229,17 @@ public class CompositePrimaryKeyTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when more than one column in the key has
    *           the same name
    */
+  @Test
   public void testNotEqualsIPrimaryKey2() throws InvalidParametersException,
       DuplicateKeyNameException {
     // same key columns and values
     CompositePrimaryKey firstKey =
       new CompositePrimaryKey(key1,
-                              createSubkey(col2Name, new BigInteger("1")),
+                              createSubKey(col2Name, new BigInteger("1")),
                               CLASS_NAME);
     CompositePrimaryKey secondKey =
       new CompositePrimaryKey(key3,
-                              createSubkey(col2Name, new BigInteger("1")),
+                              createSubKey(col2Name, new BigInteger("1")),
                               CLASS_NAME);
     assertFalse(firstKey.equals(secondKey));
   }
@@ -242,16 +253,17 @@ public class CompositePrimaryKeyTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when more than one column in the key has
    *           the same name
    */
+  @Test
   public void testNotEqualsIPrimaryKey3() throws InvalidParametersException,
       DuplicateKeyNameException {
     // same key columns and values
     CompositePrimaryKey firstKey =
       new CompositePrimaryKey(key3,
-                              createSubkey(col2Name, new BigInteger("1")),
+                              createSubKey(col2Name, new BigInteger("1")),
                               CLASS_NAME);
     CompositePrimaryKey secondKey =
       new CompositePrimaryKey(key5,
-                              createSubkey(col1Name, new BigInteger("1")),
+                              createSubKey(col1Name, new BigInteger("1")),
                               CLASS_NAME);
     assertFalse(firstKey.equals(secondKey));
   }
@@ -265,11 +277,11 @@ public class CompositePrimaryKeyTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when more than one column in the key has
    *           the same name
    */
+  @Test
   public void testGetSqlColumnList() throws InvalidParametersException,
       DuplicateKeyNameException {
-    NaturalPrimaryKey subKey = createSubkey(col1Name, new BigInteger("1"));
+    NaturalPrimaryKey subKey = createSubKey(col1Name, new BigInteger("1"));
     CompositePrimaryKey key = new CompositePrimaryKey(key2, subKey, CLASS_NAME);
-    assertTrue(key != null);
     String colList = key.getSqlColumnList("c");
     assertTrue(colList, "c.col1, c.col2".equalsIgnoreCase(colList));
   }
@@ -283,11 +295,11 @@ public class CompositePrimaryKeyTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when more than one column in the key has
    *           the same name
    */
+  @Test
   public void testGetSqlWhereExpression() throws InvalidParametersException,
       DuplicateKeyNameException {
-    NaturalPrimaryKey subKey = createSubkey(col1Name, new BigInteger("1"));
+    NaturalPrimaryKey subKey = createSubKey(col1Name, new BigInteger("1"));
     CompositePrimaryKey key = new CompositePrimaryKey(key2, subKey, CLASS_NAME);
-    assertTrue(key != null);
     String colList = key.getSqlWhereExpression("c");
     assertTrue("c.col1 = ? AND c.col2 = ?".equalsIgnoreCase(colList));
   }
@@ -299,13 +311,13 @@ public class CompositePrimaryKeyTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when more than one column in the key has
    *           the same name
    */
+  @Test
   public void testIterator() throws InvalidParametersException,
       DuplicateKeyNameException {
-    NaturalPrimaryKey subKey = createSubkey(col1Name, new BigInteger("1"));
+    NaturalPrimaryKey subKey = createSubKey(col1Name, new BigInteger("1"));
     CompositePrimaryKey key = new CompositePrimaryKey(key2, subKey, CLASS_NAME);
-    assertTrue(key != null);
     int i = 0;
-    for (AbstractColumnValue colValue : key) {
+    for (IColumnValue colValue : key) {
       assertTrue(colValue != null);
       i++;
     }
@@ -323,12 +335,12 @@ public class CompositePrimaryKeyTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when more than one column in the key has
    *           the same name
    */
+  @Test
   public void testSetParams() throws SQLException, IOException,
       InvalidParametersException, DuplicateKeyNameException {
     Connection connection = getConnection();
-    NaturalPrimaryKey subKey = createSubkey(col1Name, new BigInteger("1"));
+    NaturalPrimaryKey subKey = createSubKey(col1Name, new BigInteger("1"));
     CompositePrimaryKey key = new CompositePrimaryKey(key2, subKey, CLASS_NAME);
-    assertTrue(key != null);
     PreparedStatement stmt =
       connection.prepareStatement("SELECT * FROM TEST WHERE testKey1 = ? AND testKey2 = ?");
     key.setParams(stmt, 1);
@@ -343,13 +355,13 @@ public class CompositePrimaryKeyTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when more than one column in the key has
    *           the same name
    */
+  @Test
   public void testGetParentKey() throws InvalidParametersException,
       DuplicateKeyNameException {
-    NaturalPrimaryKey subKey = createSubkey(col1Name, new BigInteger("1"));
+    NaturalPrimaryKey subKey = createSubKey(col1Name, new BigInteger("1"));
     CompositePrimaryKey key = new CompositePrimaryKey(key2, subKey, CLASS_NAME);
-    assertTrue(key != null);
     IPrimaryKey parentKey = key.getParentKey();
-    for (AbstractColumnValue c : parentKey) {
+    for (IColumnValue c : parentKey) {
       String name = c.getName();
       assertTrue(name.equalsIgnoreCase(col2Name));
     }
@@ -362,13 +374,13 @@ public class CompositePrimaryKeyTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when more than one column in the key has
    *           the same name
    */
+  @Test
   public void testGetSubKey() throws InvalidParametersException,
       DuplicateKeyNameException {
-    NaturalPrimaryKey subKey = createSubkey(col1Name, new BigInteger("1"));
+    NaturalPrimaryKey subKey = createSubKey(col1Name, new BigInteger("1"));
     CompositePrimaryKey key = new CompositePrimaryKey(key2, subKey, CLASS_NAME);
-    assertTrue(key != null);
     IPrimaryKey subKey1 = key.getSubKey();
-    for (AbstractColumnValue c : subKey1) {
+    for (IColumnValue c : subKey1) {
       String name = c.getName();
       assertTrue(name.equalsIgnoreCase(col1Name));
     }
@@ -382,15 +394,15 @@ public class CompositePrimaryKeyTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when more than one column in the key has
    *           the same name
    */
+  @Test
   public void testGetColumnNames() throws InvalidParametersException,
       DuplicateKeyNameException {
-    NaturalPrimaryKey subKey = createSubkey(col1Name, new BigInteger("1"));
+    NaturalPrimaryKey subKey = createSubKey(col1Name, new BigInteger("1"));
     CompositePrimaryKey key = new CompositePrimaryKey(key2, subKey, CLASS_NAME);
-    assertTrue(key != null);
     Set<String> names = key.getColumnNames();
     assertTrue("size != 2: " + names.size(), names.size() == 2);
-    names.contains(col1Name);
-    names.contains(col2Name);
+    assertTrue(names.contains(col1Name));
+    assertTrue(names.contains(col2Name));
   }
 
   /**
@@ -403,11 +415,11 @@ public class CompositePrimaryKeyTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when more than one column in the key has
    *           the same name
    */
+  @Test
   public void testGetValueListSingle() throws InvalidParametersException,
       DuplicateKeyNameException {
-    NaturalPrimaryKey subKey = createSubkey(col2Name, new BigInteger("1"));
+    NaturalPrimaryKey subKey = createSubKey(col2Name, new BigInteger("1"));
     CompositePrimaryKey key = new CompositePrimaryKey(key1, subKey, CLASS_NAME);
-    assertTrue(key != null);
     String value = key.getValueList();
     String shouldBe = "(" + col1Name + " = 1, " + col2Name + " = 1)";
     assertTrue(value + " should be " + shouldBe, value.equals(shouldBe));

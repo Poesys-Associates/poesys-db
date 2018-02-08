@@ -25,16 +25,18 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.poesys.db.DuplicateKeyNameException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.NoPrimaryKeyException;
-import com.poesys.db.col.AbstractColumnValue;
 import com.poesys.db.col.BigIntegerColumnValue;
+import com.poesys.db.col.IColumnValue;
 import com.poesys.db.col.StringColumnValue;
 import com.poesys.db.dao.ConnectionTest;
+import org.junit.Test;
 
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Test the PrimaryKeyFactory class.
@@ -52,9 +54,10 @@ public class PrimaryKeyFactoryTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when more than one column has the same
    *           name in the key
    */
+  @Test
   public void testCreateNaturalKey() throws InvalidParametersException,
       DuplicateKeyNameException {
-    ArrayList<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
+    ArrayList<IColumnValue> list = new ArrayList<>();
     StringColumnValue val1 = new StringColumnValue("val1", "string_value");
     BigIntegerColumnValue val2 =
       new BigIntegerColumnValue("val2", new BigInteger("10"));
@@ -62,12 +65,10 @@ public class PrimaryKeyFactoryTest extends ConnectionTest {
     list.add(val2);
     NaturalPrimaryKey key = null;
     try {
-      key =
-        (NaturalPrimaryKey)PrimaryKeyFactory.createNaturalKey(list, CLASS_NAME);
+      key = PrimaryKeyFactory.createNaturalKey(list, CLASS_NAME);
     } catch (ClassCastException e) {
       fail("Did not create natural key");
     }
-    assertTrue(key != null);
     assertTrue(key.getSqlColumnList("").equalsIgnoreCase("val1, val2"));
   }
 
@@ -76,15 +77,14 @@ public class PrimaryKeyFactoryTest extends ConnectionTest {
    * 
    * @throws InvalidParametersException when a parameter is null
    */
+  @Test
   public void testCreateGuidKey() throws InvalidParametersException {
     GuidPrimaryKey key = null;
     try {
-      key =
-        (GuidPrimaryKey)PrimaryKeyFactory.createGuidKey("test_id", CLASS_NAME);
+      key = PrimaryKeyFactory.createGuidKey("test_id", CLASS_NAME);
     } catch (ClassCastException e) {
       fail("Did not create guid key");
     }
-    assertTrue(key != null);
     assertTrue(key.getSqlColumnList("").equalsIgnoreCase("test_id"));
   }
 
@@ -93,16 +93,15 @@ public class PrimaryKeyFactoryTest extends ConnectionTest {
    * 
    * @throws InvalidParametersException when a parameter is null
    */
+  @Test
   public void testCreateIdentityKey() throws InvalidParametersException {
     IdentityPrimaryKey key = null;
     try {
-      key =
-        (IdentityPrimaryKey)PrimaryKeyFactory.createIdentityKey("test_id",
-                                                                CLASS_NAME);
+      key = PrimaryKeyFactory.createIdentityKey("test_id",
+                                                              CLASS_NAME);
     } catch (ClassCastException e) {
       fail("Did not create identity key");
     }
-    assertTrue(key != null);
     assertTrue(key.getSqlColumnList("").equalsIgnoreCase("test_id"));
   }
 
@@ -124,6 +123,7 @@ public class PrimaryKeyFactoryTest extends ConnectionTest {
    * @throws InvalidParametersException when a parameter is null
    * @throws NoPrimaryKeyException when there is no primary key
    */
+  @Test
   public void testCreateMysqlSequenceKey() throws SQLException, IOException,
       InvalidParametersException, NoPrimaryKeyException {
     AbstractSingleValuedPrimaryKey key = null;
@@ -149,18 +149,15 @@ public class PrimaryKeyFactoryTest extends ConnectionTest {
 
     // Create the sequence key.
     try {
-      key =
-        (AbstractSingleValuedPrimaryKey)PrimaryKeyFactory.createMySqlSequenceKey("test",
-                                                                                 "test_id",
-                                                                                 CLASS_NAME,
-                                                                                 getSubsystem());
+      key = PrimaryKeyFactory.createMySqlSequenceKey("test",
+                                                                               "test_id",
+                                                                               CLASS_NAME,
+                                                                               getSubsystem());
     } catch (ClassCastException e) {
       fail("Did not create MySQL sequence key");
     } finally {
-      if (conn != null) {
-        conn.commit();
-        conn.close();
-      }
+      conn.commit();
+      conn.close();
     }
     assertTrue(key != null);
     assertTrue(key.getSqlColumnList("").equalsIgnoreCase("test_id"));
@@ -177,28 +174,26 @@ public class PrimaryKeyFactoryTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when more than one column has the same
    *           name in the key
    */
+  @Test
   public void testCreateCompositeKey() throws InvalidParametersException,
       DuplicateKeyNameException {
-    ArrayList<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
+    ArrayList<IColumnValue> list = new ArrayList<>();
     StringColumnValue val1 = new StringColumnValue("val1", "string_value");
     list.add(val1);
     IPrimaryKey parent = PrimaryKeyFactory.createNaturalKey(list, CLASS_NAME);
-    ArrayList<AbstractColumnValue> list2 = new ArrayList<AbstractColumnValue>();
+    ArrayList<IColumnValue> list2 = new ArrayList<>();
     BigIntegerColumnValue val2 =
       new BigIntegerColumnValue("val2", new BigInteger("10"));
     list2.add(val2);
-    NaturalPrimaryKey child =
-      (NaturalPrimaryKey)PrimaryKeyFactory.createNaturalKey(list2, CLASS_NAME);
+    NaturalPrimaryKey child = PrimaryKeyFactory.createNaturalKey(list2, CLASS_NAME);
     CompositePrimaryKey key = null;
     try {
-      key =
-        (CompositePrimaryKey)PrimaryKeyFactory.createCompositeKey(parent,
-                                                                  child,
-                                                                  CLASS_NAME);
+      key = PrimaryKeyFactory.createCompositeKey(parent,
+                                                                child,
+                                                                CLASS_NAME);
     } catch (ClassCastException e) {
       fail("Did not create composite key");
     }
-    assertTrue(key != null);
     assertTrue(key.getSqlColumnList("").equalsIgnoreCase("val1, val2"));
   }
 
@@ -209,22 +204,21 @@ public class PrimaryKeyFactoryTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when more than one column has the same
    *           name in the key
    */
+  @Test
   public void testCreateAssociationKey() throws InvalidParametersException,
       DuplicateKeyNameException {
-    ArrayList<AbstractColumnValue> collist1 =
-      new ArrayList<AbstractColumnValue>();
+    ArrayList<IColumnValue> colList1 = new ArrayList<>();
     StringColumnValue val1 = new StringColumnValue("val1", "string_value");
-    collist1.add(val1);
-    IPrimaryKey key1 = PrimaryKeyFactory.createNaturalKey(collist1, CLASS_NAME);
+    colList1.add(val1);
+    IPrimaryKey key1 = PrimaryKeyFactory.createNaturalKey(colList1, CLASS_NAME);
     BigIntegerColumnValue val2 =
       new BigIntegerColumnValue("val2", new BigInteger("10"));
-    ArrayList<AbstractColumnValue> collist2 =
-      new ArrayList<AbstractColumnValue>();
-    collist2.add(val2);
+    ArrayList<IColumnValue> colList2 = new ArrayList<>();
+    colList2.add(val2);
     NaturalPrimaryKey key2 =
-      PrimaryKeyFactory.createNaturalKey(collist2, CLASS_NAME);
+      PrimaryKeyFactory.createNaturalKey(colList2, CLASS_NAME);
     AssociationPrimaryKey key = null;
-    ArrayList<IPrimaryKey> keys = new ArrayList<IPrimaryKey>();
+    ArrayList<IPrimaryKey> keys = new ArrayList<>();
     keys.add(key1);
     keys.add(key2);
 
@@ -233,7 +227,6 @@ public class PrimaryKeyFactoryTest extends ConnectionTest {
     } catch (ClassCastException e) {
       fail("Did not create association key");
     }
-    assertTrue(key != null);
     assertTrue(key.getSqlColumnList("").equalsIgnoreCase("val1, val2"));
   }
 
@@ -244,6 +237,7 @@ public class PrimaryKeyFactoryTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when more than one column has the same
    *           name in the key
    */
+  @Test
   public void testCreateAssociationKeyWithMapping()
       throws InvalidParametersException, DuplicateKeyNameException {
     AssociationPrimaryKey key = null;
@@ -253,7 +247,7 @@ public class PrimaryKeyFactoryTest extends ConnectionTest {
     IPrimaryKey key2 =
       PrimaryKeyFactory.createIdentityKey("id", new BigInteger("2"), CLASS_NAME);
 
-    List<IPrimaryKey> keys = new CopyOnWriteArrayList<IPrimaryKey>();
+    List<IPrimaryKey> keys = new ArrayList<>();
     keys.add(key1);
     keys.add(key2);
 
@@ -267,7 +261,6 @@ public class PrimaryKeyFactoryTest extends ConnectionTest {
     } catch (ClassCastException e) {
       fail("Did not create association key with mapping");
     }
-    assertTrue("No association key created with mapping", key != null);
     assertTrue(key.getSqlColumnList("").equalsIgnoreCase("root_term_id, term_id"));
   }
 
@@ -278,10 +271,11 @@ public class PrimaryKeyFactoryTest extends ConnectionTest {
    * @throws DuplicateKeyNameException when more than one column has the same
    *           name in the key
    */
+  @Test
   public void testCreateAssociationKeyWithMapping2()
       throws InvalidParametersException, DuplicateKeyNameException {
     // Build a list of the primary keys to associate.
-    List<IPrimaryKey> keys = new CopyOnWriteArrayList<IPrimaryKey>();
+    List<IPrimaryKey> keys = new ArrayList<>();
     keys.add(PrimaryKeyFactory.createIdentityKey("id",
                                                  new BigInteger("1"),
                                                  CLASS_NAME));
@@ -297,8 +291,6 @@ public class PrimaryKeyFactoryTest extends ConnectionTest {
     // Create the new key.
     AssociationPrimaryKey key =
       PrimaryKeyFactory.createAssociationKey(keys, mapping, CLASS_NAME);
-    assertTrue("No association key created with mapping", key != null);
     assertTrue(key.getSqlColumnList("").equalsIgnoreCase("root_term_id, term_id"));
   }
-
 }

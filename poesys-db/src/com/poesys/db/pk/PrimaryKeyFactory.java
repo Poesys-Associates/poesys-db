@@ -18,6 +18,12 @@
 package com.poesys.db.pk;
 
 
+import com.poesys.db.*;
+import com.poesys.db.col.BigIntegerColumnValue;
+import com.poesys.db.col.IColumnValue;
+import com.poesys.db.dao.PoesysTrackingThread;
+import org.apache.log4j.Logger;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.PreparedStatement;
@@ -26,18 +32,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import org.apache.log4j.Logger;
-
-import com.poesys.db.DbErrorException;
-import com.poesys.db.DuplicateKeyNameException;
-import com.poesys.db.InvalidParametersException;
-import com.poesys.db.Message;
-import com.poesys.db.NoPrimaryKeyException;
-import com.poesys.db.col.AbstractColumnValue;
-import com.poesys.db.col.BigIntegerColumnValue;
-import com.poesys.db.dao.PoesysTrackingThread;
 
 
 /**
@@ -99,11 +93,10 @@ public class PrimaryKeyFactory {
                                                         BigInteger value,
                                                         String className)
       throws DuplicateKeyNameException, InvalidParametersException {
-    List<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
+    List<IColumnValue> list = new ArrayList<>();
     list.add(new BigIntegerColumnValue(name, value));
-    list = new ArrayList<AbstractColumnValue>(list);
-    NaturalPrimaryKey key = new NaturalPrimaryKey(list, className);
-    return key;
+    list = new ArrayList<>(list);
+    return new NaturalPrimaryKey(list, className);
   }
 
   /**
@@ -119,11 +112,10 @@ public class PrimaryKeyFactory {
    *           column with the same name
    * @throws InvalidParametersException when the list has no key columns
    */
-  public static NaturalPrimaryKey createNaturalKey(List<AbstractColumnValue> list,
+  public static NaturalPrimaryKey createNaturalKey(List<IColumnValue> list,
                                                    String className)
       throws DuplicateKeyNameException, InvalidParametersException {
-    NaturalPrimaryKey key = new NaturalPrimaryKey(list, className);
-    return key;
+    return new NaturalPrimaryKey(list, className);
   }
 
   /**
@@ -139,8 +131,7 @@ public class PrimaryKeyFactory {
    */
   public static GuidPrimaryKey createGuidKey(String name, String className)
       throws InvalidParametersException {
-    GuidPrimaryKey key = new GuidPrimaryKey(name, className);
-    return key;
+    return new GuidPrimaryKey(name, className);
   }
 
   /**
@@ -158,8 +149,7 @@ public class PrimaryKeyFactory {
   public static GuidPrimaryKey createGuidKey(String name, UUID uuid,
                                              String className)
       throws InvalidParametersException {
-    GuidPrimaryKey key = new GuidPrimaryKey(name, uuid, className);
-    return key;
+    return new GuidPrimaryKey(name, uuid, className);
   }
 
   /**
@@ -177,8 +167,7 @@ public class PrimaryKeyFactory {
   public static IdentityPrimaryKey createIdentityKey(String name,
                                                      String className)
       throws InvalidParametersException {
-    IdentityPrimaryKey key = new IdentityPrimaryKey(name, className);
-    return key;
+    return new IdentityPrimaryKey(name, className);
   }
 
   /**
@@ -197,8 +186,7 @@ public class PrimaryKeyFactory {
                                                      BigInteger value,
                                                      String className)
       throws InvalidParametersException {
-    IdentityPrimaryKey key = new IdentityPrimaryKey(name, value, className);
-    return key;
+    return new IdentityPrimaryKey(name, value, className);
   }
 
   /**
@@ -271,7 +259,7 @@ public class PrimaryKeyFactory {
                                                         String name,
                                                         String className) {
     // Create a runnable query object that does the query.
-    Runnable query = new Runnable() {
+    return new Runnable() {
       public void run() {
         PreparedStatement stmt = null;
 
@@ -291,7 +279,7 @@ public class PrimaryKeyFactory {
             sequenceKey =
               new SequencePrimaryKey(name, seqValue.toBigInteger(), className);
           } else {
-            List<String> list = new ArrayList<String>();
+            List<String> list = new ArrayList<>();
             NoPrimaryKeyException d = new NoPrimaryKeyException(NO_SEQ_MSG);
             list.add(finalName);
             list.add("no value found");
@@ -299,7 +287,7 @@ public class PrimaryKeyFactory {
             throw d;
           }
         } catch (SQLException e) {
-          List<String> list = new ArrayList<String>();
+          List<String> list = new ArrayList<>();
           NoPrimaryKeyException d = new NoPrimaryKeyException(NO_SEQ_MSG);
           list.add(finalName);
           list.add(e.getMessage());
@@ -319,7 +307,6 @@ public class PrimaryKeyFactory {
         }
       }
     };
-    return query;
   }
 
   /**
@@ -413,7 +400,7 @@ public class PrimaryKeyFactory {
                                                        String name,
                                                        String className) {
     // Create a runnable query object that does the query.
-    Runnable query = new Runnable() {
+    return new Runnable() {
       public void run() {
         PreparedStatement stmt = null;
         // Default the sequence name to the column name.
@@ -436,7 +423,7 @@ public class PrimaryKeyFactory {
             sequenceKey =
               new SequencePrimaryKey(name, seqValue.toBigInteger(), className);
           } else {
-            List<String> list = new ArrayList<String>();
+            List<String> list = new ArrayList<>();
             NoPrimaryKeyException x = new NoPrimaryKeyException(NO_SEQ_MSG);
             list.add(finalName);
             list.add("No row for sequence in Sequence table");
@@ -444,7 +431,7 @@ public class PrimaryKeyFactory {
             throw x;
           }
         } catch (SQLException e) {
-          List<String> list = new ArrayList<String>();
+          List<String> list = new ArrayList<>();
           NoPrimaryKeyException x = new NoPrimaryKeyException(NO_SEQ_MSG, e);
           list.add(finalName);
           list.add(e.getMessage());
@@ -462,7 +449,6 @@ public class PrimaryKeyFactory {
         }
       }
     };
-    return query;
   }
 
   /**
@@ -505,9 +491,7 @@ public class PrimaryKeyFactory {
                                                        IPrimaryKey subKey,
                                                        String className)
       throws InvalidParametersException, DuplicateKeyNameException {
-    CompositePrimaryKey key =
-      new CompositePrimaryKey(parentKey, subKey, className);
-    return key;
+    return new CompositePrimaryKey(parentKey, subKey, className);
   }
 
   /**
@@ -533,13 +517,10 @@ public class PrimaryKeyFactory {
       new SequencePrimaryKey(parentColumnName, parentId, className);
     BigIntegerColumnValue col =
       new BigIntegerColumnValue(childColumnName, childNumber);
-    List<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
+    List<IColumnValue> list = new ArrayList<>();
     list.add(col);
-    list = new CopyOnWriteArrayList<AbstractColumnValue>(list);
     NaturalPrimaryKey childKey = new NaturalPrimaryKey(list, className);
-    CompositePrimaryKey key =
-      new CompositePrimaryKey(parentKey, childKey, className);
-    return key;
+    return new CompositePrimaryKey(parentKey, childKey, className);
   }
 
   /**
@@ -564,13 +545,10 @@ public class PrimaryKeyFactory {
     IPrimaryKey parentKey = new GuidPrimaryKey(parentColumnName, parentId);
     BigIntegerColumnValue col =
       new BigIntegerColumnValue(childColumnName, childNumber);
-    List<AbstractColumnValue> list = new ArrayList<AbstractColumnValue>();
+    List<IColumnValue> list = new ArrayList<>();
     list.add(col);
-    list = new CopyOnWriteArrayList<AbstractColumnValue>(list);
     NaturalPrimaryKey childKey = new NaturalPrimaryKey(list, className);
-    CompositePrimaryKey key =
-      new CompositePrimaryKey(parentKey, childKey, className);
-    return key;
+    return new CompositePrimaryKey(parentKey, childKey, className);
   }
 
   /**
@@ -589,8 +567,7 @@ public class PrimaryKeyFactory {
   public static AssociationPrimaryKey createAssociationKey(List<IPrimaryKey> keys,
                                                            String className)
       throws DuplicateKeyNameException, InvalidParametersException {
-    AssociationPrimaryKey key = new AssociationPrimaryKey(keys, className);
-    return key;
+    return new AssociationPrimaryKey(keys, className);
   }
 
   /**
@@ -607,13 +584,13 @@ public class PrimaryKeyFactory {
   public static AssociationPrimaryKey createAssociationKey(List<IPrimaryKey> keys,
                                                            AssociationKeyMapping mapping,
                                                            String className) {
-    List<IPrimaryKey> list = new ArrayList<IPrimaryKey>();
+    List<IPrimaryKey> list = new ArrayList<>();
 
     // Copy the keys into a new Association key, setting the names by mapping.
     int i = 0; // index for key
     for (IPrimaryKey oldKey : keys) {
       IPrimaryKey newKey = oldKey.copy();
-      for (AbstractColumnValue col : newKey) {
+      for (IColumnValue col : newKey) {
         col.setName(mapping.lookUp(i, col.getName()));
       }
       // Add the key to the new list.

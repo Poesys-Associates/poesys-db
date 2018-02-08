@@ -22,6 +22,8 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.UUID;
 
+import com.poesys.db.col.json.IJsonColumnValue;
+import com.poesys.db.col.json.UuidJsonColumnValue;
 import org.apache.log4j.Logger;
 
 import com.poesys.db.InvalidParametersException;
@@ -48,7 +50,7 @@ public class UuidColumnValue extends AbstractColumnValue {
   private static final long serialVersionUID = 1L;
 
   /** The UUID value for the column */
-  private UUID value = null;
+  private UUID value;
 
   /**
    * Create a UuidColumnValue object.
@@ -68,7 +70,7 @@ public class UuidColumnValue extends AbstractColumnValue {
   }
 
   @Override
-  public boolean valueEquals(AbstractColumnValue value) {
+  public boolean valueEquals(com.poesys.db.col.IColumnValue value) {
     boolean ret = false;
     if (value instanceof UuidColumnValue) {
       ret = this.value.equals(((UuidColumnValue)value).value);
@@ -110,8 +112,13 @@ public class UuidColumnValue extends AbstractColumnValue {
   }
 
   @Override
-  protected void accept(IColumnVisitor visitor) {
+  public void accept(IColumnVisitor visitor) {
     visitor.visit(this);
+  }
+
+  @Override
+  public IJsonColumnValue getJsonColumnValue() {
+    return new UuidJsonColumnValue(name, getClass().getName(), value.toString());
   }
 
   @Override
@@ -126,8 +133,6 @@ public class UuidColumnValue extends AbstractColumnValue {
 
   @Override
   public IColumnValue<?> getMessageObject() {
-    IColumnValue<?> col =
-      new ColumnValueImpl<UUID>(name, IColumnValue.ColumnType.Uuid, value);
-    return col;
+    return new ColumnValueImpl<>(name, IColumnValue.ColumnType.Uuid, value);
   }
 }

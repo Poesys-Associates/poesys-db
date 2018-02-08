@@ -22,15 +22,15 @@ package com.poesys.db.col;
 import java.util.Comparator;
 
 /**
- * A Comparator implementation that compares AbstractColumnValue objects by
+ * A Comparator implementation that compares IColumnValue objects by
  * column name instead of using the default comparison by value.
  * 
  * @author Robert J. Muller
  */
-public class ColumnNameComparator implements Comparator<AbstractColumnValue> {
+public class ColumnNameComparator implements Comparator<IColumnValue> {
 
   @Override
-  public int compare(AbstractColumnValue col0, AbstractColumnValue col1) {
-    return col0.name.compareTo(col1.name);
+  public int compare(IColumnValue col0, IColumnValue col1) {
+    return col0.getName().compareTo(col1.getName());
   }
 }

@@ -18,6 +18,15 @@
 package com.poesys.db.dao.delete;
 
 
+import com.poesys.db.DbErrorException;
+import com.poesys.db.dao.MemcachedTest;
+import com.poesys.db.dao.insert.InsertMemcached;
+import com.poesys.db.dao.insert.InsertSqlTestNatural;
+import com.poesys.db.dto.TestNatural;
+import com.poesys.db.pk.IPrimaryKey;
+import org.apache.log4j.Logger;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -25,16 +34,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.apache.log4j.Logger;
-
-import com.poesys.db.BatchException;
-import com.poesys.db.DbErrorException;
-import com.poesys.db.dao.MemcachedTest;
-import com.poesys.db.dao.insert.InsertMemcached;
-import com.poesys.db.dao.insert.InsertSqlTestNatural;
-import com.poesys.db.dto.TestNatural;
-import com.poesys.db.pk.IPrimaryKey;
-
+import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Test the memcached delete process for a simple object. Debugging TAIR-2733.
@@ -53,9 +54,9 @@ public class DeleteMemcachedTestNaturalTest extends MemcachedTest {
    * 
    * @throws IOException when can't get a property
    * @throws SQLException when can't get a connection
-   * @throws BatchException when a problem happens during processing
    */
-  public void testDelete() throws IOException, SQLException, BatchException {
+  @Test
+  public void testDelete() throws IOException, SQLException {
     Connection conn;
     try {
       conn = getConnection();
@@ -65,9 +66,7 @@ public class DeleteMemcachedTestNaturalTest extends MemcachedTest {
 
     // Create an Inserter to add the row to update
     InsertMemcached<TestNatural> inserter =
-      new InsertMemcached<TestNatural>(new InsertSqlTestNatural(),
-                                       getSubsystem(),
-                                       Integer.MAX_VALUE);
+      new InsertMemcached<>(new InsertSqlTestNatural(), getSubsystem(), Integer.MAX_VALUE);
 
     // Create the DTO.
     BigDecimal col1 = new BigDecimal("1234.5678");
@@ -76,8 +75,7 @@ public class DeleteMemcachedTestNaturalTest extends MemcachedTest {
 
     // Create the Deleter.
     DeleteMemcachedByKey<TestNatural> deleter =
-      new DeleteMemcachedByKey<TestNatural>(new DeleteSqlTestNatural(),
-                                            getSubsystem());
+      new DeleteMemcachedByKey<>(new DeleteSqlTestNatural(), getSubsystem());
 
     Statement stmt = null;
     try {
