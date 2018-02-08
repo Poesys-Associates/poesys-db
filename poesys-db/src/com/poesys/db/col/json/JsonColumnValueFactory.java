@@ -12,7 +12,7 @@ import java.sql.Types;
  * types, including the Null type if the value is null and the type is a Java primitive type
  */
 public class JsonColumnValueFactory {
-  private static final String INVALID_TYPE_ERROR = "com.poesys.db.dto.msg.invalid_db_type";
+  private static final String INVALID_TYPE_ERROR = "com.poesys.db.col.json.msg.invalid_db_type";
 
   public static IJsonColumnValue getJsonColumnValue(JsonColumnValue value) {
     IJsonColumnValue concreteValue = null;

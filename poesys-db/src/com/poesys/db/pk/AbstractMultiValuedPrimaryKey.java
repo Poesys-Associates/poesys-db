@@ -185,9 +185,9 @@ public abstract class AbstractMultiValuedPrimaryKey extends AbstractPrimaryKey {
   public Iterator<IColumnValue> iterator() {
     // List is always in alphabetical order
     if (list == null) {
-      list = new ArrayList<IColumnValue>(1);
+      list = new ArrayList<>(1);
     }
-    return (Iterator<IColumnValue>)list.iterator();
+    return list.iterator();
   }
 
   /**
@@ -196,7 +196,7 @@ public abstract class AbstractMultiValuedPrimaryKey extends AbstractPrimaryKey {
    * @return the copy of the list
    */
   protected List<IColumnValue> copyList() {
-    List<IColumnValue> newList = new ArrayList<IColumnValue>();
+    List<IColumnValue> newList = new ArrayList<>();
 
     // Iterate using Iterable iterator, preserving order
     for (IColumnValue col : this) {

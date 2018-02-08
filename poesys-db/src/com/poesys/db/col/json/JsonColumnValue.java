@@ -13,11 +13,11 @@ import com.poesys.db.col.IColumnValue;
  * The idea is to parse JSON into this class, then transform it into a concrete subclass for use
  * in a primary key object. This class has the default constructor, as GSON does not need
  * either a specific constructor or accessor methods, but it also has a member constructor to
- * enable the creation of concrete subclasses by the factory.
+ * enable the creation of concrete subclasses by the factory. Also, the implementations of
+ * IColumnValue each contain a factory method that generates the appropriate implementation of
+ * IJsonColumnValue.
  */
 public class JsonColumnValue implements IJsonColumnValue {
-  private static final String INSTANTIATION_ERROR =
-    "com.poesys.db.dto.msg.json_column_value_base_instance";
   /** the column name */
   String name;
   /** the concrete Java fully qualified class name for the IColumnValue implementation */
@@ -25,16 +25,21 @@ public class JsonColumnValue implements IJsonColumnValue {
   /** the actual data value for the column in its String representation */
   String value;
 
+  // messages
+  private static final String INSTANTIATION_ERROR =
+    "com.poesys.db.col.json.msg.json_column_value_base_instance";
+
   /**
    * Create an empty JSON column value. (Used by GSON)
    */
-  public JsonColumnValue() {}
+  public JsonColumnValue() {
+  }
 
   /**
    * Member value constructor for concrete subclasses to call using super()
    *
-   * @param name the column name
-   * @param type the conrete Java fully qualified class name for the concrete subclass
+   * @param name  the column name
+   * @param type  the Java fully qualified class name for the concrete subclass
    * @param value the actual data value for the column as a String
    */
   public JsonColumnValue(String name, String type, String value) {

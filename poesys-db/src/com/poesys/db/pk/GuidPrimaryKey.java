@@ -21,8 +21,8 @@ package com.poesys.db.pk;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.col.IColumnValue;
 import com.poesys.db.col.UuidColumnValue;
+import com.poesys.db.pk.json.JsonPrimaryKey;
 
-import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -114,12 +114,6 @@ public class GuidPrimaryKey extends AbstractSingleValuedPrimaryKey {
   }
 
   @Override
-  public int setParams(PreparedStatement stmt, int nextIndex) {
-    // Set the string parameter as the String representation of the UUID.
-    return list.get(0).setParam(stmt, nextIndex);
-  }
-
-  @Override
   public String getValueList() {
     IColumnValue col = list.get(0);
     StringBuilder str = new StringBuilder();
@@ -142,6 +136,11 @@ public class GuidPrimaryKey extends AbstractSingleValuedPrimaryKey {
     return new com.poesys.ms.pk.GuidPrimaryKey(col.getName(),
                                                col.getValue(),
                                                className);
+  }
+
+  @Override
+  public JsonPrimaryKey getJsonPrimaryKey() {
+    return new JsonPrimaryKey(GuidPrimaryKey.class.getName(), className, getJsonColumnValueList());
   }
 
   /**

@@ -5,7 +5,9 @@ import com.poesys.db.col.IColumnValue;
 /**
  * An interface for implementations that represent the JSON data for column values suitable for
  * serialization and deserialization using GSON; requires data member getters to enable the JSON
- * column value factory to generate specific classes
+ * column value factory to generate specific classes; see the IColumnValue interface for the
+ * specification of a factory method that generates an IJsonColumnValue object from the
+ * IColumnValue object
  */
 public interface IJsonColumnValue {
   /**
@@ -22,13 +24,15 @@ public interface IJsonColumnValue {
    */
   String getName();
 
-  /** Get the fully qualified Java type of the concrete subclass.
+  /**
+   * Get the fully qualified Java type of the concrete subclass.
    *
    * @return a fully qualified Java type
    */
   String getType();
 
-  /** Get the JSON string value of the column.
+  /**
+   * Get the JSON string value of the column.
    *
    * @return the column value
    */

@@ -12,7 +12,7 @@ public class StringJsonColumnValue extends JsonColumnValue {
    * Member value constructor for concrete subclasses to call using super()
    *
    * @param name  the column name
-   * @param type  the conrete Java fully qualified class name for the concrete subclass
+   * @param type  the Java fully qualified class name for the concrete subclass
    * @param value the actual data value for the column as a String
    */
   public StringJsonColumnValue(String name, String type, String value) {

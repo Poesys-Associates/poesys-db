@@ -1,13 +1,9 @@
 package com.poesys.db.pk.json;/* Copyright (c) 2018 Poesys Associates. All rights reserved. */
 
-import com.poesys.db.col.IColumnValue;
-import com.poesys.db.col.StringColumnValue;
-import com.poesys.db.col.json.IJsonColumnValue;
 import com.poesys.db.col.json.JsonColumnValue;
 import com.poesys.db.col.json.StringJsonColumnValue;
-import com.poesys.db.pk.AssociationPrimaryKey;
+import com.poesys.db.pk.CompositePrimaryKey;
 import com.poesys.db.pk.IPrimaryKey;
-import com.poesys.db.pk.NaturalPrimaryKey;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -15,7 +11,10 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 
-public class AssociationJsonPrimaryKeyTest {
+/**
+ * CUT: CompositeJsonPrimaryKey
+ */
+public class CompositeJsonPrimaryKeyTest {
   private static final String CLASS = "com.poesys.db.ClassName";
 
   private static final String COL_NAME_1 = "col1";
@@ -30,34 +29,30 @@ public class AssociationJsonPrimaryKeyTest {
    */
   @Test
   public void getPrimaryKey() {
-    // Create the first primary key.
+    // Create the parent primary key.
     JsonColumnValue columnValue1 = new StringJsonColumnValue(COL_NAME_1, TYPE, COL_VALUE_1);
     List<JsonColumnValue> columnValueList = new ArrayList<>(1);
     columnValueList.add(columnValue1);
-    JsonPrimaryKey key1 = new NaturalJsonPrimaryKey(CLASS, columnValueList);
+    JsonPrimaryKey parentKey = new NaturalJsonPrimaryKey(CLASS, columnValueList);
 
-    // Create the second primary key
+    // Create the child primary key
     JsonColumnValue columnValue2 = new StringJsonColumnValue(COL_NAME_2, TYPE, COL_VALUE_2);
     columnValueList = new ArrayList<>(1);
     columnValueList.add(columnValue2);
-    JsonPrimaryKey key2 = new NaturalJsonPrimaryKey(CLASS, columnValueList);
+    JsonPrimaryKey childKey = new NaturalJsonPrimaryKey(CLASS, columnValueList);
 
-    // Create the association key that associates the first and second keys.
-    List<JsonPrimaryKey> primaryKeyList = new ArrayList<>(2);
-    primaryKeyList.add(key1);
-    primaryKeyList.add(key2);
-
-    AssociationJsonPrimaryKey jsonPrimaryKey = new AssociationJsonPrimaryKey(CLASS, primaryKeyList);
+    CompositeJsonPrimaryKey jsonPrimaryKey =
+      new CompositeJsonPrimaryKey(CLASS, parentKey, childKey);
 
     // Test the null values for the unused DTO fields.
     assertNull("sequence value is not null", jsonPrimaryKey.getValue());
     assertNull("column value list is not null", jsonPrimaryKey.getColumnValueList());
-    assertNull("parent key of composite key is not null", jsonPrimaryKey.getParentKey());
-    assertNull("child key of composite key is not null", jsonPrimaryKey.getChildKey());
+    assertNull("key list of association key is not null", jsonPrimaryKey.getKeyList());
+
     // Test getPrimaryKey().
     IPrimaryKey key = jsonPrimaryKey.getPrimaryKey();
     assertNotNull(key);
     assertTrue("wrong class for key: " + key.getClass().getName(),
-               key instanceof AssociationPrimaryKey);
+               key instanceof CompositePrimaryKey);
   }
 }

@@ -15,7 +15,7 @@ public class NullJsonColumnValue extends JsonColumnValue {
    * Member value constructor for concrete subclasses to call using super()
    *
    * @param name     the column name
-   * @param type     the conrete Java fully qualified class name for the concrete subclass
+   * @param type     the Java fully qualified class name for the concrete subclass
    * @param jdbcType the java.sql.type value for the object
    */
   public NullJsonColumnValue(String name, String type, int jdbcType) {

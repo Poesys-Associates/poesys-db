@@ -1,25 +1,25 @@
 /*
  * Copyright (c) 2008 Poesys Associates. All rights reserved.
- * 
+ *
  * This file is part of Poesys-DB.
- * 
+ *
  * Poesys-DB is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
  * version.
- * 
+ *
  * Poesys-DB is distributed in the hope that it will be useful, but WITHOUT ANY
  * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
  * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along with
  * Poesys-DB. If not, see <http://www.gnu.org/licenses/>.
  */
 package com.poesys.db.pk;
 
-
 import com.poesys.db.DuplicateKeyNameException;
 import com.poesys.db.col.IColumnValue;
+import com.poesys.db.pk.json.JsonPrimaryKey;
 
 import java.io.Serializable;
 import java.sql.PreparedStatement;
@@ -38,11 +38,10 @@ import java.util.Set;
  * specific kinds of keys (sequence and identity keys). A primary key is also
  * serializable, so you should include only primitive or Serializable data in
  * primary key implementations.
- * 
+ *
  * @author Robert J. Muller
  */
-public interface IPrimaryKey extends Iterable<IColumnValue>,
-    Comparable<IPrimaryKey>, Serializable {
+public interface IPrimaryKey extends Iterable<IColumnValue>, Comparable<IPrimaryKey>, Serializable {
   /**
    * <p>
    * Indicates whether some other object is "equal to" this one.
@@ -74,7 +73,7 @@ public interface IPrimaryKey extends Iterable<IColumnValue>,
    * for the hashCode method, which states that equal objects must have equal
    * hash codes.
    * </p>
-   * 
+   *
    * @param key an IPrimaryKey of the same concrete type
    * @return 0 if the keys are different, 1 if they are the same
    */
@@ -105,7 +104,7 @@ public interface IPrimaryKey extends Iterable<IColumnValue>,
    * objects. (This is typically implemented by converting the internal address
    * of the object into an integer, but this implementation technique is not
    * required by the JavaTM programming language.)
-   * 
+   *
    * @return a hash code value for this object
    */
   int hashCode();
@@ -114,7 +113,7 @@ public interface IPrimaryKey extends Iterable<IColumnValue>,
    * Get a deep copy of the primary key, with all internal components copied.
    * This enables you to change elements of the key without affecting the
    * original, as in changing column names in association keys.
-   * 
+   *
    * @return a deep copy of the primary key
    */
   IPrimaryKey copy();
@@ -125,10 +124,9 @@ public interface IPrimaryKey extends Iterable<IColumnValue>,
    * parameters in the format col1 = ? AND col2 = ?. The method prefixes the
    * column names in the string with the specified alias, which may be null. The
    * column names are ordered in the correct order (alphabetical order).
-   * 
+   *
    * @param alias the SQL alias for the table, prefixed to the column names; if
-   *          null, no alias is prefixed
-   * 
+   *              null, no alias is prefixed
    * @return a string representing a SQL WHERE clause expression
    */
   String getSqlWhereExpression(String alias);
@@ -138,10 +136,9 @@ public interface IPrimaryKey extends Iterable<IColumnValue>,
    * SQL statement that returns the values of the primary key of the table in
    * the FROM clause. Use the input alias name as the prefix for the columns.
    * The column names are ordered in the correct order (alphabetical order).
-   * 
+   *
    * @param alias the SQL alias for the table, prefixed to the column names; if
-   *          null, no alias is prefixed
-   * 
+   *              null, no alias is prefixed
    * @return a string representing a SQL SELECT column list
    */
   String getSqlColumnList(String alias);
@@ -151,7 +148,7 @@ public interface IPrimaryKey extends Iterable<IColumnValue>,
    * SQL statement that inserts an object into a table. This list includes all
    * the names of the primary key columns required for insert in the correct
    * order (alphabetical order).
-   * 
+   *
    * @return a string representing a SQL INSERT column list
    */
   String getSqlInsertColumnList();
@@ -161,19 +158,19 @@ public interface IPrimaryKey extends Iterable<IColumnValue>,
    * Get a list of values suitable for inclusion in an error message in the
    * format
    * </p>
-   * 
+   *
    * <pre>
    * <code>
    * &quot; (col1=value[,col2=value]...)&quot;
    * </code>
    * </pre>
-   * 
+   *
    * where col1, col2, ... are the column names of the primary key and the
    * values are the current values or "null" if there is no value. Note that
    * there should be no blanks, line returns, or null characters in the string.
    * The column names appear in the string in the correct order (alphabetical
    * order).
-   * 
+   *
    * @return a list of values suitable for embedding in an error message
    */
   String getValueList();
@@ -184,7 +181,7 @@ public interface IPrimaryKey extends Iterable<IColumnValue>,
    * exception if the internal representation contains duplicate column names.
    * The Set is unordered, so an iterator over the set will return the column
    * names in an undefined order.
-   * 
+   *
    * @return a Set of String column names, all of which are distinct
    * @throws DuplicateKeyNameException when there is a duplicate column name
    */
@@ -204,11 +201,11 @@ public interface IPrimaryKey extends Iterable<IColumnValue>,
    * but only for the primary key of the object being inserted. Use
    * <code>setParams</code> for setting foreign keys into the INSERT statement.
    * </p>
-   * 
-   * @param stmt the prepared statement; you must have already prepared the
-   *          statement with a parameterized SQL statement
+   *
+   * @param stmt      the prepared statement; you must have already prepared the
+   *                  statement with a parameterized SQL statement
    * @param nextIndex the parameter index at which to start setting the primary
-   *          key values
+   *                  key values
    * @return the next index at which to set values
    */
   int setParams(PreparedStatement stmt, int nextIndex);
@@ -233,14 +230,13 @@ public interface IPrimaryKey extends Iterable<IColumnValue>,
    * still sets parameters. Use this method for setting the primary key part of
    * the INSERT statement; use setParams for setting foreign keys.
    * </p>
-   * 
-   * @see #setParams(PreparedStatement, int)
-   * 
-   * @param stmt the prepared statement; you must have already prepared the
-   *          statement with a parameterized SQL INSERT statement
+   *
+   * @param stmt      the prepared statement; you must have already prepared the
+   *                  statement with a parameterized SQL INSERT statement
    * @param nextIndex the parameter index at which to start setting the primary
-   *          key values
+   *                  key values
    * @return the next index at which to set values
+   * @see #setParams(PreparedStatement, int)
    */
   int setInsertParams(PreparedStatement stmt, int nextIndex);
 
@@ -262,15 +258,15 @@ public interface IPrimaryKey extends Iterable<IColumnValue>,
    * The caller must close the statement, which will also close the result set
    * created for the auto-generated key.
    * </p>
-   * 
+   *
    * @param stmt the PreparedStatement containing the INSERT statement just
-   *          executed
+   *             executed
    */
   void finalizeInsert(PreparedStatement stmt);
 
   /**
    * Get the unique name to use for the cache name.
-   * 
+   *
    * @return the cache name
    */
   String getCacheName();
@@ -280,14 +276,14 @@ public interface IPrimaryKey extends Iterable<IColumnValue>,
    * iterator lets you iterate through the column values in order. You can use
    * objects of this class in Java foreach loops. The order is the correct order
    * (alphabetical order).
-   * 
+   *
    * @return a List of ColumnValue&lt;Object&gt; objects of different data types
    */
   Iterator<IColumnValue> iterator();
 
   /**
    * Get a Poesys/DB messaging object that represents a primary key.
-   * 
+   *
    * @return a Poesys/MS primary key (IPrimaryKey)
    */
   com.poesys.ms.pk.IPrimaryKey getMessageObject();
@@ -297,8 +293,17 @@ public interface IPrimaryKey extends Iterable<IColumnValue>,
    * The string key must have no blank or non-printing characters \n or \r or
    * the null character \0. The column names appear in the string in the correct
    * order (alphabetical order).
-   * 
+   *
    * @return a globally unique identifier string
    */
   String getStringKey();
+
+  /**
+   * Get a JSON primary key DTO that corresponds to the primary key. This factory method
+   * generates the appropriate concrete sublcass of IJsonPrimaryKey suitable for JSON
+   * serialization to a String.
+   *
+   * @return a JsonPrimaryKey object ready for serialization to String
+   */
+  JsonPrimaryKey getJsonPrimaryKey();
 }

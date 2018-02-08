@@ -25,6 +25,8 @@ import com.poesys.db.col.AbstractColumnValue;
 import com.poesys.db.col.BigIntegerColumnValue;
 import com.poesys.db.col.IColumnValue;
 import com.poesys.db.col.NullColumnValue;
+import com.poesys.db.pk.json.IdentityJsonPrimaryKey;
+import com.poesys.db.pk.json.JsonPrimaryKey;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -216,5 +218,29 @@ public class IdentityPrimaryKey extends AbstractSingleValuedPrimaryKey {
     return new com.poesys.ms.pk.IdentityPrimaryKey(msgCol.getName(),
                                                    msgCol.getValue(),
                                                    className);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    boolean equals = false;
+
+    if (o instanceof IdentityPrimaryKey) {
+      // Extract the BigInteger identity column value.
+      BigIntegerColumnValue thisCol = (BigIntegerColumnValue)list.get(0);
+      BigIntegerColumnValue thatCol = (BigIntegerColumnValue)((IdentityPrimaryKey)o).list.get(0);
+      // First compare column name.
+      equals = thisCol.getName().equals(thatCol.getName());
+      if (equals) {
+        // Then compare values.
+        equals = thisCol.getValue().compareTo(thatCol.getValue()) == 0;
+      }
+    }
+
+    return equals;
+  }
+
+  @Override
+  public JsonPrimaryKey getJsonPrimaryKey() {
+    return new IdentityJsonPrimaryKey(className, getJsonColumnValueList());
   }
 }

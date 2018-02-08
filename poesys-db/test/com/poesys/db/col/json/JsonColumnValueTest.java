@@ -39,7 +39,7 @@ public class JsonColumnValueTest {
       fail("no exception from getColumnValue()");
     } catch (RuntimeException e) {
       assertTrue("wrong message for exception",
-                 Message.getMessage("com.poesys.db.dto.msg.json_column_value_base_instance",
+                 Message.getMessage("com.poesys.db.col.json.msg.json_column_value_base_instance",
                                     null).equals(e.getMessage()));
     }
   }

@@ -101,7 +101,7 @@ public class BigIntegerColumnValue extends AbstractColumnValue {
    *
    * @return the value
    */
-  BigInteger getValue() {
+  public BigInteger getValue() {
     return value;
   }
 

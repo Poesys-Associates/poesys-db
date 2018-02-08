@@ -2,22 +2,19 @@ package com.poesys.db.pk.json;/* Copyright (c) 2018 Poesys Associates. All right
 
 import com.poesys.db.col.json.BigIntegerJsonColumnValue;
 import com.poesys.db.col.json.JsonColumnValue;
-import com.poesys.db.col.json.UuidJsonColumnValue;
-import com.poesys.db.pk.GuidPrimaryKey;
 import com.poesys.db.pk.IPrimaryKey;
-import com.poesys.db.pk.IdentityPrimaryKey;
+import com.poesys.db.pk.SequencePrimaryKey;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import static org.junit.Assert.*;
 
 /**
- * CUT: GuidJsonPrimaryKey
+ * CUT: SequenceJsonPrimaryKey
  */
-public class IdentityJsonPrimaryKeyTest {
+public class SequenceJsonPrimaryKeyTest {
   private static final String CLASS = "com.poesys.db.ClassName";
 
   private static final String COL_NAME_1 = "col1";
@@ -30,14 +27,13 @@ public class IdentityJsonPrimaryKeyTest {
    */
   @Test
   public void getPrimaryKey() {
-    // Create the guid column value.
+    // Create the sequence column value.
     JsonColumnValue columnValue1 = new BigIntegerJsonColumnValue(COL_NAME_1, TYPE, COL_VALUE_1);
     List<JsonColumnValue> columnValueList = new ArrayList<>(1);
     columnValueList.add(columnValue1);
-    IdentityJsonPrimaryKey jsonPrimaryKey = new IdentityJsonPrimaryKey(CLASS, columnValueList);
+    SequenceJsonPrimaryKey jsonPrimaryKey = new SequenceJsonPrimaryKey(CLASS, columnValueList);
 
     // Test the null values for the unused DTO fields.
-    assertNull("sequence value is not null", jsonPrimaryKey.getValue());
     assertNull("parent key of composite key is not null", jsonPrimaryKey.getParentKey());
     assertNull("child key of composite key is not null", jsonPrimaryKey.getChildKey());
     assertNull("key list of association key is not null", jsonPrimaryKey.getKeyList());
@@ -46,6 +42,6 @@ public class IdentityJsonPrimaryKeyTest {
     IPrimaryKey key = jsonPrimaryKey.getPrimaryKey();
     assertNotNull(key);
     assertTrue("wrong class for key: " + key.getClass().getName(),
-               key instanceof IdentityPrimaryKey);
+               key instanceof SequencePrimaryKey);
   }
 }

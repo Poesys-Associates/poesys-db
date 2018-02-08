@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 import static org.junit.Assert.*;
 
 /* Copyright (c) 2018 Poesys Associates. All rights reserved. */
-public class JsonIntegrationTest {
+public class JsonColumnValueIntegrationTest {
   private static final String NAME = "columnName";
   private static final String STRING_NAME = "stringColumnName";
   private static final String BIGDECIMAL_TYPE = BigDecimalColumnValue.class.getName();

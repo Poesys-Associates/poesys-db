@@ -20,6 +20,7 @@ package com.poesys.db.pk;
 import com.poesys.db.DuplicateKeyNameException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.col.IColumnValue;
+import com.poesys.db.pk.json.JsonPrimaryKey;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -198,5 +199,16 @@ public class AssociationPrimaryKey extends AbstractMultiValuedPrimaryKey {
       msgKeys.add(key.getMessageObject());
     }
     return new com.poesys.ms.pk.AssociationPrimaryKey(msgKeys, className);
+  }
+
+  @Override
+  public JsonPrimaryKey getJsonPrimaryKey() {
+    // Create a list of JSON primary keys from the association key list.
+    List<JsonPrimaryKey> jsonKeys = new ArrayList<>(2);
+    for (IPrimaryKey key : keyList) {
+      jsonKeys.add(key.getJsonPrimaryKey());
+    }
+    // Create the JSON primary key.
+    return new JsonPrimaryKey(className, jsonKeys);
   }
 }

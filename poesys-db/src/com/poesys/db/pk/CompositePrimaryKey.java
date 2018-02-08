@@ -20,6 +20,7 @@ package com.poesys.db.pk;
 import com.poesys.db.DuplicateKeyNameException;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.col.IColumnValue;
+import com.poesys.db.pk.json.JsonPrimaryKey;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -193,5 +194,16 @@ public class CompositePrimaryKey extends AbstractMultiValuedPrimaryKey {
     com.poesys.ms.pk.IPrimaryKey msgParentKey = parentKey.getMessageObject();
     com.poesys.ms.pk.IPrimaryKey msgSubKey = subKey.getMessageObject();
     return new com.poesys.ms.pk.CompositePrimaryKey(msgParentKey, msgSubKey, className);
+  }
+
+  @Override
+  public JsonPrimaryKey getJsonPrimaryKey() {
+    // Create the JSON parent primary key.
+    JsonPrimaryKey parentKey = getParentKey().getJsonPrimaryKey();
+    // Create the JSON child primary key.
+    JsonPrimaryKey childKey = getSubKey().getJsonPrimaryKey();
+
+    // Create the composite generic JSON primary key.
+    return new JsonPrimaryKey(className, parentKey, childKey);
   }
 }

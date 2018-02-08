@@ -4,38 +4,38 @@ package com.poesys.db.pk.json;
 import com.poesys.db.col.IColumnValue;
 import com.poesys.db.col.json.JsonColumnValue;
 import com.poesys.db.col.json.JsonColumnValueFactory;
+import com.poesys.db.pk.GuidPrimaryKey;
 import com.poesys.db.pk.IPrimaryKey;
 import com.poesys.db.pk.NaturalPrimaryKey;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
- * A JSON DTO for natural primary keys
+ * A JSON DTO for GUID primary keys
  */
-public class NaturalJsonPrimaryKey extends JsonPrimaryKey {
+public class GuidJsonPrimaryKey extends JsonPrimaryKey {
   /**
-   * Create a natural JSON primary key DTO with a specified DTO class name, and list of JSON
-   * column values.
+   * Create a GUID JSON primary key DTO with a specified DTO class name and a list of JSON column
+   * values containing a single GUID string value.
    *
    * @param className       the fully qualified name of the DTO class for the objects that the
    *                        primary key identifies
-   * @param columnValueList a list of the JSON DTOs for the natural key column values
+   * @param columnValueList a list containing the JSON DTO for the GUID key column value
    */
-  public NaturalJsonPrimaryKey(String className, List<JsonColumnValue> columnValueList) {
-    super(NaturalPrimaryKey.class.getName(), className, columnValueList);
+  public GuidJsonPrimaryKey(String className, List<JsonColumnValue> columnValueList) {
+    super(GuidPrimaryKey.class.getName(), className, columnValueList);
   }
 
   @Override
   public IPrimaryKey getPrimaryKey() {
-    // Create a list of IColumnValue objects from the list of JSON column values.
-    List<IColumnValue> list = new ArrayList<>();
-    for (JsonColumnValue value : getColumnValueList()) {
-      // Convert the generic column value into a concrete subclass column value, then get the
-      // IColumnValue for that object and put it into the primary key list of column values.
-      list.add(JsonColumnValueFactory.getJsonColumnValue(value).getColumnValue());
-    }
+    // Get the GUID and column name.
+    JsonColumnValue value = getColumnValueList().get(0);
+    UUID uuid = UUID.fromString(value.getValue());
+    String columnName = value.getName();
+
     // Create the natural primary key.
-    return new NaturalPrimaryKey(list, getClassName());
+    return new GuidPrimaryKey(columnName, uuid, getClassName());
   }
 }

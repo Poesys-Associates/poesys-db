@@ -20,6 +20,8 @@ package com.poesys.db.pk;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.col.BigIntegerColumnValue;
 import com.poesys.db.col.IColumnValue;
+import com.poesys.db.pk.json.JsonPrimaryKey;
+import com.poesys.db.pk.json.SequenceJsonPrimaryKey;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -39,8 +41,8 @@ import java.util.List;
  * use the appropriate generation technology given the specific database to
  * create the BigInteger value assigned. This precludes, for example, using the
  * Oracle NEXTVAL pseudo-column to generate the value in place; instead, the
- * factory would SELECT SEQNAME.NEXTVAL() FROM DUAL to get the next value from
- * the SEGNAME sequence. Use the IdentityPrimaryKey class to use a Sybase or
+ * factory would SELECT SEQ_NAME.NEXTVAL() FROM DUAL to get the next value from
+ * the SEQ_NAME sequence. Use the IdentityPrimaryKey class to use a Sybase or
  * SQLServer identity column or a MySQL auto-increment column.
  * </p>
  * <p>
@@ -148,5 +150,11 @@ public class SequencePrimaryKey extends AbstractSingleValuedPrimaryKey {
     com.poesys.ms.col.IColumnValue<BigInteger> msgCol =
       (com.poesys.ms.col.IColumnValue<BigInteger>)col.getMessageObject();
     return new com.poesys.ms.pk.SequencePrimaryKey(msgCol.getName(), msgCol.getValue(), className);
+  }
+
+  @Override
+  public JsonPrimaryKey getJsonPrimaryKey() {
+    return new SequenceJsonPrimaryKey(className, getJsonColumnValueList());
+
   }
 }

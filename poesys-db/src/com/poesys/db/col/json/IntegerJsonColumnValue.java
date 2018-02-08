@@ -9,13 +9,13 @@ import com.poesys.db.col.IntegerColumnValue;
  * Implementation of the IJsonColumnValue interface for Integer data
  */
 public class IntegerJsonColumnValue extends JsonColumnValue {
-  private static final String INVALID_NUMBER_ERROR = "com.poesys.db.dto.msg.invalid_number_format";
+  private static final String INVALID_NUMBER_ERROR = "com.poesys.db.col.json.msg.invalid_number_format";
 
   /**
    * Member value constructor for concrete subclasses to call using super()
    *
    * @param name  the column name
-   * @param type  the conrete Java fully qualified class name for the concrete subclass
+   * @param type  the Java fully qualified class name for the concrete subclass
    * @param value the actual data value for the column as a String
    */
   public IntegerJsonColumnValue(String name, String type, String value) {

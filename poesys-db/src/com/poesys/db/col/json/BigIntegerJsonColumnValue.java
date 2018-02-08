@@ -11,13 +11,13 @@ import java.math.BigInteger;
  * Implementation of the IJsonColumnValue interface for BigInteger data
  */
 public class BigIntegerJsonColumnValue extends JsonColumnValue {
-  private static final String INVALID_NUMBER_ERROR = "com.poesys.db.dto.msg.invalid_number_format";
+  private static final String INVALID_NUMBER_ERROR = "com.poesys.db.col.json.msg.invalid_number_format";
 
   /**
    * Member value constructor for concrete subclasses to call using super()
    *
    * @param name  the column name
-   * @param type  the conrete Java fully qualified class name for the concrete subclass
+   * @param type  the Java fully qualified class name for the concrete subclass
    * @param value the actual data value for the column as a String
    */
   public BigIntegerJsonColumnValue(String name, String type, String value) {
