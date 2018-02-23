@@ -10,6 +10,7 @@ import com.poesys.db.pk.SequencePrimaryKey;
 
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A serialized version of a Poesys primary key value; collapses all the different data
@@ -140,5 +141,93 @@ public class JsonPrimaryKey implements IJsonPrimaryKey {
   @Override
   public IPrimaryKey getPrimaryKey() {
     throw new RuntimeException(Message.getMessage(INSTANTIATION_ERROR, null));
+  }
+
+  // Code special equals() logic to ensure proper null handling.
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (!(object instanceof JsonPrimaryKey)) {
+      return false;
+    }
+
+    JsonPrimaryKey that = (JsonPrimaryKey)object;
+
+    // First compare key type and class name, which are required fields. Even if an object is an
+    // instance of the parent concrete class JsonPrimaryKey, it will have a keyType that
+    // identifies the targeted concrete subclass, and this must be the same for both keys.
+    boolean isEqual = java.util.Objects.equals(keyType, that.keyType) &&
+                      java.util.Objects.equals(className, that.className);
+
+    if (isEqual) {
+
+      // Compute the various concrete field combinations. This enables comparing keys of different
+      // concrete types to the concrete supertype, which is what comes out of GSON.
+
+      if (columnValueList != null) {
+        // Comparing natural keys, GUID keys, or identity keys; compare the value list.
+        isEqual = isEqualList(that.getColumnValueList());
+      } else if (value != null) {
+        // Comparing sequence keys
+        isEqual = java.util.Objects.equals(value, that.value);
+      } else if (keyList != null) {
+        // Comparing association keys
+        isEqual = isEqualKeyList(that.keyList);
+      } else {
+        // Comparing composite keys
+        isEqual =
+          parentKey != null && childKey != null && Objects.equals(parentKey, that.parentKey) &&
+          Objects.equals(childKey, that.childKey);
+      }
+    }
+
+    return isEqual;
+  }
+
+  /**
+   * Is the column-value list of this object equal to another column value list?
+   *
+   * @param otherColumnList the other list
+   * @return true if the lists contain equal objects in the same order
+   */
+  private boolean isEqualList(List<JsonColumnValue> otherColumnList) {
+    boolean equal = false;
+    if (columnValueList.size() == otherColumnList.size()) {
+      equal = true;
+      for (int i = 0; i < columnValueList.size(); i++) {
+        equal = java.util.Objects.equals(columnValueList.get(i), otherColumnList.get(i));
+        if (!equal) {
+          break;
+        }
+      }
+    }
+    return equal;
+  }
+
+  /**
+   * Is the key list of this object equal to another key list?
+   *
+   * @param otherKeyList the other list
+   * @return true if the lists contain equal keys in the same order
+   */
+  private boolean isEqualKeyList(List<JsonPrimaryKey> otherKeyList) {
+    boolean equal = false;
+    if (keyList.size() == otherKeyList.size()) {
+      equal = true;
+      for (int i = 0; i < keyList.size(); i++) {
+        equal = java.util.Objects.equals(keyList.get(i), otherKeyList.get(i));
+        if (!equal) {
+          break;
+        }
+      }
+    }
+    return equal;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(keyType, className, columnValueList, value, keyList, parentKey, childKey);
   }
 }
