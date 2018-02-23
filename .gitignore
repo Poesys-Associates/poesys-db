@@ -1,0 +1,12 @@
+.project
+.myeclipse
+.mymetadata
+.classpath
+.settings/
+.idea/
+out/
+*.iml
+bin/
+src/log4j.xml
+
+/build.properties
