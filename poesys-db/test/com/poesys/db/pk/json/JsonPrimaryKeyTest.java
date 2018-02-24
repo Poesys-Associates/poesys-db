@@ -214,7 +214,11 @@ public class JsonPrimaryKeyTest {
       new JsonColumnValue(NAME_1, StringColumnValue.class.getName(), "value1");
     list.add(value1);
     JsonPrimaryKey key1 = new JsonPrimaryKey(NaturalPrimaryKey.class.getName(), CLASS, list);
-    JsonPrimaryKey key2 = new JsonPrimaryKey(NaturalPrimaryKey.class.getName(), CLASS, list);
+    List<JsonColumnValue> list2 = new ArrayList<>(1);
+    JsonColumnValue value2 =
+      new JsonColumnValue(NAME_1, StringColumnValue.class.getName(), "value1");
+    list2.add(value2);
+    JsonPrimaryKey key2 = new JsonPrimaryKey(NaturalPrimaryKey.class.getName(), CLASS, list2);
     assertTrue("matching column lists (1 col) not equal", key1.equals(key2));
   }
 
@@ -249,7 +253,14 @@ public class JsonPrimaryKeyTest {
     list.add(value1);
     list.add(value2);
     JsonPrimaryKey key1 = new JsonPrimaryKey(NaturalPrimaryKey.class.getName(), CLASS, list);
-    JsonPrimaryKey key2 = new JsonPrimaryKey(NaturalPrimaryKey.class.getName(), CLASS, list);
+    List<JsonColumnValue> list2 = new ArrayList<>(2);
+    JsonColumnValue value21 =
+      new JsonColumnValue(NAME_1, StringColumnValue.class.getName(), "value1");
+    JsonColumnValue value22 =
+      new JsonColumnValue(NAME_2, StringColumnValue.class.getName(), "value2");
+    list2.add(value21);
+    list2.add(value22);
+    JsonPrimaryKey key2 = new JsonPrimaryKey(NaturalPrimaryKey.class.getName(), CLASS, list2);
     assertTrue("matching column lists (2 cols) not equal", key1.equals(key2));
   }
 
@@ -304,10 +315,13 @@ public class JsonPrimaryKeyTest {
   @Test
   public void testEqualsKeyList1() {
     List<JsonPrimaryKey> keyList = new ArrayList<>(2);
-    JsonPrimaryKey key1 = new JsonPrimaryKey();
+    JsonPrimaryKey key1 = new JsonPrimaryKey(CLASS, BigInteger.ONE);
     keyList.add(key1);
     JsonPrimaryKey primaryKey1 = new JsonPrimaryKey(CLASS, keyList);
-    JsonPrimaryKey primaryKey2 = new JsonPrimaryKey(CLASS, keyList);
+    List<JsonPrimaryKey> keyList2 = new ArrayList<>(2);
+    JsonPrimaryKey key2 = new JsonPrimaryKey(CLASS, BigInteger.ONE);
+    keyList2.add(key2);
+    JsonPrimaryKey primaryKey2 = new JsonPrimaryKey(CLASS, keyList2);
     assertTrue("association keys (1) with same key list are not equal", primaryKey1.equals(primaryKey2));
   }
 
@@ -317,12 +331,17 @@ public class JsonPrimaryKeyTest {
   @Test
   public void testEqualsKeyList2() {
     List<JsonPrimaryKey> keyList = new ArrayList<>(2);
-    JsonPrimaryKey key1 = new JsonPrimaryKey();
-    JsonPrimaryKey key2 = new JsonPrimaryKey();
+    JsonPrimaryKey key1 = new JsonPrimaryKey(CLASS, BigInteger.ONE);
+    JsonPrimaryKey key2 = new JsonPrimaryKey(CLASS, BigInteger.ONE);
     keyList.add(key1);
     keyList.add(key2);
     JsonPrimaryKey primaryKey1 = new JsonPrimaryKey(CLASS, keyList);
-    JsonPrimaryKey primaryKey2 = new JsonPrimaryKey(CLASS, keyList);
+    List<JsonPrimaryKey> keyList2 = new ArrayList<>(2);
+    JsonPrimaryKey key21 = new JsonPrimaryKey(CLASS, BigInteger.ONE);
+    JsonPrimaryKey key22 = new JsonPrimaryKey(CLASS, BigInteger.ONE);
+    keyList2.add(key21);
+    keyList2.add(key22);
+    JsonPrimaryKey primaryKey2 = new JsonPrimaryKey(CLASS, keyList2);
     assertTrue("association keys (2) with same key list are not equal", primaryKey1.equals(primaryKey2));
   }
 
@@ -367,10 +386,12 @@ public class JsonPrimaryKeyTest {
    */
   @Test
   public void testEqualsComposite() {
-    JsonPrimaryKey parentKey = new JsonPrimaryKey();
-    JsonPrimaryKey childKey = new JsonPrimaryKey();
-    JsonPrimaryKey key1 = new JsonPrimaryKey(CLASS, parentKey, childKey);
-    JsonPrimaryKey key2 = new JsonPrimaryKey(CLASS, parentKey, childKey);
+    JsonPrimaryKey parentKey1 = new JsonPrimaryKey(CLASS, BigInteger.ONE);
+    JsonPrimaryKey childKey1 = new JsonPrimaryKey(CLASS, BigInteger.ONE);
+    JsonPrimaryKey key1 = new JsonPrimaryKey(CLASS, parentKey1, childKey1);
+    JsonPrimaryKey parentKey2 = new JsonPrimaryKey(CLASS, BigInteger.ONE);
+    JsonPrimaryKey childKey2 = new JsonPrimaryKey(CLASS, BigInteger.ONE);
+    JsonPrimaryKey key2 = new JsonPrimaryKey(CLASS, parentKey2, childKey2);
     assertTrue("composite key with same keys not equal", key1.equals(key2));
   }
 

@@ -176,10 +176,12 @@ public class JsonPrimaryKey implements IJsonPrimaryKey {
         // Comparing association keys
         isEqual = isEqualKeyList(that.keyList);
       } else {
-        // Comparing composite keys
-        isEqual =
-          parentKey != null && childKey != null && Objects.equals(parentKey, that.parentKey) &&
-          Objects.equals(childKey, that.childKey);
+        // Comparing composite keys; if any of the four keys is null, sets flag to false
+        boolean parentEqual =
+          parentKey != null && that.parentKey != null && parentKey.equals(that.parentKey);
+        boolean childEqual =
+          childKey != null && that.childKey != null && childKey.equals(that.childKey);
+        isEqual = parentEqual && childEqual;
       }
     }
 
@@ -197,7 +199,7 @@ public class JsonPrimaryKey implements IJsonPrimaryKey {
     if (columnValueList.size() == otherColumnList.size()) {
       equal = true;
       for (int i = 0; i < columnValueList.size(); i++) {
-        equal = java.util.Objects.equals(columnValueList.get(i), otherColumnList.get(i));
+        equal = columnValueList.get(i).equals(otherColumnList.get(i));
         if (!equal) {
           break;
         }
@@ -217,7 +219,7 @@ public class JsonPrimaryKey implements IJsonPrimaryKey {
     if (keyList.size() == otherKeyList.size()) {
       equal = true;
       for (int i = 0; i < keyList.size(); i++) {
-        equal = java.util.Objects.equals(keyList.get(i), otherKeyList.get(i));
+        equal = keyList.get(i).equals(otherKeyList.get(i));
         if (!equal) {
           break;
         }

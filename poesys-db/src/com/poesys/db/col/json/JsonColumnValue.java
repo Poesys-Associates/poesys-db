@@ -72,4 +72,32 @@ public class JsonColumnValue implements IJsonColumnValue {
   public String getValue() {
     return value;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof JsonColumnValue)) {
+      return false;
+    }
+
+    JsonColumnValue that = (JsonColumnValue)o;
+
+    if (!name.equals(that.name)) {
+      return false;
+    }
+    if (!type.equals(that.type)) {
+      return false;
+    }
+    return value.equals(that.value);
+  }
+
+  @Override
+  public int hashCode() {
+    int result = name.hashCode();
+    result = 31 * result + type.hashCode();
+    result = 31 * result + value.hashCode();
+    return result;
+  }
 }
