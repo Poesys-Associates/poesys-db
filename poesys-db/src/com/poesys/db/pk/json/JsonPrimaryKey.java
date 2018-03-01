@@ -192,11 +192,26 @@ public class JsonPrimaryKey implements IJsonPrimaryKey {
   public int hashCode() {
     int result = keyType.hashCode();
     result = 31 * result + className.hashCode();
-    result = 31 * result + (columnValueList != null ? columnValueList.hashCode() : 0);
+    result = 31 * result + (columnValueList != null ? hashList(result, columnValueList) : 0);
     result = 31 * result + (value != null ? value.hashCode() : 0);
     result = 31 * result + (keyList != null ? keyList.hashCode() : 0);
     result = 31 * result + (parentKey != null ? parentKey.hashCode() : 0);
     result = 31 * result + (childKey != null ? childKey.hashCode() : 0);
+    return result;
+  }
+
+  /**
+   * Compute a hash code based on another hash code and a list of column values.
+   *
+   * @param hashCode the hash code to revise
+   * @param list the list of column values to hash
+   * @return a new hash code
+   */
+  private int hashList(int hashCode, List<JsonColumnValue> list) {
+    int result = hashCode;
+    for (JsonColumnValue value : list) {
+      result = 31 * result + value.hashCode();
+    }
     return result;
   }
 
