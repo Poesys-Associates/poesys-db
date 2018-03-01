@@ -188,6 +188,18 @@ public class JsonPrimaryKey implements IJsonPrimaryKey {
     return isEqual;
   }
 
+  @Override
+  public int hashCode() {
+    int result = keyType.hashCode();
+    result = 31 * result + className.hashCode();
+    result = 31 * result + (columnValueList != null ? columnValueList.hashCode() : 0);
+    result = 31 * result + (value != null ? value.hashCode() : 0);
+    result = 31 * result + (keyList != null ? keyList.hashCode() : 0);
+    result = 31 * result + (parentKey != null ? parentKey.hashCode() : 0);
+    result = 31 * result + (childKey != null ? childKey.hashCode() : 0);
+    return result;
+  }
+
   /**
    * Is the column-value list of this object equal to another column value list?
    *
@@ -226,10 +238,5 @@ public class JsonPrimaryKey implements IJsonPrimaryKey {
       }
     }
     return equal;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(keyType, className, columnValueList, value, keyList, parentKey, childKey);
   }
 }
