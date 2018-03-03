@@ -61,7 +61,7 @@ public abstract class AbstractJsonObject {
    * @param <T>  the type of the objects in the list
    * @return a new hash code based on the initial hash code and the objects in the list
    */
-  private <T> int hashList(int hash, List<T> list) {
+  protected <T> int hashList(int hash, List<T> list) {
     int result = hash;
     if (list == null || list.isEmpty()) {
       result = 31 * result;
@@ -81,7 +81,7 @@ public abstract class AbstractJsonObject {
    * @param <T>   the generic type; type must override equals() method
    * @return true if the lists are both null OR both non-null with equal objects in the list
    */
-  private <T> boolean checkListEqual(List<T> list1, List<T> list2) {
+  protected <T> boolean checkListEqual(List<T> list1, List<T> list2) {
     boolean isEqual = true;
     if (list1 != null && list2 != null) {
       if (list1.size() == list2.size()) {
