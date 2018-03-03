@@ -201,47 +201,18 @@ public class JsonPrimaryKey implements IJsonPrimaryKey {
   }
 
   /**
-   * Generic method to get a deep hash code from a list of objects of a certain type T, returning
-   * a default hash if the list is null or empty
+   * Compute a hash code based on another hash code and a list of column values.
    *
-   * @param hash the initial hash code
-   * @param list the list to hash
-   * @param <T>  the type of the objects in the list
-   * @return a new hash code based on the initial hash code and the objects in the list
+   * @param hashCode the hash code to revise
+   * @param list the list of column values to hash
+   * @return a new hash code
    */
-  protected <T> int hashList(int hash, List<T> list) {
-    int result = hash;
-    if (list == null || list.isEmpty()) {
-      result = 31 * result;
-    } else {
-      for (T object : list) {
-        result = 31 * result + object.hashCode();
-      }
+  private int hashList(int hashCode, List<JsonColumnValue> list) {
+    int result = hashCode;
+    for (JsonColumnValue value : list) {
+      result = 31 * result + value.hashCode();
     }
     return result;
-  }
-
-  /**
-   * Test two lists for equality.
-   *
-   * @param list1 the first list
-   * @param list2 the second list
-   * @param <T>   the generic type; type must override equals() method
-   * @return true if the lists are both null OR both non-null with equal objects in the list
-   */
-  protected <T> boolean checkListEqual(List<T> list1, List<T> list2) {
-    boolean isEqual = true;
-    if (list1 != null && list2 != null) {
-      if (list1.size() == list2.size()) {
-        for (int i = 0; i < list1.size(); i++) {
-          isEqual = list1.get(i).equals(list2.get(i));
-          if (!isEqual) {
-            break;
-          }
-        }
-      }
-    }
-    return isEqual;
   }
 
   /**
