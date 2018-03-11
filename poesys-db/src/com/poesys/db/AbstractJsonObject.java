@@ -1,6 +1,7 @@
 /* Copyright (c) 2018 Poesys Associates. All rights reserved. */
 package com.poesys.db;
 
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.List;
 
@@ -17,10 +18,10 @@ public abstract class AbstractJsonObject {
   public static final String DELETED = "DELETED";
 
   // date-related constants for use by all concrete JSON objects
-  protected static final String pattern = "yyyy-MM-dd HH:mm:ss.SSS";
-  protected static final SimpleDateFormat format = new SimpleDateFormat(pattern);
+  public static final String PATTERN = "yyyy-MM-dd HH:mm:ss.SSS";
+  public static final SimpleDateFormat FORMAT = new SimpleDateFormat(PATTERN);
 
-  // messages
+  // messages available to all concrete subclasses
   protected static final String INVALID_STATUS_ERROR = "invalid JSON object status ";
 
   /**
