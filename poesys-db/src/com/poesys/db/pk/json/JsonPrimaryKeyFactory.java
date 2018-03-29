@@ -6,6 +6,7 @@ import com.poesys.db.Message;
 import com.poesys.db.col.IColumnValue;
 import com.poesys.db.col.json.IJsonColumnValue;
 import com.poesys.db.col.json.JsonColumnValue;
+import com.poesys.db.pk.IPrimaryKey;
 import com.poesys.db.pk.NaturalPrimaryKey;
 
 import java.util.ArrayList;
@@ -55,5 +56,21 @@ public class JsonPrimaryKeyFactory {
         throw new InvalidParametersException(message);
     }
     return key;
+  }
+
+  /**
+   * Given a list of Poesys/DB primary keys, generate a list of JSON primary keys.
+   *
+   * @param keys the input list of Poesys/DB primary keys
+   * @return the output list of JSON primary keys; empty list for null input or 0-sized input
+   */
+  public static List<JsonPrimaryKey> getList(List<IPrimaryKey> keys) {
+    List<JsonPrimaryKey> jsonKeys = new ArrayList<>();
+    if (keys != null && !keys.isEmpty()) {
+      for (IPrimaryKey key : keys) {
+        jsonKeys.add(key.getJsonPrimaryKey());
+      }
+    }
+    return jsonKeys;
   }
 }
