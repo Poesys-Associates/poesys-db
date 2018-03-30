@@ -1,7 +1,8 @@
 /* Copyright (c) 2018 Poesys Associates. All rights reserved. */
 package com.poesys.db;
 
-import java.sql.Timestamp;
+import com.poesys.db.dto.IDbDto;
+
 import java.text.SimpleDateFormat;
 import java.util.List;
 
@@ -42,7 +43,7 @@ public abstract class AbstractJsonObject {
   }
 
   /**
-   * Set the status of the object.
+   * Set the status of the object from a textual status value.
    * @param status NEW, EXISTING, CHANGED, or DELETED
    */
   public void setStatus(String status) {
@@ -53,6 +54,37 @@ public abstract class AbstractJsonObject {
       case DELETED:
         this.status = status;
         break;
+      default:
+        throw new InvalidParametersException(INVALID_STATUS_ERROR + status);
+    }
+  }
+
+  /**
+   * Set the status of the object from an IDbDto status.
+   *
+   * @param status an IDbDto status value
+   */
+  public void setStatus(IDbDto.Status status) {
+    switch (status) {
+      case NEW:
+        setStatus(AbstractJsonObject.NEW);
+        break;
+      case EXISTING:
+        setStatus(AbstractJsonObject.EXISTING);
+        break;
+      case CHANGED:
+        setStatus(AbstractJsonObject.CHANGED);
+        break;
+      case DELETED:
+        setStatus(AbstractJsonObject.DELETED);
+        break;
+      case CASCADE_DELETED:
+        setStatus(AbstractJsonObject.DELETED);
+        break;
+      case DELETED_FROM_DATABASE:
+        setStatus(AbstractJsonObject.DELETED);
+        break;
+      case FAILED:
       default:
         throw new InvalidParametersException(INVALID_STATUS_ERROR + status);
     }
