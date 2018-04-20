@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import com.poesys.db.AbstractJsonObject;
 import org.apache.log4j.Logger;
 
 import com.poesys.db.InvalidParametersException;
@@ -319,6 +320,25 @@ public abstract class AbstractDto implements IDbDto {
       changed = (status != previousStatus);
     }
     return changed;
+  }
+
+  @Override
+  public void setJsonStatus(AbstractJsonObject jsonObject) {
+      switch (getStatus()) {
+        case NEW:
+          jsonObject.setStatus(AbstractJsonObject.NEW);
+          break;
+        case CHANGED:
+          jsonObject.setStatus(AbstractJsonObject.CHANGED);
+          break;
+        case DELETED:
+        case CASCADE_DELETED:
+        case DELETED_FROM_DATABASE:
+          jsonObject.setStatus(AbstractJsonObject.DELETED);
+          break;
+        default: // Also handles FAILED
+          jsonObject.setStatus(AbstractJsonObject.EXISTING);
+      }
   }
 
   @Override

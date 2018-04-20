@@ -22,6 +22,7 @@ import java.io.Serializable;
 import java.sql.PreparedStatement;
 import java.util.List;
 
+import com.poesys.db.AbstractJsonObject;
 import com.poesys.db.InvalidParametersException;
 import com.poesys.db.dao.insert.IInsert;
 import com.poesys.db.pk.IPrimaryKey;
@@ -172,6 +173,13 @@ public interface IDbDto extends Serializable, Comparable<IDbDto>, ISubject,
    * Restore the previous status of the object.
    */
   void undoStatus();
+
+  /**
+   * Set the status of a JSON object from the DB DTO status.
+   *
+   * @param jsonObject the JSON object to update
+   */
+  void setJsonStatus(AbstractJsonObject jsonObject);
 
   /**
    * Has the status changed? Is the previous status different from the current
